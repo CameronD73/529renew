@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name" : "529renew",
+  "version" : "3.3.3.6",
+  "description" : "Tracks 23andMe Matches using a local SQL database",
+  "background": {
+  	"service_worker": "service.js"
+  },
+  "content_scripts" : [
+    {
+      "matches" : [
+      	"https://you.23andme.com/profile/*"
+      ],
+      "js" : [
+        "basicQueue.js",
+        "rounding.js",
+        "save_segments.js"
+      ],
+      "run_at" : "document_idle",
+      "all_frames" : false
+    }
+  ],
+  "permissions": [
+    "tabs",
+    "unlimitedStorage"
+  ],
+  "icons" : {
+  	"16" : "529Renew-16.png",
+  	"19" : "529Renew-19.png",
+  	"48" : "529Renew-48.png",
+  	"128" : "529Renew-128.png"
+  },
+  "web_accessible_resources": [
+	{
+	  "resources": [
+		"*.png"
+	  ],
+	  "matches": [
+		"<all_urls>"
+	  ]
+	}
+  ], 
+  "action":
+  {
+  	"default_icon" : "529Renew-19.png",
+  	"default_title" : "View matches in 529Renew"
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'"
+  }
+}

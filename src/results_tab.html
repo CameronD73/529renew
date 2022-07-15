@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html id="docBody">
+  <head>
+  	<script src="database_init.js"></script>
+  	<script src="results_options.js"></script>
+  	<script src="database_results.js"></script>
+  	<script src="results_tab.js"></script>
+  	<script src="FileSaver.js"></script>
+	<LINK href="results_tab.css" rel="stylesheet" title="Small" type="text/css">
+	<LINK href="results_tab2.css" rel="stylesheet" type="text/css">
+    <title>529Renew</title>
+  </head>
+  <body>
+  	<datalist id="labels">
+  	</datalist>
+  	<img src="529Renew.png" alt="" />
+	<div>Display mode:
+	  <select id="displayMode">
+  		<option selected value="0">Basic</option>
+  		<option value="1">Match Links</option>
+  		<option value="2">Match and Overlapping Segment Links</option>
+  		<option value="3">Edit Phasing Information and Ancestors</option>
+  	  </select>
+  	  <select id="build">
+  	  	<option selected value="37">Build 37</option>
+  	  	<option value="36">Build 36</option>
+  	  </select>
+  	  <select id="textSize">
+  	  	<option selected value="small">Small Text</option>
+  	  	<option value="normal">Normal Text</option>
+  	  </select>
+  	  <input id="omitAliasesCheckBox" type="checkbox">
+  	  <label for="omitAliasesCheckBox">Omit Aliases</label>
+	</div>
+	<div id="filterDiv">
+		Optional match filter: <input type="text" id="selectNameFilter" title="Use '%' as wildcard, e.g. John% or %Smith">
+	</div>
+  	<div>Show matches of
+		<select id="selectName" title="Use a match filter to create a shorter list"></select>
+		on chromosome 
+		<select id="chromosome">
+			<option selected value="0">All</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">X</option>
+		</select>
+	</div>
+	<div>
+		<input id="hideCloseMatchesCheckBox" type="checkbox">
+		<label for="hideCloseMatchesCheckBox">Don't display close relatives with more than 21 such segments</label>
+	</div>
+	<div>
+		Always display:
+		<input id="alwaysShowPhaseCheckBox" type="checkbox">
+		<label for="alwaysShowPhaseCheckBox">Phase</label>
+		<input id="alwaysShowLabelsCheckBox" type="checkbox">
+		<label for="alwaysShowLabelsCheckBox">Labels</label>
+		<input id="alwaysShowCommonAncestorsCheckBox" type="checkbox">
+		<label for="alwaysShowCommonAncestorsCheckBox">Common ancestors</label>
+	</div>
+	<!-- <div class="fileupload" style='height: 0px;width:0px; overflow:hidden;'><input id="upfile" type="file" value="upload"/></div> -->
+	<div class="fileupload"><input id="upfile" type="file" value="upload"/></div>
+  	<div id="test"></div>
+  	
+  	<div class="special" id="table_div"></div>
+  </body>
+</html>
