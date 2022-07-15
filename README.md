@@ -9,7 +9,13 @@ Most of the original source was public domain and we have been unable to contact
 The repository contains a modified copy of the code from manifest version 2 as well as the development towards a manifest V3 extension.
 
 ## Version 2 installation
-This is not for the faint-hearted and something you should only do if you feel confident following these instructions, or if you have no other choice.
+The manifest version 2 code is a minimal change from the original 529andYou extension. It includes:
+* modifications to the original code that was released in the public domain.
+* a copy of the 3rd party [FileSaver.js code](https://github.com/eligrey/FileSaver.js) under an MIT licence.
+* new image logos in png format, as the original logos were explicitly excluded from the public domain licence.
+
+This is not for the faint-hearted and something you should only do if you feel confident following [these instructions from the wiki](https://github.com/CameronD73/529renew/wiki/Installing-manifest-V2-code), or if you have no other choice.
+
 
 ## Version 3 installation
 This is for testing purposes prior to an extension being placed in the Chrome store.
