@@ -1,6 +1,7 @@
 /*
-** database routines for presenting results in the results tab.
-** Should be preceeded by database_common.js
+** database I/O routines.
+** These routines communicate directly with the DB, not via message passing
+** Should be preceeded by database_init.js
 */
 
 /*  eslint-disable no-unused-vars */
@@ -37,45 +38,6 @@ function upgradeToCurrentBuild(id1_1, id1_2, id2_1, id2_2, upgradeIfNeeded, upgr
 	db23.readTransaction(makeTransaction(id1_1, id1_2, id2_1, id2_2, upgradeIfNeeded, upgradeQueryFailed));
 }
 
-/* the query in  selectSegmentMatchesFromDatabase is as follows...
-SELECT ibdsegs.ROWID as ROWID,
-	t1.name AS name1,
-	t2.name AS name2,
-	t1.id_1 AS id1_1,
-	t1.id_2 AS id1_2,
-	t2.id_1 AS id2_1,
-	t2.id_2 AS id2_2,
-	ibdsegs.chromosome AS chromosome,
-	ibdsegs.start AS start,
-	ibdsegs.end AS end,
-	ibdsegs.centimorgans AS centimorgans,
-	ibdsegs.snps AS snps
-    FROM ibdsegs
-	JOIN idalias t1 ON (t1.id_1=ibdsegs.id1_1 AND t1.id_2=ibdsegs.id1_2)
-	JOIN idalias t2 ON (t2.id_1=ibdsegs.id2_1 AND t2.id_2=ibdsegs.id2_2)
-	JOIN ibdsegs t3 ON	(ibdsegs.build=? 
-				AND t3.build=? 
-				AND t3.ROWID=? 
-				AND (	(t3.chromosome=ibdsegs.chromosome
-					AND (	(ibdsegs.start>=t3.start AND ibdsegs.end<=t3.end)
-						OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.end)
-						OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.start)
-						OR (ibdsegs.start<=t3.end AND ibdsegs.end>=t3.end)
-					)
-				)
-					OR ibdsegs.chromosome=100
-				) AND (    (t3.id1_1=ibdsegs.id1_1 AND t3.id1_2=ibdsegs.id1_2)
-					OR (t3.id1_1=ibdsegs.id2_1 AND t3.id1_2=ibdsegs.id2_2)
-					OR (t3.id2_1=ibdsegs.id1_1 AND t3.id2_2=ibdsegs.id1_2)
-					OR (t3.id2_1=ibdsegs.id2_1 AND t3.id2_2=ibdsegs.id2_2)
-				)
-		) ORDER BY chromosome,
-				ibdsegs.start,
-				ibdsegs.end DESC,
-				ibdsegs.ROWID,
-				julianday(t1.date)+julianday(t2.date),
-				t1.ROWID+t2.ROWID
-*/
 const sellist1 = "ibdsegs.ROWID as ROWID,\
 	t1.name AS name1,\
 	t2.name AS name2,\
@@ -131,23 +93,10 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	function makeTransaction(callback){
 		return function(transaction){
 			transaction.executeSql( sel_short, [build, build, segmentId], callback, callback);
-			//transaction.executeSql('SELECT ibdsegs.ROWID as ROWID, t1.name AS name1, t2.name AS name2, t1.id_1 AS id1_1, t1.id_2 AS id1_2, t2.id_1 AS id2_1, t2.id_2 AS id2_2, ibdsegs.chromosome AS chromosome, ibdsegs.start AS start, ibdsegs.end AS end, ibdsegs.centimorgans AS centimorgans, ibdsegs.snps AS snps FROM ibdsegs JOIN idalias t1 ON (t1.id_1=ibdsegs.id1_1 AND t1.id_2=ibdsegs.id1_2) JOIN idalias t2 ON (t2.id_1=ibdsegs.id2_1 AND t2.id_2=ibdsegs.id2_2) JOIN ibdsegs t3 ON (ibdsegs.build=? AND t3.build=? AND t3.ROWID=? AND ((t3.chromosome=ibdsegs.chromosome AND ((ibdsegs.start>=t3.start AND ibdsegs.end<=t3.end) OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.end) OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.start) OR (ibdsegs.start<=t3.end AND ibdsegs.end>=t3.end))) OR ibdsegs.chromosome=100) AND ((t3.id1_1=ibdsegs.id1_1 AND t3.id1_2=ibdsegs.id1_2) OR (t3.id1_1=ibdsegs.id2_1 AND t3.id1_2=ibdsegs.id2_2) OR (t3.id2_1=ibdsegs.id1_1 AND t3.id2_2=ibdsegs.id1_2) OR (t3.id2_1=ibdsegs.id2_1 AND t3.id2_2=ibdsegs.id2_2))) ORDER BY chromosome, ibdsegs.start, ibdsegs.end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID', [build, build, segmentId], callback, callback);
 		};
 	}
 	db23.readTransaction(makeTransaction(callbackSuccess));
 }
-
-function selectSegmentMatchesAndPhaseFromDatabase(callbackSuccess, segmentId){
-	const sel_long=`SELECT ${sellist1}, ${sellist2} FROM ${joinlist} ORDER BY ${orderlist}`;
-	function makeTransaction(callback){
-		return function(transaction){
-			transaction.executeSql( sel_long, [build, build, segmentId], callback, callback);
-			// transaction.executeSql('SELECT ibdsegs.ROWID as ROWID, t1.name AS name1, t2.name AS name2, t1.id_1 AS id1_1, t1.id_2 AS id1_2, t2.id_1 AS id2_1, t2.id_2 AS id2_2, ibdsegs.chromosome AS chromosome, ibdsegs.start AS start, ibdsegs.end AS end, ibdsegs.centimorgans AS centimorgans, ibdsegs.snps AS snps, ibdsegs.phase1 AS phase1, ibdsegs.relationship1 AS relationship1, ibdsegs.phase2 AS phase2, ibdsegs.relationship2 AS relationship2, ibdsegs.comment AS comment FROM ibdsegs JOIN idalias t1 ON (t1.id_1=ibdsegs.id1_1 AND t1.id_2=ibdsegs.id1_2) JOIN idalias t2 ON (t2.id_1=ibdsegs.id2_1 AND t2.id_2=ibdsegs.id2_2) JOIN ibdsegs t3 ON (ibdsegs.build=? AND t3.build=? AND t3.ROWID=? AND ((t3.chromosome=ibdsegs.chromosome AND ((ibdsegs.start>=t3.start AND ibdsegs.end<=t3.end) OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.end) OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.start) OR (ibdsegs.start<=t3.end AND ibdsegs.end>=t3.end))) OR ibdsegs.chromosome=100) AND ((t3.id1_1=ibdsegs.id1_1 AND t3.id1_2=ibdsegs.id1_2) OR (t3.id1_1=ibdsegs.id2_1 AND t3.id1_2=ibdsegs.id2_2) OR (t3.id2_1=ibdsegs.id1_1 AND t3.id2_2=ibdsegs.id1_2) OR (t3.id2_1=ibdsegs.id2_1 AND t3.id2_2=ibdsegs.id2_2))) ORDER BY chromosome, ibdsegs.start, ibdsegs.end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID', [build, build, segmentId], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-
 
 // Queries a list of names and associated ids for whom data are available
 function getMatchesFromDatabase(callbackSuccess){
@@ -214,33 +163,6 @@ function selectFromDatabase(callbackSuccess, id, chromosome){
 	else db23.readTransaction(makeTransactionWithId(callbackSuccess, id2numbers(id)));
 }
 
-function selectFromDatabaseWithPhaseInfo(callbackSuccess, id, chromosome){
-
-	var lowerBound=0;
-	var upperBound=24;
-	var chrNum=parseInt(chromosome);
-	if(chrNum>0){
-		lowerBound=chrNum-1;
-		upperBound=chrNum+1;
-	}
-	function makeTransaction(callback){
-		return function(transaction){
-			//transaction.executeSql('SELECT chromosome, start, end, centimorgans, snps FROM ibdsegs;', [], callback, callback);
-			transaction.executeSql('SELECT ibdsegs.ROWID as ROWID, t1.name AS name1, t2.name AS name2, t1.id_1 AS id1_1, t1.id_2 AS id1_2, t2.id_1 AS id2_1, t2.id_2 AS id2_2, chromosome, start, end, centimorgans, snps, phase1, relationship1, phase2, relationship2, comment  FROM ibdsegs JOIN idalias t1 ON (t1.id_1=ibdsegs.id1_1 AND t1.id_2=ibdsegs.id1_2) JOIN idalias t2 ON (t2.id_1=ibdsegs.id2_1 AND t2.id_2=ibdsegs.id2_2) WHERE chromosome>? AND chromosome<? AND build=? ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID', [lowerBound, upperBound, build], callback, callback);
-		};
-	}
-	function makeTransactionWithId(callback, idnumbers){
-		return function(transaction){
-			//transaction.executeSql('SELECT chromosome, start, end, centimorgans, snps FROM ibdsegs;', [], callback, callback);
-			transaction.executeSql('SELECT ibdsegs.ROWID as ROWID, t1.name AS name1, t2.name AS name2, t1.id_1 AS id1_1, t1.id_2 AS id1_2, t2.id_1 AS id2_1, t2.id_2 AS id2_2, chromosome, start, end, centimorgans, snps, phase1, relationship1, phase2, relationship2, comment  FROM ibdsegs JOIN idalias t1 ON (t1.id_1=ibdsegs.id1_1 AND t1.id_2=ibdsegs.id1_2) JOIN idalias t2 ON (t2.id_1=ibdsegs.id2_1 AND t2.id_2=ibdsegs.id2_2) WHERE ((ibdsegs.id1_1=? AND ibdsegs.id1_2=?) OR (ibdsegs.id2_1=? AND ibdsegs.id2_2=?)) AND chromosome>? AND chromosome<? AND build=? ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID', [idnumbers[0], idnumbers[1], idnumbers[0], idnumbers[1], lowerBound, upperBound, build], callback, callback);
-		};
-	}
-	if(id.length<16){
-		db23.readTransaction(makeTransaction(callbackSuccess));
-	}
-	else db23.readTransaction(makeTransactionWithId(callbackSuccess, id2numbers(id)));
-}
-
 function selectFromDatabaseWithNonMatches(callbackSuccess, id, chromosome){
 
 	var lowerBound=0;
@@ -274,119 +196,6 @@ function selectFromDatabaseWithNonMatches(callbackSuccess, id, chromosome){
 * the following functions write to the database
 ********************************************************
 */
-function updatePhase(rowid, value, position){
-
-	if(value==null) return;
-
-	if(value==0) value=null;
-	else value--;
-	
-	if(value==null){
-		if(position==1){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET phase1=NULL WHERE ROWID=?',[rowid]);
-				},
-				function(err){alert("Failed to save phase change to the 529Renew database");}
-
-			);
-		}
-		else if(position==2){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET phase2=NULL WHERE ROWID=?',[rowid]);
-				},
-				function(err){alert("Failed to save phase change to the 529Renew database");}
-			);
-		}
-
-	}
-	else{
-
-		if(position==1){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET phase1=? WHERE ROWID=?',[value, rowid]);
-				},
-				function(err){alert("Failed to save phase change to the 529Renew database");}
-			);
-		}
-		else if(position==2){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET phase2=? WHERE ROWID=?',[value, rowid]);
-				},
-				function(err){alert("Failed to save phase change to the 529Renew database");}
-			);
-		}
-	}
-}
-function updateCommonAncestors(rowid, commonAncestors){
-	if(commonAncestors==null) return;
-	
-	if(commonAncestors.length==0) commonAncestors=null;
-	
-	if(commonAncestors==null){
-		db23.transaction(
-			function(transaction){
-				transaction.executeSql('UPDATE ibdsegs SET comment=NULL WHERE ROWID=?',[rowid]);
-			},
-			function(err){alert("Failed to save common ancestor change to the 529Renew database");}
-		);
-	}
-	else{
-		db23.transaction(
-			function(transaction){
-				transaction.executeSql('UPDATE ibdsegs SET comment=? WHERE ROWID=?',[commonAncestors, rowid]);
-			},
-			function(err){alert("Failed to save common ancestor change to the 529Renew database");}
-		);
-
-	}
-}
-function updateRelationship(rowid, relationship, position){
-	if(relationship==null) return;
-	
-	if(relationship.length==0) relationship=null;
-	
-	if(relationship==null){
-		if(position==1){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET relationship1=NULL WHERE ROWID=?',[rowid]);
-				},
-				function(err){alert("Failed to save label change to the 529Renew database");}
-			);
-		}
-		else if(position==2){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET relationship2=NULL WHERE ROWID=?',[rowid]);
-				},
-				function(err){alert("Failed to save label change to the 529Renew database");}
-			);
-		}
-	}
-	else{
-		if(position==1){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET relationship1=? WHERE ROWID=?',[relationship, rowid]);
-				},
-				function(err){alert("Failed to save label change to the 529Renew database");}
-			);
-		}
-		else if(position==2){
-			db23.transaction(
-				function(transaction){
-					transaction.executeSql('UPDATE ibdsegs SET relationship2=? WHERE ROWID=?',[relationship, rowid]);
-				},
-				function(err){alert("Failed to save label change to the 529Renew database");}
-			);
-		}
-	}
-}
-
 
 // Put data from 529 export (without phase) into database
 function import529CSV(lineList, callback){
@@ -457,152 +266,10 @@ function import529CSV(lineList, callback){
 	}
 }
 
-// Put data from 529Renew with phase  into database
-function importWithPhase529CSV(lineList, callback){
-
-	if(!lineList) return;
-	
-	pendingTransactionCount=0;
-	noPendingTransactionCallBack=callback;
-	
-	// Store the names and ids of the matches
-	function makeIdAliasTransaction(val){
-		// Transaction factory to allow looping
-		var numbers=id2numbers(val[0]);
-		var name=val[1];
-		return function(transaction){
-			transaction.executeSql("INSERT INTO idalias (id_1, id_2, name, date, company_id) VALUES(?, ?, ?, date('now'), 1);", [numbers[0], numbers[1], name]);
-		};
-	}
-	// Store the matching segments
-	function makeMatchingSegmentTransaction(id1, id2, chromosome, start, end, centimorgans, snps, phase1, relationship1, phase2, relationship2, comment){
-		// Transaction factory to allow looping
-		var compared=compareIds(id1, id2);
-		if(compared==0) return; // Don't enter matches with self
-		var numbers1;
-		var numbers2;
-		// Order matches consistently
-		if(compared>0){
-			numbers1=id2numbers(id1);
-			numbers2=id2numbers(id2);
-		}
-		else{
-			numbers1=id2numbers(id2);
-			numbers2=id2numbers(id1);
-		}
-		return function(transaction){
-			transaction.executeSql("INSERT INTO ibdsegs (id1_1, id1_2, id2_1, id2_2, chromosome, start, end, centimorgans, snps, phase1, relationship1, phase2, relationship2, comment, date, build) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, date('now'),?);",[numbers1[0], numbers1[1], numbers2[0], numbers2[1], chromosome, start, end, centimorgans, snps, phase1, relationship1, phase2, relationship2, comment, current23andMeBuild]);
-		};
-	}
-	
-	// i=0 is header row
-	for(let i=1; i< lineList.length; i++){
-		var entry=lineList[i].split(',');
-		if(entry.length==14){
-			var firstName=entry[0];
-			var firstId=entry[7];
-			var secondName=entry[1];
-			var secondId=entry[8];
-			var entryChromosome;
-			if(entry[2]==="X")
-				entryChromosome=23;
-			else
-				entryChromosome=entry[2];
-			var entryStart=entry[3];
-			var entryEnd=entry[4];
-			var entrycM=entry[5];
-			var entrySNPs=entry[6];
-			var entryPhase1=entry[9];
-			if(entryPhase1.length==0)
-				entryPhase1=null;
-			var entryRelationship1=entry[10];
-			if(entryRelationship1.length==0) entryRelationship1=null;
-			var entryPhase2=entry[11];
-			if(entryPhase2.length==0) entryPhase2=null;
-			var entryRelationship2=entry[12];
-			if(entryRelationship2.length==0) entryRelationship2=null;
-			var entryComment=entry[13];
-			if(entryComment.length==0)
-				entryComment=null;
-			
-			pendingTransactionCount++;
-			db23.transaction(makeIdAliasTransaction([firstId, firstName]), decrementPendingTransactionCount, decrementPendingTransactionCount);
-			pendingTransactionCount++;
-			db23.transaction(makeIdAliasTransaction([secondId, secondName]), decrementPendingTransactionCount, decrementPendingTransactionCount);
-			pendingTransactionCount++;
-			db23.transaction(makeMatchingSegmentTransaction(firstId, secondId, entryChromosome, entryStart, entryEnd, entrycM, entrySNPs, entryPhase1, entryRelationship1, entryPhase2, entryRelationship2, entryComment), decrementPendingTransactionCount, decrementPendingTransactionCount);
-			pendingTransactionCount++;
-			db23.transaction(makeMatchingSegmentTransaction(firstId, secondId, 100, -1, -1, 0, 0), decrementPendingTransactionCount, decrementPendingTransactionCount);
-		}
-		else{
-			// parse error
-		}
-	}
-}
-
-
-
-/*
-** we don't want a listenter here.  do we?
-
-chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-	db_conlog( 1, "db_res msg received with req: " + Object.keys( request ) );
-  
-	if(request.checkIfInDatabase!=null){
-		db_conlog( 1, "InDB checking " + request );
-		if(request.shiftIsDown){
-			// Skip database query
-			chrome.tabs.sendMessage(sender.tab.id, {indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
-		}
-		function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
-			return function(transaction, resultSet){
-				var myrow=null;
-				if(resultSet.rows.length==1) myrow=resultSet.rows.item(0);
-				db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
-				if(myrow!=null){
-					var needToCompare=false;
-					if(myrow.hits==0) needToCompare=true;
-					chrome.tabs.sendMessage(tab_id, {indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
-				}
-			};
-		}
-		function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
-			return function(error){
-				// Default is to just do comparison
-				chrome.tabs.sendMessage(tab_id, {indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
-			};
-		}
-		var messageSender=makeMessageSender(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
-		var messageSenderForFailure=makeMessageSenderForFailure(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
-
-		var indexIds=id2numbers(request.indexId);
-		var matchIds=id2numbers(request.matchId);
-		upgradeToCurrentBuild(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
-		return;
-	}
-  });
-*/
 
 function onRequest(request, sender, sendResponse) {
 
-	/*  no used here...
-	if(request.ids==null){
-		if(request.url!=null){
-			// Handles new experience 529Renew button
-			openActiveURL(request.url);
-		}
-		// if(request.sharingNamesAndIds!=null){
-		// 	sharingNamesAndIds=request.sharingNamesAndIds;
-		// }
-		// else if(request.profileNamesAndIds!=null){
-		// 	profileNamesAndIds=request.profileNamesAndIds;
-		// }
-		sendResponse({});
-		return;
-	}
-	*/
-
+	
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(val){
 		// Transaction factory to allow looping

@@ -11,31 +11,6 @@
 db_conlog( 1, "loading DB actions");
 
 
-
-function upgradeToCurrentBuild(id1_1, id1_2, id2_1, id2_2, upgradeIfNeeded, upgradeQueryFailed){
-
-	function makeTransaction(id1_1, id1_2, id2_1, id2_2, callBackSuccess, callBackFailed){
-		var compared=compareNumbers(id1_1, id1_2, id2_1, id2_2);
-		if(compared==0) return; // Don't query matches with self
-		if(compared<0){
-			var temp=id1_1;
-			id1_1=id2_1;
-			id2_1=temp;
-			
-			temp=id1_2;
-			id1_2=id2_2;
-			id2_2=temp;
-		}
-		return function(transaction){
-			transaction.executeSql('SELECT id1_1, id1_2, id2_1, id2_2, COUNT(ROWID) AS hits from ibdsegs WHERE id1_1=? AND id1_2=? AND id2_1=? AND id2_2=? AND build=?',[id1_1, id1_2, id2_1, id2_2, current23andMeBuild], callBackSuccess, callBackFailed);
-		};
-	}
-	db_conlog( 2, `   dbREAD ${id1_1} vs ${id2_1}` );
-	db23.readTransaction(makeTransaction(id1_1, id1_2, id2_1, id2_2, upgradeIfNeeded, upgradeQueryFailed));
-}
-
-
-
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
   
@@ -83,13 +58,13 @@ chrome.runtime.onMessage.addListener(
 	}
   });
   	
-const subselect_aycw = "SELECT i1.ROWID AS ROWID FROM idalias i1, idalias i2 WHERE i1.id_1=i2.id_1 AND i1.id_2=i2.id_2 AND i1.name!=i2.name AND i1.name='You are comparing with'";
+const subselect_yacw = "SELECT i1.ROWID AS ROWID FROM idalias i1, idalias i2 WHERE i1.id_1=i2.id_1 AND i1.id_2=i2.id_2 AND i1.name!=i2.name AND i1.name='You are comparing with'";
 
 function fixYouAreComparingWithBug() {
 	// Delete 'You are comparing with' entries from idalias if there is an alternative alias stored
 	function makeCorrectionTransaction(){
 		return function(transaction){
-			transaction.executeSql(`DELETE FROM idalias WHERE ROWID IN (${subselect_aycw});`);
+			transaction.executeSql(`DELETE FROM idalias WHERE ROWID IN (${subselect_yacw});`);
 		};
 	}
 	db23.transaction(makeCorrectionTransaction());
