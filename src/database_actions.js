@@ -10,14 +10,7 @@
 
 db_conlog( 1, "loading DB actions");
 
-/*
-function openURL(url){
-	chrome.tabs.create({ url: url, active: false}, null);
-}
-function openActiveURL(url){
-	chrome.tabs.create({ url: url, active: true}, null);
-}
-*/
+
 
 function upgradeToCurrentBuild(id1_1, id1_2, id2_1, id2_2, upgradeIfNeeded, upgradeQueryFailed){
 
@@ -269,15 +262,4 @@ function idsRequest(request, sender, sendResponse) {
 	sendResponse({});
 }
 
-/* no idea what these do...
-function hiThere(tab){
-  chrome.tabs.create({'url': chrome.runtime.getURL('popup.html')}, function(tab) {
-    // Tab opened.
-  });
-}
-
-function hoThere(tab){
- chrome.tabs.sendMessage(tab.id, {greeting: "hello"});
-}
-*/
 

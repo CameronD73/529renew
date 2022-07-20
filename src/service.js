@@ -22,28 +22,12 @@ conlog( 0, "loading service worker from " + location);
 ** create the new tab for results presentation.
 ** It has to be done here because the content scripts do not have permission.
 */
-function tabRequest(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-	/*
-	** don't understand what this does - let's comment it out for the moment...
-	** In any case I don't think a service worker can have an onClicked event.
-
-	if(sender.url.indexOf("https://you.23andme.com/tools/relatives/dna/")==0){
-		// Avoid adding multiple listeners each time a qualifying page is loaded
-		if(!chrome.action.onClicked.hasListener(hoThere)){
-			chrome.action.onClicked.addListener(hoThere);
-		}
-	}
-	else{
-		// Avoid adding multiple listeners each time a qualifying page is loaded
-		if(!chrome.action.onClicked.hasListener(hiThere)){
-			chrome.action.onClicked.addListener(hiThere);
-		}
-	}
-	*/
-
-	if(request.url!=null){
-		
+	
+	if(request.url.indexOf( "results_tab.html") > 0){
+		open_results_tab(request.url)	
+	} else if(request.url!=null){
 		chrome.tabs.create({ url: request.url, active: true}, null);
 	}
 
@@ -51,21 +35,53 @@ function tabRequest(request, sender, sendResponse) {
 	return;
 
 }
+);
 
-
-
-// Listen for the content script to send a message to the background page.
-chrome.runtime.onMessage.addListener(tabRequest);
+/* this code will create and bring to front a results and database handler tab
+** but only is one does not exist already.
+** The URL might simply be the html file name in the extension, or a full path with a query parameter.
+*/
+function open_results_tab( url ) {
+	// we cannot ask for a partial title match, so we need to get all and check each one...
+	// Note - cannot use arrow function as url becomes out of scope.
+	chrome.tabs.query( {}, function(tabarr) {
+		conlog( 1, `results tab check returns ${tabarr.length} entries`);
+		let tabFound = -1;
+		for( let i = 0; i < tabarr.length; i++ ) {
+			let ttl = tabarr[i].title;
+			conlog( 2, `checking tab ${i} ${ttl} at index ${ttl.indexOf("529Renew")}`);
+			if ( ttl.indexOf("529Renew Database Actions" ) >= 0 ) {
+				conlog( 1, `found result tab in ${ttl}`);
+				tabFound = i;
+			}
+		}
+		if ( tabFound >= 0 ) {
+			// if the new url has a query, then kill the current window and start a new one
+			if (url.indexOf( "?") > 0 ) {
+				conlog ( 1, "replacing results tab...");
+				chrome.tabs.remove( tabarr[tabFound].id, function() {
+					chrome.tabs.create( { active:true, url:url });
+				} )
+			}
+		} else {
+			conlog ( 1, "no results tab, creating one...")
+			chrome.tabs.create( { active:true, url:url });
+		}
+	  }
+	);
+}
 
 // fire up the db create/update  code...
 
 chrome.runtime.onStartup.addListener( function() {
 	conlog( 0, "service worker startup event");
-	chrome.tabs.create( { active:true, url:"bgnd.html" });
-});
+	open_results_tab("results_tab.html");
+  }
+);
 
 self.addEventListener( 'activate', function() {
 	conlog( 0, "service worker activate event");
-	chrome.tabs.create( { active:true, url:"bgnd.html" });
-});
+	open_results_tab("results_tab.html");
+  }
+);
 
