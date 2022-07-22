@@ -757,7 +757,7 @@ function createTable12(transaction, results, colorize){
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
 
 	if(results.message){
-		alert("Failed to retrieve match data: "+ results.message);
+		alert("createTable12: Failed to retrieve match data: "+ results.message);
 		return;
 	}
 
@@ -1241,30 +1241,6 @@ function createTable12(transaction, results, colorize){
 				else
 					selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1_1, row.id1_2, row.id2_1, row.id2_2), row.ROWID);
 			}
-			/* ignore any code prior to build 37...
-			if(build!=37){
-			
-				//let bothAreSharing=true;
-				let firstIsSharing=false;
-				let secondIsSharing=false;
-				if(sharingNamesAndIds){
-					for(let ij=0; ij<sharingNamesAndIds.length; ij++){
-						if(sharingNamesAndIds[ij][1]===numbers2id([row.id1_1, row.id1_2])){
-							firstIsSharing=true;
-							break;
-						}
-					}
-					if(firstIsSharing){
-						for(let ij=0; ij<sharingNamesAndIds.length; ij++){
-							if(sharingNamesAndIds[ij][1]===numbers2id([row.id2_1, row.id2_2])){
-								secondIsSharing=true;
-							}
-						}
-					}
-				}
-				
-			}
-			*/
 		}
 		if(showPhaseInfo || alwaysShowCommonAncestors){
 			{
@@ -1298,7 +1274,6 @@ function createTable12(transaction, results, colorize){
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Genetic distance";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
 		if(showPhaseHints) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
-		//if(showPhaseHints && build!=37) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
 		if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
 	}
 	createMatchSVG(table);
@@ -1315,7 +1290,7 @@ function createCSV3(transaction, results){
 function createCSV12(transaction, results, includeIds, includeNonMatch){
 	
 	if(results.message){
-		alert("Failed to retrieve match data: "+ results.message);
+		alert("createCSV12: Failed to retrieve 12 match data: "+ results.message);
 		return;
 	}
 	var omitAliases=getOmitAliases();
@@ -1458,13 +1433,14 @@ function downloadSVG(){
 function createGEXF(transaction, results){
 
 	if(results.message){
-		alert("Failed to retrieve match data: "+ results.message);
+		alert("createGEFX: Failed to retrieve match data: "+ results.message);
 		return;
 	}	
 	
 	var gexfarray=new Array();
 	gexfarray.push('<?xml version="1.0" encoding="UTF-8"?>\n');
-	gexfarray.push('<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2" xmlns:viz="http://www.gexf.net/1.2draft/viz" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd">\n');
+	// Was 1.2 draft, but this code is compatible with 1.3...
+	gexfarray.push('<gexf xmlns="http://www.gexf.net/1.3" version="1.3" xmlns:viz="http://www.gexf.net/1.3/viz" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.3 http://www.gexf.net/1.3/gexf.xsd">\n');
 	gexfarray.push('  <meta lastmodifieddate="' + formattedDate2() + '">\n');
 	gexfarray.push('    <creator>529andYou</creator>\n');
 	gexfarray.push('    <description></description>\n');
@@ -1543,7 +1519,7 @@ function createSegmentTable(transaction, results){
 
 	
 	if(results.message){
-		alert("Failed to retrieve match data: "+ results.message);
+		alert("createSegmentTable: Failed to retrieve match data: "+ results.message);
 		return;
 	}
 	
@@ -2191,52 +2167,50 @@ function createSegmentTable(transaction, results){
 						
 					}
 					else{
-						if(build==37){
-							//let bothAreSharing=true;
-							let firstId=numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]);
-							let secondId=numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]);
-							let firstIsSharing=false;
-							let secondIsSharing=false;
-							// if(sharingNamesAndIds){
-							// 	for(let ii=0; ii<sharingNamesAndIds.length; ii++){
-							// 		if(sharingNamesAndIds[ii][1]===firstId){
-							// 			firstIsSharing=true;
-							// 			break;
-							// 		}
-							// 	}
-							// 	if(firstIsSharing){
-							// 		for(let ii=0; ii<sharingNamesAndIds.length; ii++){
-							// 			if(sharingNamesAndIds[ii][1]===secondId){
-							// 				secondIsSharing=true;
-							// 			}
-							// 		}
-							// 	}
-							// }
-							//if((firstIsSharing && secondIsSharing) || !sharingNamesAndIds)
-							{
-								let buttonCompare = document.createElement("button");
-								function makeComparison(indexId, matchId, indexName, matchName){
-									return function(evt){
-										evt.srcElement.disabled=true;
-										chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
-									};
-								}
-								buttonCompare.className="special";
-								buttonCompare.onclick=makeComparison(numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]), numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]), matchingSegmentsArray[k][i][1], matchingSegmentsArray[k][i][2]);
-								buttonCompare.innerHTML="compare";
-								// Previously provided link to compare
-								(tablerow.insertCell(curColumnId++)).append(buttonCompare);
+						//let bothAreSharing=true;
+						let firstId=numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]);
+						let secondId=numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]);
+						let firstIsSharing=false;
+						let secondIsSharing=false;
+						// if(sharingNamesAndIds){
+						// 	for(let ii=0; ii<sharingNamesAndIds.length; ii++){
+						// 		if(sharingNamesAndIds[ii][1]===firstId){
+						// 			firstIsSharing=true;
+						// 			break;
+						// 		}
+						// 	}
+						// 	if(firstIsSharing){
+						// 		for(let ii=0; ii<sharingNamesAndIds.length; ii++){
+						// 			if(sharingNamesAndIds[ii][1]===secondId){
+						// 				secondIsSharing=true;
+						// 			}
+						// 		}
+						// 	}
+						// }
+						//if((firstIsSharing && secondIsSharing) || !sharingNamesAndIds)
+						{
+							let buttonCompare = document.createElement("button");
+							function makeComparison(indexId, matchId, indexName, matchName){
+								return function(evt){
+									evt.srcElement.disabled=true;
+									chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
+								};
 							}
-							// else{
-							// 	let cell=tablerow.insertCell(curColumnId++);
-							// 	if(!firstIsSharing){
-							// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][1];
-							// 	}
-							// 	else{
-							// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][2];
-							// 	}
-							// }
+							buttonCompare.className="special";
+							buttonCompare.onclick=makeComparison(numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]), numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]), matchingSegmentsArray[k][i][1], matchingSegmentsArray[k][i][2]);
+							buttonCompare.innerHTML="compare";
+							// Previously provided link to compare
+							(tablerow.insertCell(curColumnId++)).append(buttonCompare);
 						}
+						// else{
+						// 	let cell=tablerow.insertCell(curColumnId++);
+						// 	if(!firstIsSharing){
+						// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][1];
+						// 	}
+						// 	else{
+						// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][2];
+						// 	}
+						// }
 					}
 				}
 	
@@ -2270,36 +2244,8 @@ function createSegmentTable(transaction, results){
 	}
 	createSVG(table);
 }
-// Duplicated from separate.js
-function numbers2id(nums){
-	// Convert array of 2 integers into 16 byte 23andMe hexadecimal id (no 0x prefix)
-	if(nums.length==undefined || nums.length!=2){
-		alert("Invalid numbers representing 23andMe id: " + nums);
-		return null;
-	}
-	let first=(Number(nums[0])).toString(16);
-	let second=(Number(nums[1])).toString(16);
-	if(first.length>8 || second.length>8){
-		alert("Invalid numbers representing 23andMe id: " + nums);
-		return null;
-	}
-	while(first.length<8) first="0"+first;
-	while(second.length<8) second="0"+second;
-	return first+second;
-}
-// Duplicated from separate.js
-function id2numbers(id){
-	// Convert 16 byte 23andMe hexadecimal id (as a string, no 0x prefix) to an array of 2 integers
-	// Note that Javascript cannot represent big integers with >15 bytes
-	if(id.length==undefined || id.length!=16){
-		alert("Invalid 23andMe id: " + id);
-		return null;
-	}
-	let result=new Array(2);
-	result[0]=parseInt(id.substr(0,8),16);
-	result[1]=parseInt(id.substr(8,8),16);
-	return result;
-}
+
+
 function providePhaseClues(rowid, name1, name2, id1_1, id1_2, id2_1, id2_2){
 	expectedName1=name1;
 	expectedName2=name2;
@@ -2406,59 +2352,7 @@ function requestImportToDatabase(evt){
 
     reader.readAsText(file);
 }
-function createCommonAncestorChangeListener(rowid){
-	return function(){
-		var commonAncestors=this.value.trim();
-		var badValue=false;
-		if(commonAncestors.indexOf(",")>-1){
-			badValue=true;
-			alert("Your common ancestor entry '" + commonAncestors + "' cannot be stored because it contains one or more commas");
-		}
-		if(!badValue){
-			updateCommonAncestors(rowid, commonAncestors);
-		}
-	};
-}
-function createPhaseChangeListener(rowid, position){
-	return function(evt){
-		//alert(rowid + " " + this.selectedIndex + " " +position);
-		
-		this.style.backgroundColor=phaseColors[this.selectedIndex];
-		updatePhase(rowid, this.selectedIndex, position);
-	};
-}
-function createRelationshipChangeListener(rowid, position){
-	return function(){
-		var relationship=this.value.trim();
-		var badValue=false;
-		if(relationship.length>0){
-			let isNew=true;
-			for(let i=0; i<document.getElementById("labels").children.length; i++){
-				if(relationship===document.getElementById("labels").children[i].value){
-					isNew=false;
-					break;
-				}
-			}
-			if(isNew){
-				if(/[^a-zA-Z0-9:.\-\\/ ]/.test(relationship)){
-					badValue=true;
-					alert("Your new label '" + relationship + "' cannot be used. It contains characters other than letters, numbers, spaces, hyphens, periods, colons and forward slashes");
-				}
-				else{
-					let opt=document.createElement("option");
-					opt.value=relationship;
-					document.getElementById("labels").appendChild(opt);
-				}
-			}
-		}
-		if(!badValue){
-			updateRelationship(rowid, relationship, position);
-		}
-		else{
-			this.value=null;
-		}
-	};
-}
+
 function requestDeletionFromDatabase(){
 	deleteAllData(resetAfterDeletion);
 }
@@ -2498,9 +2392,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-chrome.runtime.onMessage.addListener(
+
+/*
+** redundant stuff...
+** chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-	db_conlog( 1, "restab msg received with req: " + Object.keys( request ) );
+	db_conlog( 1, "result_tab msg received with req: " + Object.keys( request ) );
     if(request.greeting == "hello"){
       	if(document.getElementById("compare-button")!=null){
      		if(document.getElementById('b529')==null){
@@ -2594,8 +2491,11 @@ chrome.runtime.onMessage.addListener(
 		}
 	}
   });
+  */
 
 function storeSegments ( segobj ){
 //do the stuff previously done in the bgrnd 
 	db_conlog( 1, "calling segment store");
+	alert( "HELP, PUT SOME CODE HERE in storeSegments" );
 }
+

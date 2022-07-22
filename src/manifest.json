@@ -46,6 +46,6 @@
   	"default_title" : "View matches in 529Renew"
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'"
+    "extension_pages": "default-src 'self'"
   }
 }

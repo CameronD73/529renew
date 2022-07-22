@@ -1,5 +1,6 @@
 /*
-** support code for handling database processes
+** support code for the message-passing part of
+** handling database requests.
 ** these run within the scope of the code with the open database object
 ** (i.e. a Window, with extension origin)
 */
@@ -43,7 +44,7 @@ chrome.runtime.onMessage.addListener(
 
 		var indexIds=id2numbers(request.indexId);
 		var matchIds=id2numbers(request.matchId);
-		upgradeToCurrentBuild(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
+		countMatchingSegments(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
 		return;
 	}
 	if(request.fixYouAreComparingWithBug!=null){
@@ -149,28 +150,6 @@ function onRequest(request, sender, sendResponse) {
 	sendResponse({});
 }
 
-
-function compareIds(id1, id2){
-	// return -1 if id1<id2
-	// return 1 if id1>id2
-	// return 0 if id1==id2 || id1 or id2 can't be parsed
-	var nums1=id2numbers(id1);
-	if(nums1==null) return 0;
-	var nums2=id2numbers(id2);
-	if(nums2==null) return 0;
-	if(nums1[0]<nums2[0]) return -1;
-	if(nums2[0]<nums1[0]) return 1;
-	if(nums1[1]<nums2[1]) return -1;
-	if(nums1[1]<nums2[1]) return 1;
-	return 0;
-}
-function compareNumbers(id1_1, id1_2, id2_1, id2_2){
-	if(id1_1<id2_1) return -1;
-	if(id2_1<id1_1) return 1;
-	if(id1_2<id2_2) return -1;
-	if(id2_2<id1_2) return 1;
-	return 0;
-}
 
 // This is just the rest of the onRequest() callback for
 // when ids are defined.
