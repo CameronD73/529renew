@@ -38,7 +38,7 @@ var dispatchMouseEvent = function(target, var_args) {
 };
 
 function run_query(personaId, personbId, personaName, personbName){
-	chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
+	chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
 }
 
 chrome.runtime.onMessage.addListener(
@@ -46,7 +46,7 @@ chrome.runtime.onMessage.addListener(
 	/* this callback is made when the query made via run_query() returns with the required details
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
-  	if(request.needToCompare!=null){
+  	if(request.mode == "returnNeedCompare"){
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
@@ -121,7 +121,7 @@ chrome.runtime.onMessage.addListener(
 						return;
 					}
 					// Submit for storage in local database
-					chrome.runtime.sendMessage({ids: ids, matchingSegments: matchingSegments}, function(response) {});
+					chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments}, function(response) {});
 					if(pendingComparisons>0) pendingComparisons--;
 
 					launch_next_IBD_query();
@@ -508,7 +508,7 @@ b529r.onclick=function(){
 	}
 	else query="";
 	//fixYouAreComparingWithBug();
-	chrome.runtime.sendMessage({url:chrome.runtime.getURL('results_tab.html')+query}, function(response) {});
+	chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query}, function(response) {});
 };
 let img=document.createElement('img');
 img.src=chrome.runtime.getURL("529Renew-48.png");

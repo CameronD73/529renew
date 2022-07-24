@@ -11,15 +11,48 @@
 
 db_conlog( 1, "loading DB actions");
 
+function checkIfInDatabase( ) {
+	db_conlog( 1, "InDB checking " + request );
+	if(request.shiftIsDown){
+		// Skip database query
+		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
+	}
+	function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
+		return function(transaction, resultSet){
+			var myrow=null;
+			if(resultSet.rows.length==1) myrow=resultSet.rows.item(0);
+			db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
+			if(myrow!=null){
+				var needToCompare=false;
+				if(myrow.hits==0) needToCompare=true;
+				chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
+			}
+		};
+	}
+	function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
+		return function(error){
+			// Default is to just do comparison
+			chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
+		};
+	}
+	var messageSender=makeMessageSender(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
+	var messageSenderForFailure=makeMessageSenderForFailure(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
+
+	var indexIds=id2numbers(request.indexId);
+	var matchIds=id2numbers(request.matchId);
+	countMatchingSegments(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
+	return;
+}
+
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
   
-	if(request.checkIfInDatabase!=null){
+	if(request.mode == "checkIfInDatabase"){
 		db_conlog( 1, "InDB checking " + request );
 		if(request.shiftIsDown){
 			// Skip database query
-			chrome.tabs.sendMessage(sender.tab.id, {indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
+			chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
 		}
 		function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
 			return function(transaction, resultSet){
@@ -29,14 +62,14 @@ chrome.runtime.onMessage.addListener(
 				if(myrow!=null){
 					var needToCompare=false;
 					if(myrow.hits==0) needToCompare=true;
-					chrome.tabs.sendMessage(tab_id, {indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
+					chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
 				}
 			};
 		}
 		function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
 			return function(error){
 				// Default is to just do comparison
-				chrome.tabs.sendMessage(tab_id, {indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
+				chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
 			};
 		}
 		var messageSender=makeMessageSender(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
@@ -47,7 +80,7 @@ chrome.runtime.onMessage.addListener(
 		countMatchingSegments(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
 		return;
 	}
-	if(request.fixYouAreComparingWithBug!=null){
+	else if(request.mode == "fixYouAreComparingWithBug"){
 	
 		// Delete 'You are comparing with' entries from idalias if there is an alternative alias stored
 		function makeCorrectionTransaction(){

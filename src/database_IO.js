@@ -72,7 +72,7 @@ const joinlist = "ibdsegs \
 			) \
 			) \
 			OR ibdsegs.chromosome=100 \
-		) AND (    -- either person is the same \
+		) AND (  \
 				(t3.id1_1=ibdsegs.id1_1 AND t3.id1_2=ibdsegs.id1_2) \
 			OR (t3.id1_1=ibdsegs.id2_1 AND t3.id1_2=ibdsegs.id2_2) \
 			OR (t3.id2_1=ibdsegs.id1_1 AND t3.id2_2=ibdsegs.id1_2)  \
@@ -90,6 +90,7 @@ t1.ROWID+t2.ROWID";
 
 function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	const sel_short=`SELECT ${sellist1} FROM ${joinlist} ORDER BY ${orderlist}`;
+	db_conlog( 2, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
 	function makeTransaction(callback){
 		return function(transaction){
 			transaction.executeSql( sel_short, [build, build, segmentId], callback, callback);

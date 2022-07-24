@@ -2168,10 +2168,10 @@ function createSegmentTable(transaction, results){
 					}
 					else{
 						//let bothAreSharing=true;
-						let firstId=numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]);
-						let secondId=numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]);
-						let firstIsSharing=false;
-						let secondIsSharing=false;
+						//let firstId=numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]);
+						//let secondId=numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]);
+						//let firstIsSharing=false;
+						//let secondIsSharing=false;
 						// if(sharingNamesAndIds){
 						// 	for(let ii=0; ii<sharingNamesAndIds.length; ii++){
 						// 		if(sharingNamesAndIds[ii][1]===firstId){
@@ -2193,7 +2193,7 @@ function createSegmentTable(transaction, results){
 							function makeComparison(indexId, matchId, indexName, matchName){
 								return function(evt){
 									evt.srcElement.disabled=true;
-									chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
+									chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
 								};
 							}
 							buttonCompare.className="special";
@@ -2253,6 +2253,7 @@ function providePhaseClues(rowid, name1, name2, id1_1, id1_2, id2_1, id2_2){
 	expected_id1_2=id1_2;
 	expected_id2_1=id2_1;
 	expected_id2_2=id2_2;
+	db_conlog( 2, `providePhaseClues: n1=${name1} and n2=${name2}`);
 	if(document.getElementById("displayMode").value>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked){
 		selectSegmentMatchesAndPhaseFromDatabase(createSegmentTable, rowid);
 	}
@@ -2413,7 +2414,7 @@ document.addEventListener('DOMContentLoaded', function () {
       		}
       	}
     }
-  	if(request.needToCompare!=null){
+  	//if(request.mode == "returnNeedCompare"){
   	  	
 		function makeSegmentSaver(indexName, indexId, matchName, matchId){
 			return function(){
@@ -2479,7 +2480,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe\nAre you logged into your account?");
 			};
 		}
-  		if(request.needToCompare==true){
+  		//if(request.needToCompare==true){
 			let compareURL="https://you.23andme.com/tools/ibd/?human_id_1=" + request.indexId +"&human_id_2="+request.matchId;
 			
 			let oReq = new XMLHttpRequest();
@@ -2491,11 +2492,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
   });
-  */
+  
 
 function storeSegments ( segobj ){
 //do the stuff previously done in the bgrnd 
 	db_conlog( 1, "calling segment store");
 	alert( "HELP, PUT SOME CODE HERE in storeSegments" );
 }
-
+*/

@@ -24,17 +24,17 @@ conlog( 0, "loading service worker from " + location);
 */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-	
-	if(request.url.indexOf( "results_tab.html") > 0){
-		open_results_tab(request.url)	
-	} else if(request.url!=null){
-		chrome.tabs.create({ url: request.url, active: true}, null);
+		if ( request.mode == "displayPage" ) {
+			if(request.url.indexOf( "results_tab.html") > 0){
+				open_results_tab(request.url)	
+			} else if(request.url!=null){
+				chrome.tabs.create({ url: request.url, active: true}, null);
+			}
+
+			sendResponse({});
+		}
+		return;
 	}
-
-	sendResponse({});
-	return;
-
-}
 );
 
 /* this code will create and bring to front a results and database handler tab
