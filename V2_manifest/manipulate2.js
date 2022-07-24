@@ -5,7 +5,7 @@
 var pendingComparisons=0;
 
 function fixYouAreComparingWithBug(){
-	chrome.extension.sendMessage({fixYouAreComparingWithBug: true});
+	chrome.runtime.sendMessage({fixYouAreComparingWithBug: true});
 }
 
 const create_button=function(){
@@ -52,7 +52,7 @@ const create_button=function(){
 			catch(err){
 				continue;
 			}
-			chrome.extension.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
+			chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
   			pendingComparisons++;
   		}
 	});

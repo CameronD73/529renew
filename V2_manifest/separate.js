@@ -623,9 +623,10 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
   
 	if(request.checkIfInDatabase!=null){
-		conlog( 1, "InDB checking " + request );
+		conlog( 1, "InDB checking " + Object.keys(request) );
 		if(request.shiftIsDown){
 			// Skip database query
+			conlog( 2, "InDB - must compare");
 			chrome.tabs.sendMessage(sender.tab.id, {indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
 		}
 		function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
@@ -643,6 +644,7 @@ chrome.runtime.onMessage.addListener(
 		function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
 			return function(error){
 				// Default is to just do comparison
+				conlog( 2, "InDB check failed");
 				chrome.tabs.sendMessage(tab_id, {indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
 			};
 		}

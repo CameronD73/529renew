@@ -2211,7 +2211,8 @@ function createSegmentTable(transaction, results){
 								function makeComparison(indexId, matchId, indexName, matchName){
 									return function(evt){
 										evt.srcElement.disabled=true;
-										chrome.extension.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
+										console.log( "createSegmentTable: sending msg from special button - checkifinDB");
+										chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, shiftIsDown: evt.shiftKey});
 									};
 								}
 								buttonCompare.className="special";
@@ -2572,7 +2573,7 @@ chrome.runtime.onMessage.addListener(
       	}
     }
   	if(request.needToCompare!=null){
-  	  	
+  	  	console.log( `restab listener needcomp=${request.needToCompare}`);
 		function makeSegmentSaver(indexName, indexId, matchName, matchId){
 			return function(){
 			

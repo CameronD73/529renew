@@ -38,10 +38,10 @@ var dispatchMouseEvent = function(target, var_args) {
 };
 
 function run_query(personaId, personbId, personaName, personbName){
-	chrome.extension.sendMessage({checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
+	chrome.runtime.sendMessage({checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
 }
 function fixYouAreComparingWithBug(){
-	chrome.extension.sendMessage({fixYouAreComparingWithBug: true});
+	chrome.runtime.sendMessage({fixYouAreComparingWithBug: true});
 }
 
 chrome.runtime.onMessage.addListener(
