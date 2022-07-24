@@ -12,7 +12,7 @@
 db_conlog( 1, "loading DB actions");
 
 function checkIfInDatabase( ) {
-	db_conlog( 1, "InDB checking " + request );
+	db_conlog( 1, "InDB checking " + request.mode );
 	if(request.shiftIsDown){
 		// Skip database query
 		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
@@ -57,8 +57,12 @@ chrome.runtime.onMessage.addListener(
 		function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
 			return function(transaction, resultSet){
 				var myrow=null;
-				if(resultSet.rows.length==1) myrow=resultSet.rows.item(0);
-				db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
+				if(resultSet.rows.length==1) {
+					myrow=resultSet.rows.item(0);
+					db_conlog( 2, `   DBquery returned ${myrow.hits} hits`);
+				}
+				else
+					db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
 				if(myrow!=null){
 					var needToCompare=false;
 					if(myrow.hits==0) needToCompare=true;
@@ -69,6 +73,7 @@ chrome.runtime.onMessage.addListener(
 		function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
 			return function(error){
 				// Default is to just do comparison
+				db_conlog( 2, `   DBquery returned error ${error}` );
 				chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
 			};
 		}
@@ -78,17 +83,17 @@ chrome.runtime.onMessage.addListener(
 		var indexIds=id2numbers(request.indexId);
 		var matchIds=id2numbers(request.matchId);
 		countMatchingSegments(indexIds[0], indexIds[1], matchIds[0], matchIds[1], messageSender, messageSenderForFailure);
-		return;
+	}
+	else if(request.mode == "storeSegments"){
+		storeSegments(request);
 	}
 	else if(request.mode == "fixYouAreComparingWithBug"){
-	
-		// Delete 'You are comparing with' entries from idalias if there is an alternative alias stored
-		function makeCorrectionTransaction(){
-			return function(transaction){
-				transaction.executeSql("DELETE FROM idalias WHERE ROWID IN (SELECT i1.ROWID AS ROWID FROM idalias i1, idalias i2 WHERE i1.id_1=i2.id_1 AND i1.id_2=i2.id_2 AND i1.name!=i2.name AND i1.name='You are comparing with');");
-			};
-		}
-		db23.transaction(makeCorrectionTransaction());
+		fixYouAreComparingWithBug();
+	}
+	else {
+		errmsg = `dbactions_listen: unhandled mnessage mode${request.mode}`;
+		db_conlog( 0, errmsg);
+		alert ( errmsg);
 	}
   });
   	
@@ -104,8 +109,9 @@ function fixYouAreComparingWithBug() {
 	db23.transaction(makeCorrectionTransaction());
 }
   
-
-function onRequest(request, sender, sendResponse) {
+/*
+** not used...
+//function onRequest(request, sender, sendResponse) {
 
 	
 	if(request.ids==null){
@@ -182,12 +188,13 @@ function onRequest(request, sender, sendResponse) {
 	// Return nothing to let the connection be cleaned up.
 	sendResponse({});
 }
+*/
 
-
-// This is just the rest of the onRequest() callback for
-// when ids are defined.
-// Not yet used.
-function idsRequest(request, sender, sendResponse) {
+/* 
+** store a matching segment.
+** This code works both for message passing and for local use, as it sends no messages back.
+*/
+function storeSegments(request) {
 
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(val){
@@ -245,8 +252,6 @@ function idsRequest(request, sender, sendResponse) {
 		db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], [ "filler", "filler", 100, -1, -1, 0, 0]));
 	}
 			
-	// Return nothing to let the connection be cleaned up.
-	sendResponse({});
 }
 
 

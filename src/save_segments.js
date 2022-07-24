@@ -41,6 +41,10 @@ function run_query(personaId, personbId, personaName, personbName){
 	chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
 }
 
+/* this listener handles the return from run_query()
+** The message will set needToCompare to true if we need
+** to get the results from 23 and me.
+*/
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 	/* this callback is made when the query made via run_query() returns with the required details
@@ -121,7 +125,7 @@ chrome.runtime.onMessage.addListener(
 						return;
 					}
 					// Submit for storage in local database
-					chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments}, function(response) {});
+					chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments} );
 					if(pendingComparisons>0) pendingComparisons--;
 
 					launch_next_IBD_query();
@@ -508,7 +512,7 @@ b529r.onclick=function(){
 	}
 	else query="";
 	//fixYouAreComparingWithBug();
-	chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query}, function(response) {});
+	chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query} );
 };
 let img=document.createElement('img');
 img.src=chrome.runtime.getURL("529Renew-48.png");

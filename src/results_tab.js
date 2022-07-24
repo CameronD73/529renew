@@ -2362,23 +2362,21 @@ document.addEventListener('DOMContentLoaded', function () {
 	db_conlog( 1, "domload");
 	getMatchesFromDatabase(createNameSelector);
 	getLabelList(createLabelList);
-	//echo(createButton);
-	//echo(createCSVButton);
 	createButton();
 	createCSVButton();
-	echo(createGEXFButton);
-	echo(createSVGButton);
-	echo(createImportButton);
-	echo(createClearFilterButton);
-	echo(createDeleteButton);
-	echo(setDisplayModeSelector);
-	echo(setTextSizeSelector);
-	echo(setBuildSelector);
-	echo(setOmitAliasesCheckBox);
-	echo(setHideCloseMatchesCheckBox);
-	echo(setAlwaysShowPhaseCheckBox);
-	echo(setAlwaysShowLabelsCheckBox);
-	echo(setAlwaysShowCommonAncestorsCheckBox);
+	createGEXFButton();
+	createSVGButton();
+	createImportButton();
+	createClearFilterButton();
+	createDeleteButton();
+	setDisplayModeSelector();
+	setTextSizeSelector();
+	setBuildSelector();
+	setOmitAliasesCheckBox();
+	setHideCloseMatchesCheckBox();
+	setAlwaysShowPhaseCheckBox();
+	setAlwaysShowLabelsCheckBox();
+	setAlwaysShowCommonAncestorsCheckBox();
 	
 	document.getElementById("selectNameFilter").onchange=function(){
 		if(document.getElementById("selectNameFilter").value.length>0){
@@ -2393,110 +2391,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-
-/*
-** redundant stuff...
-** chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-	db_conlog( 1, "result_tab msg received with req: " + Object.keys( request ) );
-    if(request.greeting == "hello"){
-      	if(document.getElementById("compare-button")!=null){
-     		if(document.getElementById('b529')==null){
-      			create_button();
-      		}
-      		else{
-      			alert("Use the menubar '529' button you just clicked to reload the\n529andYou buttons currently embedded in the page when they are missing");
-      		}
-      	}
-      	else{
-      		if(document.getElementById("compare-view-chromosomes")!=null){
-      			alert("To access 529andYou:\n1. Click the green 'Edit view' button\n2. Wait for the page to refresh\n3. Reclick the menubar '529' button that you just clicked\n4. Use the 529andYou buttons embedded in the page");
-      		}
-      	}
-    }
-  	//if(request.mode == "returnNeedCompare"){
-  	  	
-		function makeSegmentSaver(indexName, indexId, matchName, matchId){
-			return function(){
-			
-				if(this.status!=200){
-					if(this.status==403){
-					
-					alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe\nError 403 suggests you are no longer sharing with one or both");
-
-					}
-					else{
-					alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe\nServer returned status of " + this.status);
-					}
-					return;
-				}
-				let data=JSON.parse(this.responseText);
-				
-				let matchingSegments=new Array();
-				let ids=new Array();
-				{
-					let id=new Array();
-					id[0]=indexId;
-					id[1]=indexName;
-					ids[0]=id;
-				}
-				{
-					let id=new Array();
-					id[0]=matchId;
-					id[1]=matchName;
-					ids[1]=id;
-				}
-
-				if(data!=null){
-					for(let j=0; j<data.length; j++){
-						let matchingSegment=new Array();
-						matchingSegment[0]=indexName;
-						matchingSegment[1]=matchName;
-						matchingSegment[2]=data[j].chromosome;
-						matchingSegment[3]=roundBaseAddress(data[j].start);
-						if(matchingSegment[3]==0)
-							matchingSegment[3]=1;
-						matchingSegment[4]=roundBaseAddress(data[j].end);
-						matchingSegment[5]=round_cM(data[j].seg_cm);
-						matchingSegment[6]=data[j].num_snps;
-						
-						// Chromosome X=chromosome 23
-						if(String(matchingSegment[2])==="X") matchingSegment[2]=23;	
-						
-						matchingSegments[j]=matchingSegment;
-					}
-				}
-				else{
-					alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe");
-					return;
-				}
-				// Submit for storage in local database
-				storeSegments( {ids: ids, matchingSegments: matchingSegments})
-				// chrome.runtime.sendMessage({ids: ids, matchingSegments: matchingSegments}, function(response) {});
-			};
-		}
-		function makeErrorHandler(indexName, matchName){
-			return function(err){
-				alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe\nAre you logged into your account?");
-			};
-		}
-  		//if(request.needToCompare==true){
-			let compareURL="https://you.23andme.com/tools/ibd/?human_id_1=" + request.indexId +"&human_id_2="+request.matchId;
-			
-			let oReq = new XMLHttpRequest();
-			oReq.withCredentials = true;
-			oReq.onload=makeSegmentSaver(request.indexName, request.indexId, request.matchName, request.matchId);
-			oReq.onerror=makeErrorHandler(request.indexName, request.matchName);
-			oReq.open("get", compareURL, true);
-			oReq.send();
-		}
-	}
-  });
-  
-
-function storeSegments ( segobj ){
-//do the stuff previously done in the bgrnd 
-	db_conlog( 1, "calling segment store");
-	alert( "HELP, PUT SOME CODE HERE in storeSegments" );
-}
-*/
