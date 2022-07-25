@@ -772,9 +772,9 @@ function createTable12(transaction, results, colorize){
 		return;
 	}
 
-	var build=getBuild();
-	var omitAliases=getOmitAliases();
-	var hideCloseMatches=getHideCloseMatches();
+	var build=getSetting("build");
+	var omitAliases=getSetting("omitAliases");
+	var hideCloseMatches=getSetting("hideCloseMatches");
 	
 	
 	if(hideCloseMatches && document.getElementById("selectName").selectedIndex==0) hideCloseMatches=false;
@@ -1304,7 +1304,7 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		alert("createCSV12: Failed to retrieve 12 match data: "+ results.message);
 		return;
 	}
-	var omitAliases=getOmitAliases();
+	var omitAliases=getSetting("omitAliases");
 	
 	var csvarray=new Array();
 	if(includeIds){
@@ -1522,9 +1522,9 @@ function createGEXF(transaction, results){
 }
 function createSegmentTable(transaction, results){
 	
-	var build=getBuild();
-	var omitAliases=getOmitAliases();
-	var hideCloseMatches=getHideCloseMatches();
+	var build=getSetting("build");
+	var omitAliases=getSetting("omitAliases");
+	var hideCloseMatches=getSetting("hideCloseMatches");
 	
 	if(hideCloseMatches && document.getElementById("selectName").selectedIndex==0) hideCloseMatches=false;
 
