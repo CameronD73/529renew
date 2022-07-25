@@ -22,7 +22,8 @@
   ],
   "permissions": [
     "tabs",
-    "unlimitedStorage"
+    "unlimitedStorage",
+	"storage"
   ],
   "icons" : {
   	"16" : "529Renew-16.png",

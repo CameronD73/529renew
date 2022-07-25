@@ -439,6 +439,8 @@ function createSVG(table){
 
 var phaseColors=["#FFFFFF", "#FFDDDD", "#DDDDFF", "#FFFFDD", "#DDDDDD"];
 
+// functions to create the buttons
+
 function createButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Create Match Table";
@@ -502,16 +504,21 @@ function createDeleteButton(){
 	document.getElementById("test").appendChild(newButton);
 }
 
+// end of button functions
+
 function resetAfterDeletion(){
 	getMatchesFromDatabase(createNameSelector);
 	requestSelectFromDatabase(false);
 	alert("All data stored in your 529andYou local database has been deleted");
 }
+
+// functions to respond to user changing settings
+
 function setDisplayModeSelector(){
-	let widget=document.getElementById("displayMode");
-	widget.value=getDisplayMode();
+	var widget=document.getElementById("displayMode");
+	widget.value=getSetting("displayMode");
 	widget.onchange=function(){
-		setDisplayMode(widget.value);
+		setSetting("displayMode",widget.value);
 		if(document.getElementById("table_div").hasChildNodes()){
 			requestSelectFromDatabase(false);
 		}
@@ -519,10 +526,10 @@ function setDisplayModeSelector(){
 }
 function setTextSizeSelector(){
 	function setTextSize(){
-		let desiredSize=getTextSize();
-		let smallCSS=null;
-		for(let i=0; i<document.styleSheets.length; i++){
-			if(document.styleSheets[i].title=="Small"){
+		var desiredSize=getSetting("textSize");
+		var smallCSS=null;
+		for(var i=0; i<document.styleSheets.length; i++){
+			if(document.styleSheets[i].title=="small"){
 				smallCSS=document.styleSheets[i];
 				break;
 			}
@@ -533,18 +540,18 @@ function setTextSizeSelector(){
 		}
 	}
 	var widget=document.getElementById("textSize");
-	widget.value=getTextSize();
+	widget.value=getSetting("textSize");
 	widget.onchange=function(){
-		setTextSize(widget.value);
+		setSetting("textSize",widget.value);
 		setTextSize();
 	};
 	setTextSize();
 }
 function setBuildSelector(){
 	var widget=document.getElementById("build");
-	widget.value=getBuild();
+	widget.value=getSetting("build");
 	widget.onchange=function(){
-		setBuild(widget.value);
+		setSetting("build",widget.value);
 		if(document.getElementById("table_div").hasChildNodes()){
 			requestSelectFromDatabase(false);
 		}
@@ -552,39 +559,43 @@ function setBuildSelector(){
 }
 function setAlwaysShowPhaseCheckBox(){
 	var widget=document.getElementById("alwaysShowPhaseCheckBox");
-	widget.checked=getAlwaysShowPhase();
+	widget.checked=getSetting("alwaysShowPhase");
 	widget.onclick=function(){
-		setAlwaysShowPhase(widget.checked);
+		setSetting("alwaysShowPhase",widget.checked);
 	};
 }
 function setAlwaysShowLabelsCheckBox(){
 	var widget=document.getElementById("alwaysShowLabelsCheckBox");
-	widget.checked=getAlwaysShowLabels();
+	widget.checked=getSetting("alwaysShowLabels");
 	widget.onclick=function(){
-		setAlwaysShowLabels(widget.checked);
+		setSetting("alwaysShowLabels",widget.checked);
 	};
 }
 function setAlwaysShowCommonAncestorsCheckBox(){
 	var widget=document.getElementById("alwaysShowCommonAncestorsCheckBox");
-	widget.checked=getAlwaysShowCommonAncestors();
+	widget.checked=getSetting("alwaysShowCommonAncestors");
 	widget.onclick=function(){
-		setAlwaysShowCommonAncestors(widget.checked);
+		setSetting("alwaysShowCommonAncestors",widget.checked);
 	};
 }
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
-	widget.checked=getOmitAliases();
+	widget.checked=getSetting("omitAliases");
 	widget.onclick=function(){
-		setOmitAliases(widget.checked);
+		setSetting("omitAliases",widget.checked);
 	};
 }
 function setHideCloseMatchesCheckBox(){
 	var widget=document.getElementById("hideCloseMatchesCheckBox");
-	widget.checked=getHideCloseMatches();
+	widget.checked=getSetting("hideCloseMatches");
 	widget.onclick=function(){
-		setHideCloseMatches(widget.checked);
+		setSetting("hideCloseMatches",widget.checked);
 	};
 }
+
+// end of functions to respond to user changing settings
+
+
 function createLabelList(transaction, results){
 	if(results.message){
 		alert("Failed to retrieve list of existing labels");
@@ -2369,14 +2380,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	createImportButton();
 	createClearFilterButton();
 	createDeleteButton();
-	setDisplayModeSelector();
-	setTextSizeSelector();
-	setBuildSelector();
-	setOmitAliasesCheckBox();
-	setHideCloseMatchesCheckBox();
-	setAlwaysShowPhaseCheckBox();
-	setAlwaysShowLabelsCheckBox();
-	setAlwaysShowCommonAncestorsCheckBox();
+	retrieveSettings();
 	
 	document.getElementById("selectNameFilter").onchange=function(){
 		if(document.getElementById("selectNameFilter").value.length>0){
