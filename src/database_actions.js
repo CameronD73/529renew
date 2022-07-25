@@ -220,6 +220,7 @@ function storeSegments(request) {
 		var numbers2;
 		// Order matches consistently
 		if(compared>0){
+			// id1 > id2
 			numbers1=id2numbers(id1);
 			numbers2=id2numbers(id2);
 		}
