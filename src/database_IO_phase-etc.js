@@ -1,7 +1,7 @@
 /*
 ** database I/O routines including phase, relationships or comments (deprecated).
 ** These routines communicate directly with the DB, not via message passing
-** Should be preceeded by database_init.js and databzse_IO.js
+** Should be preceeded by database_init.js and database_IO.js
 */
 
 /*  eslint-disable no-unused-vars */

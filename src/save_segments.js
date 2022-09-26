@@ -84,35 +84,38 @@ chrome.runtime.onMessage.addListener(
 					
 					var matchingSegments=new Array();
 					var ids=new Array();
-					{
-						let id=new Array();
-						id[0]=indexId;
-						id[1]=indexName;
-						ids[0]=id;
-					}
-					{
-						let id=new Array();
-						id[0]=matchId;
-						id[1]=matchName;
-						ids[1]=id;
-					}
+					ids[0] = {id: indexId, name: indexName };
+					ids[1] = {id: matchId, name: matchName };
+					/*  CJD use object now rather than array of arrays, so I understand what's happening
+					** when it arrives the other end...
+					*/
+
 					if( debug_q > 0 )
-						console.log( "    saving segments at " + new Date().toISOString() + " for " + ids[0][1] + " and " + ids[1][1] );
+						console.log( "    saving segments at " + new Date().toISOString() + " for " + ids[0].name + " and " + ids[1].name );
 					if(data!=null){
 						for(let j=0; j<data.length; j++){
-							var matchingSegment=new Array();
-							matchingSegment[0]=indexName;
-							matchingSegment[1]=matchName;
-							matchingSegment[2]=data[j].chromosome;
-							matchingSegment[3]=roundBaseAddress(data[j].start);
-							if(matchingSegment[3]==0)
-								matchingSegment[3]=1;
-							matchingSegment[4]=roundBaseAddress(data[j].end);
-							matchingSegment[5]=round_cM(data[j].seg_cm);
-							matchingSegment[6]=data[j].num_snps;
-
+							var matchingSegment= {
+								name1: indexName,
+								uid1: indexId,
+								name2: matchName,
+								uid2: matchId,
+								chromosome: data[j].chromosome,
+								start: roundBaseAddress(data[j].start),
+								end: roundBaseAddress(data[j].end),
+								cM: round_cM(data[j].seg_cm),
+								snps: data[j].num_snps,
+							};
+							if(matchingSegment.start==0)
+								matchingSegment.start=1;
+							/*
+							//[3]=roundBaseAddress(data[j].start),
+							//matchingSegment[4]=roundBaseAddress(data[j].end),
+							//matchingSegment[5]=round_cM(data[j].seg_cm),
+							//matchingSegment[6]=data[j].num_snps,
+							*/
 							// Chromosome X=chromosome 23
-							if(String(matchingSegment[2])==="X") matchingSegment[2]=23;	
+							if(String(matchingSegment.chromosome)==="X")
+								matchingSegment.chromosome=23;	
 
 							matchingSegments[j]=matchingSegment;
 						}

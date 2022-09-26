@@ -3,15 +3,27 @@
 /* globals  saveAs, create_button, roundBaseAddress, round_cM */
 "use strict";
 
-var expectedName=null;		// assigned values in various places but never used. why?
-var expectedIds=null;
-var expected_id1_1=null;
+var expectedName=null;		// assigned values in various places but some never used. why?
+var expectedName1=null;
+var expectedName2=null;		// these are assigned and used (once) but 
+
+var expectedIds=null;	// seems to be second one only, but why are expected_id2_1 and 2 also used?
+						// used in differing contexts, but do they overlap and need to be distinct?
+var expected_id1_1=null;	// CJD - used a lot - need to fix
 var expected_id1_2=null;
 var expected_id2_1=null;
 var expected_id2_2=null;
-var expectedName1=null;
-var expectedName2=null;
 
+/*
+** createMatchSVG
+** draws graphical representations of segment lengths and overlap.
+
+** displayMode (first drop-down list on page) determines what is shown when "Create Match Table" is clicked
+**	  0:  basic table
+**    1: people's names become clickable links 
+**    2:  append overlapping segment "button" to each line
+**    3:  enable editing of phase info and relatives.
+*/
 function createMatchSVG(table){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
@@ -550,27 +562,8 @@ function setBuildSelector(){
 		}
 	};
 }
-function setAlwaysShowPhaseCheckBox(){
-	var widget=document.getElementById("alwaysShowPhaseCheckBox");
-	widget.checked=getAlwaysShowPhase();
-	widget.onclick=function(){
-		setAlwaysShowPhase(widget.checked);
-	};
-}
-function setAlwaysShowLabelsCheckBox(){
-	var widget=document.getElementById("alwaysShowLabelsCheckBox");
-	widget.checked=getAlwaysShowLabels();
-	widget.onclick=function(){
-		setAlwaysShowLabels(widget.checked);
-	};
-}
-function setAlwaysShowCommonAncestorsCheckBox(){
-	var widget=document.getElementById("alwaysShowCommonAncestorsCheckBox");
-	widget.checked=getAlwaysShowCommonAncestors();
-	widget.onclick=function(){
-		setAlwaysShowCommonAncestors(widget.checked);
-	};
-}
+
+
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
 	widget.checked=getOmitAliases();
@@ -585,25 +578,7 @@ function setHideCloseMatchesCheckBox(){
 		setHideCloseMatches(widget.checked);
 	};
 }
-function createLabelList(transaction, results){
-	if(results.message){
-		alert("Failed to retrieve list of existing labels");
-		return;
-	}
-	
-	var el=document.getElementById("labels");
-	while(el.hasChildNodes()){
-		el.removeChild(el.lastChild);
-	}
 
-	for(let i=0; i<results.rows.length; i++){
-		let row = results.rows.item(i);
-		let op=document.createElement('option');
-		op.value=row.relationship;
-		el.appendChild(op);
-	}
-}
-// this is a websql transaction callback, so the args are needed.
 function createNameSelector(transaction, results){
 	// Remove existing nodes
 	if(results.message){
@@ -623,11 +598,13 @@ function createNameSelector(transaction, results){
 		op.text="All";
 		op.selected=true;
 	}
+	// create list of names from db query return
+	// each row is name, idtext
 	for(let i=0; i<results.rows.length; i++){
 		let row = results.rows.item(i);
 		let op=document.createElement('option');
 		op.text=row.name;
-		op.value=numbers2id([row.id_1, row.id_2]);
+		op.value=row.idText;
 		el.appendChild(op);
 	}
 	if(window.location.search.length==20){
@@ -635,7 +612,7 @@ function createNameSelector(transaction, results){
 	}
 }
 
-function colorizeButton(button, cid1_1, cid1_2, cid2_1, cid2_2){
+function colorizeButton(button, cid1,  cid2){
 	return function(transaction, results){
 		var cmatchIds1=new Array();
 		var cnonmatchIds1=new Array();
@@ -657,11 +634,12 @@ function colorizeButton(button, cid1_1, cid1_2, cid2_1, cid2_2){
 						continue;
 					}
 				}															
-				if(cid1_1==crow.id1_1 && cid1_2==crow.id1_2){
+				if(cid1==crow.id1){
 					// ID1 is listed first in match
-					if(cid2_1!=crow.id2_1 || cid2_2!=crow.id2_2){
+					if(cid2!=crow.id2 ){
 						// ID2 is not listed second in match
-						let cid=numbers2id([crow.id2_1, crow.id2_2]);
+						//let cid=numbers2id([crow.id2_1, crow.id2_2]);
+						let cid = crow.id2;
 						//if(!sharingNamesAndIds /*|| sharingIds.indexOf(cid)!=-1*/)
 						{
 							if(crow.chromosome==100){
@@ -752,6 +730,11 @@ function createTable(transaction, results){
 function createTable2(transaction, results){
 	createTable12(transaction, results, true);
 }
+/*
+** createTable12
+** does the bulk of the processing after the big join
+** Lays out the "Match Table" for the selected person.
+*/
 function createTable12(transaction, results, colorize){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
@@ -770,7 +753,7 @@ function createTable12(transaction, results, colorize){
 	
 	var displayMode=document.getElementById("displayMode");
 	var showURL=(displayMode.value>0);
-	var showPhaseHints=(displayMode.value>1);
+	var enableShowSegments=(displayMode.value>1);
 	var showPhaseInfo=(displayMode.value>2);
 	var alwaysShowPhase=document.getElementById("alwaysShowPhaseCheckBox").checked;
 	var alwaysShowLabels=document.getElementById("alwaysShowLabelsCheckBox").checked;
@@ -1224,38 +1207,40 @@ function createTable12(transaction, results, colorize){
 			tcell.className="right";
 			tcell.innerHTML=row.snps;
 		}
-		if(showPhaseHints){
-			function makeLink(id, name1, name2, id1_1, id1_2, id2_1, id2_2){
+		if(enableShowSegments){
+			function makeLink(id, name1, name2, id1, id2){
 				return function(){
-					providePhaseClues(id, name1, name2, id1_1, id1_2, id2_1, id2_2);
+					displayMatchingSegments(id, name1, name2, id1, id2);
 				};
 			}
 			let button = document.createElement("button");
 			button.className="special";
-			button.onclick=makeLink(row.ROWID, row.name1, row.name2, row.id1_1, row.id1_2, row.id2_1, row.id2_2);
+			button.onclick=makeLink(row.ROWID, row.name1, row.name2, row.id1, row.id2);
 			button.innerHTML="show overlapping segments";
 			(tablerow.insertCell(curColumnId++)).appendChild(button);
 			if(build==37 && colorize){
-				if(showPhaseInfo || alwaysShowPhase || alwaysShowLabels)
-					selectSegmentMatchesAndPhaseFromDatabase(colorizeButton(button, row.id1_1, row.id1_2, row.id2_1, row.id2_2), row.ROWID);
-				else
-					selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1_1, row.id1_2, row.id2_1, row.id2_2), row.ROWID);
+				//if(showPhaseInfo || alwaysShowPhase || alwaysShowLabels)
+				//	selectSegmentMatchesAndPhaseFromDatabase(colorizeButton(button, row.id1_1, row.id1_2, row.id2_1, row.id2_2), row.ROWID);
+				//else
+				selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1, row.id2), row.ROWID);
 			}
 		}
-		if(showPhaseInfo || alwaysShowCommonAncestors){
-			{
-				let cell=tablerow.insertCell(curColumnId++);
-				if(showPhaseInfo){
-					let input=document.createElement("input");
-					input.className="special";
-					input.setAttribute("type", "text");
-					if(row.comment!=null) input.value=row.comment;
-					input.onchange=createCommonAncestorChangeListener(row.ROWID);
-					cell.appendChild(input);
-				}
-				else if(row.comment) cell.innerHTML=row.comment;
-			}
-		}
+		/*
+////		if(showPhaseInfo || alwaysShowCommonAncestors){
+//			{
+//				let cell=tablerow.insertCell(curColumnId++);
+//				if(showPhaseInfo){
+//					let input=document.createElement("input");
+//					input.className="special";
+//					input.setAttribute("type", "text");
+//					if(row.comment!=null) input.value=row.comment;
+//					input.onchange=createCommonAncestorChangeListener(row.ROWID);
+//					cell.appendChild(input);
+//				}
+//				else if(row.comment) cell.innerHTML=row.comment;
+//			}
+//		}
+		*/
 	}
 	// Creating the header after the body prevents rows from being inserted into header
 	var tablehead=table.createTHead();
@@ -1263,18 +1248,18 @@ function createTable12(transaction, results, colorize){
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
-		if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
-		if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
+		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
+		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
-		if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
+		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
+		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Genetic distance";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
-		if(showPhaseHints) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
-		if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
+		if(enableShowSegments) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
+		//if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
 	}
 	createMatchSVG(table);
 }
@@ -1525,11 +1510,13 @@ function createSegmentTable(transaction, results){
 	
 	var displayMode=document.getElementById("displayMode");
 	//var showURL=(displayMode.value>0);
-	//var showPhaseHints=(displayMode.value>1);
-	var showPhaseInfo=(displayMode.value>2);
-	var alwaysShowPhase=document.getElementById("alwaysShowPhaseCheckBox").checked;
-	var alwaysShowLabels=document.getElementById("alwaysShowLabelsCheckBox").checked;
-	var alwaysShowCommonAncestors=document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
+	//var enableShowSegments=(displayMode.value>1);
+	/* CJD V3 removed phase etc...
+	//var showPhaseInfo=(displayMode.value>2);
+	//var alwaysShowPhase=document.getElementById("alwaysShowPhaseCheckBox").checked;
+	//var alwaysShowLabels=document.getElementById("alwaysShowLabelsCheckBox").checked;
+	//var alwaysShowCommonAncestors=document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
+	*/
 
 	// Remove any preexisting table
 	while(document.getElementById("table_div").hasChildNodes()){
@@ -2138,7 +2125,7 @@ function createSegmentTable(transaction, results){
 					if(matchingSegmentsArray[k][i][0]>=0){
 						function makeLink(id, name1, name2, id1_1, id1_2, id2_1, id2_2){
 							return function(){
-								providePhaseClues(id, name1, name2, id1_1, id1_2, id2_1, id2_2);
+								displayMatchingSegments(id, name1, name2, id1_1, id1_2, id2_1, id2_2);
 							};
 						}
 						let button = document.createElement("button");
@@ -2229,31 +2216,31 @@ function createSegmentTable(transaction, results){
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
-		if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
-		if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
+		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
+		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
-		if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
+		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
+		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Genetic distance";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="cM";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
-		if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
-		if(showPhaseInfo) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
+		//if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
+		//if(showPhaseInfo) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
 	}
 	createSVG(table);
 }
 
 
-function providePhaseClues(rowid, name1, name2, id1_1, id1_2, id2_1, id2_2){
+function displayMatchingSegments(rowid, name1, name2, id1_1, id1_2, id2_1, id2_2){
 	expectedName1=name1;
 	expectedName2=name2;
 	expected_id1_1=id1_1;
 	expected_id1_2=id1_2;
 	expected_id2_1=id2_1;
 	expected_id2_2=id2_2;
-	db_conlog( 2, `providePhaseClues: n1=${name1} and n2=${name2}`);
+	db_conlog( 2, `displayMatchingSegments: n1=${name1} and n2=${name2}`);
 	if(document.getElementById("displayMode").value>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked){
 		selectSegmentMatchesAndPhaseFromDatabase(createSegmentTable, rowid);
 	}
@@ -2266,27 +2253,18 @@ function requestSelectFromDatabase(shiftIsDown){
 	if(document.getElementById("selectName").selectedIndex<0) return;
 	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
-	if(expectedId=='all') expectedIds=[0,0];
-	else expectedIds=id2numbers(expectedId);
+	//if(expectedId=='all') expectedIds=[0,0];
+	//else expectedIds=id2numbers(expectedId);
 	
-	var wantPhaseInfo=(document.getElementById("displayMode")).selectedIndex>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked || document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
+	//var wantPhaseInfo=(document.getElementById("displayMode")).selectedIndex>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked || document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
 	
-	if(wantPhaseInfo){
-		if(shiftIsDown){
-			selectFromDatabaseWithPhaseInfo(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-		}
-		else{
-			selectFromDatabaseWithPhaseInfo(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-		}
+	if(shiftIsDown){
+		selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
 	}
 	else{
-		if(shiftIsDown){
-			selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-		}
-		else{
-			selectFromDatabase(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-		}
+		selectFromDatabase(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
 	}
+
 }
 
 function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
@@ -2296,13 +2274,13 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 	if(expectedId=='all') expectedIds=[0,0];
 	else expectedIds=id2numbers(expectedId);
 	if(altIsDown){
-		selectFromDatabaseWithNonMatches(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
+		selectFromDatabase(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, true);
 	}
-	else if(shiftIsDown){
-		selectFromDatabaseWithPhaseInfo(createCSV2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-	}
+	//else if(shiftIsDown){
+	//	selectFromDatabaseWithPhaseInfo(createCSV2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
+	//}
 	else{
-		selectFromDatabase(createCSV, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
+		selectFromDatabase(createCSV, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
 	}
 }
 function requestSelectFromDatabaseForGEXF(){
@@ -2311,7 +2289,7 @@ function requestSelectFromDatabaseForGEXF(){
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
 	if(expectedId=='all') expectedIds=[0,0];
 	else expectedIds=id2numbers(expectedId);
-	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
+	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
 }
 
 function reloadSoon(){
@@ -2338,11 +2316,11 @@ function requestImportToDatabase(evt){
         	let lines = e.target.result.split(/\r\n|\r|\n/);
 			if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID"){
         		document.getElementById("docBody").style.cursor="wait";
-        		import529CSV(lines, reloadSoon);
+        		import529CSV(lines, 9, reloadSoon);
         	}
         	else if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID, Phase, Match phase, Label, Match label, Common ancestors"){
         		document.getElementById("docBody").style.cursor="wait";
-        		importWithPhase529CSV(lines, reloadSoon);
+        		import529CSV(lines, 14, reloadSoon);
         	}
         	else if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs"){
         		alert("This file lacks 23andMe unique identifiers and therefore cannot be imported");
@@ -2361,7 +2339,7 @@ function requestDeletionFromDatabase(){
 document.addEventListener('DOMContentLoaded', function () {
 	db_conlog( 1, "domload");
 	getMatchesFromDatabase(createNameSelector);
-	getLabelList(createLabelList);
+	//getLabelList(createLabelList);
 	createButton();
 	createCSVButton();
 	createGEXFButton();
@@ -2374,9 +2352,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	setBuildSelector();
 	setOmitAliasesCheckBox();
 	setHideCloseMatchesCheckBox();
-	setAlwaysShowPhaseCheckBox();
-	setAlwaysShowLabelsCheckBox();
-	setAlwaysShowCommonAncestorsCheckBox();
 	
 	document.getElementById("selectNameFilter").onchange=function(){
 		if(document.getElementById("selectNameFilter").value.length>0){

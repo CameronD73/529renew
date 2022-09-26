@@ -20,7 +20,7 @@ function db_conlog( level, msg ) {
 db_conlog( 1, "loading DB init code");
 
 
-const dbLatestVersion = "2.0";
+const dbLatestVersion = "3.0";
 
 const db23 = init529Database();
 
@@ -30,6 +30,7 @@ function decrementPendingTransactionCount(){
 	pendingTransactionCount--;
 	if(pendingTransactionCount<=0 && noPendingTransactionCallBack){
 		noPendingTransactionCallBack();
+		noPendingTransactionCallBack = null;	// ensure we don't call it twice...
 	}
 }
 
@@ -69,30 +70,48 @@ const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setti
 
 function createTables( db23new ){
 	// Called only when database is created
-	// alert(`Creating 529Renew local database from v"${db23new.version}"`);
+	//alert(`Creating 529Renew local database from v"${db23new.version}"`);
 	//db23new.changeVersion("", "2.0", (tr) => {alert( "ch ver from empty OK")}, (err) => { alert( `change ver from empty FAILED with ${err.code}, msg:${err.message}`)});
 	db23new.transaction(
         function (transaction) {
-        	// Should actually store company in idalias not ibdsegs
-        	// Should add comment field to ibdsegs for future use
-        	transaction.executeSql('CREATE TABLE IF NOT EXISTS ibdsegs(id1_1 INTEGER NOT NULL, id1_2 INTEGER NOT NULL, id2_1 INTEGER NOT NULL, id2_2 INTEGER NOT NULL, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, centimorgans REAL NOT NULL, snps INTEGER NOT NULL, phase1 INTEGER, relationship1 TEXT, phase2 INTEGER, relationship2 TEXT, date TEXT NOT NULL, comment TEXT, build INTEGER NOT NULL DEFAULT 37);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibdsegs_id1 ON ibdsegs(id1_1, id1_2);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibdsegs_id2 ON ibdsegs(id2_1, id2_2);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibdsegs_ids ON ibdsegs(id1_1, id1_2, id2_1, id2_2);', []);
+			// ============ the IDALIAS table - each DNA test result has an alias (generally one for each person)
+    		transaction.executeSql('CREATE TABLE IF NOT EXISTS idalias(idText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, comment TEXT ) ;', []);
+    		transaction.executeSql('CREATE INDEX IF NOT EXISTS idalias_name ON idalias (name);', []);
+    	},
+		function(error){alert(`Failed to create alias table for 529Renew DB. Error: ${error.message}`);},
+		function(){}
+    )
+	db23new.transaction(
+        function (transaction) {
+       	// ============ the IBDSEGS table - each row has a single segment match between two testers.
+        	transaction.executeSql('CREATE TABLE IF NOT EXISTS ibdsegs(id1 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, id2 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL,  date TEXT NOT NULL, build INTEGER NOT NULL DEFAULT 37);', []);
+    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibdsegs_id1 ON ibdsegs(id1);', []);
+    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibdsegs_id2 ON ibdsegs(id2);', []);
     		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibssegs_chromosomes ON ibdsegs(chromosome);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibssegs_chromosomes_id1 ON ibdsegs(id1_1, id1_2, chromosome);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS ibssegs_chromosomes_id2 ON ibdsegs(id2_1, id2_2, chromosome);', []);
-    		transaction.executeSql('CREATE UNIQUE INDEX IF NOT EXISTS ibssegs_ids_chromosomes_segs ON ibdsegs(id1_1, id1_2, id2_1, id2_2, chromosome, start, end, build);', []);
-    	
-    		transaction.executeSql('CREATE TABLE IF NOT EXISTS idalias(id_1 INTEGER NOT NULL, id_2 INTEGER NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, company_id INTEGER NOT NULL);', []);
-    		transaction.executeSql('CREATE INDEX IF NOT EXISTS idalias_ids ON idalias(id_1, id_2);', []);
-    		transaction.executeSql('CREATE UNIQUE INDEX IF NOT EXISTS idalias_ids_names ON idalias (id_1, id_2, name, company_id);', []);
+    		transaction.executeSql('CREATE UNIQUE INDEX IF NOT EXISTS ibdsegs_kitchen_sink ON ibdsegs( id1, id2, chromosome, start, end, build);', []);
+    	},
+		function(error){alert(`Failed to create segments table for 529Renew DB. Error: ${error.message}`);},
+		function(){}
+    )
+	db23new.transaction(
+        function (transaction) {
 			transaction.executeSql('CREATE TABLE  IF NOT EXISTS settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting));', [] );
 			transaction.executeSql( set_defaults_sql, [] );
     	},
-		function(error){alert("Failed to create tables for 529Renew local database");},
+		function(error){alert(`Failed to create settings table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
-    );
+    )
+	/* Rats! cannot use Pragma in webSQL!
+	db23new.transaction(
+        function (transaction) {
+			transaction.executeSql( 'PRAGMA journal_mode=WAL;', [] );
+		},
+		function(error){alert(`Failed to set WAL mode for 529Renew local database. Error: ${error.message}`);},
+		function(){}
+    )
+	*/
+
+	;
 	
 	alert(`Created 529Renew local database from v"${db23new.version}"`);
 }
