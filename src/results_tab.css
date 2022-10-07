@@ -1,5 +1,6 @@
 div.special {
 	font: 10px Arial, Helvetica, sans-serif;
+	color:#666666;
 }
 div.fileupload {
 	height: 0px;
@@ -9,6 +10,7 @@ div.fileupload {
 button.special {
 	height: 8px;
 	font: 8px Arial, Helvetica, sans-serif;
+	color:#ffff00;
 }
 input.special {
 	height: 8px;
@@ -17,4 +19,24 @@ input.special {
 select.special {
 	height: 8px;
 	font: 8px Arial, Helvetica, sans-serif;
+}
+a.special {
+	color:#0000ff;
+}
+td.bottom {
+	border-bottom: 1px solid #666666;
+}
+td.right {
+	text-align: right;
+}
+td.bottom_right {
+	text-align: right;
+	border-bottom: 1px solid #666666;
+}
+td.center {
+	text-align: center;
+}
+td.bottom_center {
+	text-align: center;
+	border-bottom: 1px solid #666666;
 }

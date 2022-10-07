@@ -7,12 +7,10 @@ var expectedName=null;		// assigned values in various places but some never used
 var expectedName1=null;
 var expectedName2=null;		// these are assigned and used (once) but 
 
-var expectedIds=null;	// seems to be second one only, but why are expected_id2_1 and 2 also used?
+var expectedIdStr=null;	// seems to be originally the 2 parts for second ID only, but why are expected_id2_1 and 2 also used?
 						// used in differing contexts, but do they overlap and need to be distinct?
-var expected_id1_1=null;	// CJD - used a lot - need to fix
-var expected_id1_2=null;
-var expected_id2_1=null;
-var expected_id2_2=null;
+var expected_id1=null;	// CJD - used a lot - need to convert from 2-part to single string
+var expected_id2=null;
 
 /*
 ** createMatchSVG
@@ -22,7 +20,7 @@ var expected_id2_2=null;
 **	  0:  basic table
 **    1: people's names become clickable links 
 **    2:  append overlapping segment "button" to each line
-**    3:  enable editing of phase info and relatives.
+**    3:  (disabled)enable editing of phase info and relatives.
 */
 function createMatchSVG(table){
 	var graphNode=document.getElementById("529graph");
@@ -618,13 +616,7 @@ function colorizeButton(button, cid1,  cid2){
 		var cnonmatchIds1=new Array();
 		var cmatchIds2=new Array();
 		var cnonmatchIds2=new Array();
-		//var sharingNamesAndIds=getSharingNamesAndIds();
 		var sharingIds=new Array();
-		// if(sharingNamesAndIds){
-		// 	for(let i=0; i<sharingNamesAndIds.length; i++){
-		// 		sharingIds.push(sharingNamesAndIds[i][1]);
-		// 	}
-		//}
 		{
 			let ci;
 			for(ci=0; ci<results.rows.length; ci++){
@@ -638,9 +630,7 @@ function colorizeButton(button, cid1,  cid2){
 					// ID1 is listed first in match
 					if(cid2!=crow.id2 ){
 						// ID2 is not listed second in match
-						//let cid=numbers2id([crow.id2_1, crow.id2_2]);
 						let cid = crow.id2;
-						//if(!sharingNamesAndIds /*|| sharingIds.indexOf(cid)!=-1*/)
 						{
 							if(crow.chromosome==100){
 								if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
@@ -651,12 +641,11 @@ function colorizeButton(button, cid1,  cid2){
 						}
 					}
 				}
-				else if(cid1_1==crow.id2_1 && cid1_2==crow.id2_2){
+				else if(cid1==crow.id2){
 					// ID1 is listed second in match
-					if(cid2_1!=crow.id1_1 || cid2_2!=crow.id1_2){
+					if(cid2!=crow.id1){
 						// ID2 is not listed first in match
-						let cid=numbers2id([crow.id1_1, crow.id1_2]);
-						//if(!sharingNamesAndIds || sharingIds.indexOf(cid)!=-1)
+						let cid=crow.id1;
 						{
 							if(crow.chromosome==100){
 								if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
@@ -667,12 +656,11 @@ function colorizeButton(button, cid1,  cid2){
 						}
 					}
 				}
-				else if(cid2_1==crow.id1_1 && cid2_2==crow.id1_2){
+				else if(cid2==crow.id1){
 					// ID2 is listed first in match
-					if(cid1_1!=crow.id2_1 || cid1_2!=crow.id2_2){
+					if(cid1!=crow.id2){
 						// ID1 is not listed secon in match
-						let cid=numbers2id([crow.id2_1, crow.id2_2]);
-						//if(!sharingNamesAndIds || sharingIds.indexOf(cid)!=-1)
+						let cid = crow.id2;
 						{
 							if(crow.chromosome==100){
 								if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
@@ -683,12 +671,11 @@ function colorizeButton(button, cid1,  cid2){
 						}
 					}
 				}
-				else if(cid2_1==crow.id2_1 && cid2_2==crow.id2_2){
+				else if(cid2==crow.id2){
 					// ID2 is listed second in match
-					if(cid1_1!=crow.id1_1 || cid1_2!=crow.id1_2){
+					if(cid1!=crow.id1){
 						//ID1 is not listed first in match
-						let cid=numbers2id([crow.id1_1, crow.id1_2]);
-						//if(!sharingNamesAndIds || sharingIds.indexOf(cid)!=-1)
+						let cid = crow.id1;
 						{
 							if(crow.chromosome==100){
 								if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
@@ -701,7 +688,6 @@ function colorizeButton(button, cid1,  cid2){
 				}
 			}
 		}
-		//if(!sharingNamesAndIds || sharingIds.indexOf(numbers2id([cid2_1, cid2_2]))!=-1)
 		{
 			for(let ci=0; ci<cmatchIds1.length; ci++){
 				if(cmatchIds2.indexOf(cmatchIds1[ci])==-1 && cnonmatchIds2.indexOf(cmatchIds1[ci])==-1){
@@ -710,7 +696,6 @@ function colorizeButton(button, cid1,  cid2){
 				}
 			}
 		}
-		//if(!sharingNamesAndIds || sharingIds.indexOf(numbers2id([cid1_1, cid1_2]))!=-1)
 		{
 			for(let ci=0; ci<cmatchIds2.length; ci++){
 				if(cmatchIds1.indexOf(cmatchIds2[ci])==-1 && cnonmatchIds1.indexOf(cmatchIds2[ci])==-1){
@@ -754,11 +739,6 @@ function createTable12(transaction, results, colorize){
 	var displayMode=document.getElementById("displayMode");
 	var showURL=(displayMode.value>0);
 	var enableShowSegments=(displayMode.value>1);
-	var showPhaseInfo=(displayMode.value>2);
-	var alwaysShowPhase=document.getElementById("alwaysShowPhaseCheckBox").checked;
-	var alwaysShowLabels=document.getElementById("alwaysShowLabelsCheckBox").checked;
-	var alwaysShowCommonAncestors=document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
-
 
 
 	// Remove any preexisting table
@@ -772,11 +752,9 @@ function createTable12(transaction, results, colorize){
 		
 	document.getElementById("table_div").appendChild(table);
 	
-	var suppressed_id1s=null;
-	var suppressed_id2s=null;
+	var suppressed_ids=null;
 	if(hideCloseMatches && results.rows.length>21){
-		let id1s=new Array();
-		let id2s=new Array();
+		let ids=new Array();
 		let counts=new Array();
 		
 		for(let i=0; i<results.rows.length; i++){
@@ -787,48 +765,39 @@ function createTable12(transaction, results, colorize){
 			if((i+1)<results.rows.length){
 				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
 			}
-			let curr_id1;
-			let curr_id2;
-			if(expectedIds[0]==row.id2_1 && expectedIds[1]==row.id2_2){
-				curr_id1=row.id1_1;
-				curr_id2=row.id1_2;
-			}
-			else {
-				curr_id1=row.id2_1;
-				curr_id2=row.id2_2;
-			}
+			let curr_id;
+			if(expectedIdStr==row.id2)
+				curr_id=row.id1;
+			else 
+				curr_id=row.id2;
 			{
 				let j=0;
-				for (; j<id1s.length; j++){
-					if(curr_id1==id1s[j] && curr_id2==id2s[j]){
+				for (; j<ids.length; j++){
+					if(curr_id==ids[j] ){
 						counts[j]=counts[j]+1;
 						break;
 					}
 				}
-				if (j==id1s.length){
-					id1s.push(curr_id1);
-					id2s.push(curr_id2);
+				if (j==ids.length){
+					ids.push(curr_id);
 					counts.push(1);
 				}
 			}
 		}
-		for(let i=0; i<id1s.length; i++){
+		let found_close = false;
+		for(let i=0; i<ids.length; i++){
 			if(counts[i]>21){
-				suppressed_id1s=new Array();
-				suppressed_id2s=new Array();
-				break;
-			}
-		}
-		for(let i=0; i<id1s.length; i++){
-			if(counts[i]>21){
-				suppressed_id1s.push(id1s[i]);
-				suppressed_id2s.push(id2s[i]);
+				if( !found_close ) {
+					suppressed_ids=new Array();
+					found_close = true;
+				}
+				suppressed_ids.push(ids[i]);
 			}
 		}
 	}
 	
 	let ii=-1;
-	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
+	for(let i=0; i<results.rows.length; i++) {
 	
 		let row = results.rows.item(i);
 		if(!row.chromosome) break;
@@ -839,24 +808,20 @@ function createTable12(transaction, results, colorize){
 				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
 			}
 		}
-		if(suppressed_id1s){
-			let curr_id1=null;
-			let curr_id2=null;
-			if(expectedIds[0]==row.id2_1 && expectedIds[1]==row.id2_2){
-				curr_id1=row.id1_1;
-				curr_id2=row.id1_2;
-			}
-			else{
-				curr_id1=row.id2_1;
-				curr_id2=row.id2_2;
-			}
+		if(suppressed_ids){
+			let curr_id=null;
+			if(expectedIdStr==row.id2)
+				curr_id=row.id1;
+			else 
+				curr_id=row.id2;
+
 			let j=0;
-			for (; j< suppressed_id1s.length; j++){
-				if(curr_id1==suppressed_id1s[j] && curr_id2==suppressed_id2s[j]){
+			for (; j< suppressed_ids.length; j++){
+				if(curr_id==suppressed_ids[j] ){
 					break;
 				}
 			}
-			if(j< suppressed_id1s.length) continue;
+			if(j< suppressed_ids.length) continue;
 		}
 		
 		ii++;
@@ -865,168 +830,37 @@ function createTable12(transaction, results, colorize){
 		
 		let curColumnId=0;
 		
-		if(expectedIds[0]==row.id2_1 && expectedIds[1]==row.id2_2){
+		if(expectedIdStr==row.id2){
 		
-			if(showURL && row.id2_1 && row.id2_2){
+			if(showURL && row.id2){
 
 				let link = document.createElement("a");
 				//link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + numbers2id([row.id2_1, row.id2_2]));
-				link.setAttribute("href", "https://you.23andme.com/profile/" + numbers2id([row.id2_1, row.id2_2]) +"/");
+				link.setAttribute("href", "https://you.23andme.com/profile/" + row.id2 +"/");
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name2;
 				link.className="special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
-			
-			if(showPhaseInfo || alwaysShowPhase){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					cell.className="center";
-					if(showPhaseInfo){
-						let select=document.createElement("select");
-						select.className="special";
-						
-						let optionUnknown=document.createElement("option");
-						optionUnknown.text="?";
-						optionUnknown.value=-1;
-						select.appendChild(optionUnknown);
-						
-						let optionMaternal=document.createElement("option");
-						optionMaternal.text="M";
-						optionMaternal.value=0;
-						select.appendChild(optionMaternal);
-						
-						let optionPaternal=document.createElement("option");
-						optionPaternal.text="P";
-						optionPaternal.value=1;
-						select.appendChild(optionPaternal);
-						
-						let optionBoth=document.createElement("option");
-						optionBoth.text="B";
-						optionBoth.value=2;
-						select.appendChild(optionBoth);
-						
-						let optionNeither=document.createElement("option");
-						optionNeither.text="N";
-						optionNeither.value=3;
-						select.appendChild(optionNeither);
-						
-						if(row.phase2==null) select.selectedIndex=0;
-						else{
-							select.selectedIndex=row.phase2+1;
-						}
-						select.style.backgroundColor=phaseColors[select.selectedIndex];
-						select.onchange=createPhaseChangeListener(row.ROWID, 2);
-						cell.appendChild(select);
-					}
-					else if(row.phase2!=null){
-						if(row.phase2==0) cell.innerHTML="M";
-						else if(row.phase2==1) cell.innerHTML="P";
-						else if(row.phase2==2) cell.innerHTML="B";
-						else if(row.phase2==3) cell.innerHTML="N";
-					}
-				}
-			}
-			if(showPhaseInfo || alwaysShowLabels){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					if(showPhaseInfo){
-						let input=document.createElement("input");
-						input.className="special";
-						input.setAttribute("list", "labels");
-						input.setAttribute("type", "text");
-						if(row.relationship2!=null) input.value=row.relationship2;
-						input.onchange=createRelationshipChangeListener(row.ROWID, 2);
-						cell.appendChild(input);
-					}
-					else if(row.relationship2) cell.innerHTML=row.relationship2;
-				}
 
-			}
-
-			if(showURL && row.id1_1 && row.id1_2){
+			if(showURL && row.id1){
 
 				let link = document.createElement("a");
-				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + numbers2id([row.id1_1, row.id1_2]));
+				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + row.id1);
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name1;
 				link.className="special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name1;
-			
-			if(showPhaseInfo || alwaysShowPhase){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					cell.className="center";
-					if(showPhaseInfo){
-						let select=document.createElement("select");
-						select.className="special";
-						
-						let optionUnknown=document.createElement("option");
-						optionUnknown.text="?";
-						optionUnknown.value=-1;
-						select.appendChild(optionUnknown);
-						
-						let optionMaternal=document.createElement("option");
-						optionMaternal.text="M";
-						optionMaternal.value=0;
-						select.appendChild(optionMaternal);
-						
-						let optionPaternal=document.createElement("option");
-						optionPaternal.text="P";
-						optionPaternal.value=1;
-						select.appendChild(optionPaternal);
-						
-						let optionBoth=document.createElement("option");
-						optionBoth.text="B";
-						optionBoth.value=2;
-						select.appendChild(optionBoth);
-						
-						let optionNeither=document.createElement("option");
-						optionNeither.text="N";
-						optionNeither.value=3;
-						select.appendChild(optionNeither);
-						
-						if(row.phase1==null) select.selectedIndex=0;
-						else{
-							select.selectedIndex=row.phase1+1;
-						}
-						select.style.backgroundColor=phaseColors[select.selectedIndex];
-						select.onchange=createPhaseChangeListener(row.ROWID, 1);
-						cell.appendChild(select);
-					}
-					else if(row.phase1!=null){
-						if(row.phase1==0) cell.innerHTML="M";
-						else if(row.phase1==1) cell.innerHTML="P";
-						else if(row.phase1==2) cell.innerHTML="B";
-						else if(row.phase1==3) cell.innerHTML="N";
-					}
-				}
-			}
-			if(showPhaseInfo || alwaysShowLabels){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					if(showPhaseInfo){
-						let input=document.createElement("input");
-						input.className="special";
-						input.setAttribute("list", "labels");
-						input.setAttribute("type", "text");
-						if(row.relationship1!=null) input.value=row.relationship1;
-						input.onchange=createRelationshipChangeListener(row.ROWID, 1);
-						cell.appendChild(input);
-					}
-					else if(row.relationship1) cell.innerHTML=row.relationship1;
-				}
-			}
 
 		}
 		else{
-			if(showURL && row.id1_1 && row.id1_2){
+			if(showURL && row.id1){
 			
 				let link = document.createElement("a");
-				link.setAttribute("href", "https://you.23andme.com/profile/" + numbers2id([row.id1_1, row.id1_2]) +"/");
+				link.setAttribute("href", "https://you.23andme.com/profile/" + row.id1 +"/");
 
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name1;
@@ -1034,77 +868,12 @@ function createTable12(transaction, results, colorize){
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name1;
-			
-			if(showPhaseInfo || alwaysShowPhase){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					cell.className="center";
-					if(showPhaseInfo){
-						let select=document.createElement("select");
-						select.className="special";
-						
-						let optionUnknown=document.createElement("option");
-						optionUnknown.text="?";
-						optionUnknown.value=-1;
-						select.appendChild(optionUnknown);
-						
-						let optionMaternal=document.createElement("option");
-						optionMaternal.text="M";
-						optionMaternal.value=0;
-						select.appendChild(optionMaternal);
-						
-						let optionPaternal=document.createElement("option");
-						optionPaternal.text="P";
-						optionPaternal.value=1;
-						select.appendChild(optionPaternal);
-						
-						let optionBoth=document.createElement("option");
-						optionBoth.text="B";
-						optionBoth.value=2;
-						select.appendChild(optionBoth);
-						
-						let optionNeither=document.createElement("option");
-						optionNeither.text="N";
-						optionNeither.value=3;
-						select.appendChild(optionNeither);
-						
-						if(row.phase1==null) select.selectedIndex=0;
-						else{
-							select.selectedIndex=row.phase1+1;
-						}
-						select.style.backgroundColor=phaseColors[select.selectedIndex];
-						select.onchange=createPhaseChangeListener(row.ROWID, 1);
-						cell.appendChild(select);
-					}
-					else if(row.phase1!=null){
-						if(row.phase1==0) cell.innerHTML="M";
-						else if(row.phase1==1) cell.innerHTML="P";
-						else if(row.phase1==2) cell.innerHTML="B";
-						else if(row.phase1==3) cell.innerHTML="N";
-					}
-				}
-			}
-			if(showPhaseInfo || alwaysShowLabels){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					if(showPhaseInfo){
-						let input=document.createElement("input");
-						input.className="special";
-						input.setAttribute("list", "labels");
-						input.setAttribute("type", "text");
-						if(row.relationship1!=null) input.value=row.relationship1;
-						input.onchange=createRelationshipChangeListener(row.ROWID, 1);
-						cell.appendChild(input);
-					}
-					else if(row.relationship1) cell.innerHTML=row.relationship1;
-				}
-			}
 
 			
-			if(showURL && row.id2_1 && row.id2_2){
+			if(showURL && row.id2){
 			
 				let link = document.createElement("a");
-				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + numbers2id([row.id2_1, row.id2_2]));
+				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + row.id2);
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name2;
 				link.className="special";
@@ -1112,70 +881,7 @@ function createTable12(transaction, results, colorize){
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
 			
-			if(showPhaseInfo || alwaysShowPhase){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					cell.className="center";
-					if(showPhaseInfo){
-						let select=document.createElement("select");
-						select.className="special";
-	
-						let optionUnknown=document.createElement("option");
-						optionUnknown.text="?";
-						optionUnknown.value=-1;
-						select.appendChild(optionUnknown);
-						
-						let optionMaternal=document.createElement("option");
-						optionMaternal.text="M";
-						optionMaternal.value=0;
-						select.appendChild(optionMaternal);
-						
-						let optionPaternal=document.createElement("option");
-						optionPaternal.text="P";
-						optionPaternal.value=1;
-						select.appendChild(optionPaternal);
-						
-						let optionBoth=document.createElement("option");
-						optionBoth.text="B";
-						optionBoth.value=2;
-						select.appendChild(optionBoth);
-						
-						let optionNeither=document.createElement("option");
-						optionNeither.text="N";
-						optionNeither.value=3;
-						select.appendChild(optionNeither);
-						
-						if(row.phase2==null) select.selectedIndex=0;
-						else{
-							select.selectedIndex=row.phase2+1;
-						}
-						select.style.backgroundColor=phaseColors[select.selectedIndex];
-						select.onchange=createPhaseChangeListener(row.ROWID, 2);
-						cell.appendChild(select);
-					}
-					else if(row.phase2!=null){
-						if(row.phase2==0) cell.innerHTML="M";
-						else if(row.phase2==1) cell.innerHTML="P";
-						else if(row.phase2==2) cell.innerHTML="B";
-						else if(row.phase2==3) cell.innerHTML="N";					
-					}
-				}
-			}
-			if(showPhaseInfo || alwaysShowLabels){
-				{
-					let cell=tablerow.insertCell(curColumnId++);
-					if(showPhaseInfo){
-						let input=document.createElement("input");
-						input.className="special";
-						input.setAttribute("list", "labels");
-						input.setAttribute("type", "text");
-						if(row.relationship2!=null) input.value=row.relationship2;
-						input.onchange=createRelationshipChangeListener(row.ROWID, 2);
-						cell.appendChild(input);
-					}
-					else if(row.relationship2) cell.innerHTML=row.relationship2;
-				}
-			}
+
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
@@ -1200,7 +906,7 @@ function createTable12(transaction, results, colorize){
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
 			tcell.className="right";
-			tcell.innerHTML=row.centimorgans+" cM";
+			tcell.innerHTML=row.cM+" cM";
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
@@ -1219,28 +925,9 @@ function createTable12(transaction, results, colorize){
 			button.innerHTML="show overlapping segments";
 			(tablerow.insertCell(curColumnId++)).appendChild(button);
 			if(build==37 && colorize){
-				//if(showPhaseInfo || alwaysShowPhase || alwaysShowLabels)
-				//	selectSegmentMatchesAndPhaseFromDatabase(colorizeButton(button, row.id1_1, row.id1_2, row.id2_1, row.id2_2), row.ROWID);
-				//else
 				selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1, row.id2), row.ROWID);
 			}
 		}
-		/*
-////		if(showPhaseInfo || alwaysShowCommonAncestors){
-//			{
-//				let cell=tablerow.insertCell(curColumnId++);
-//				if(showPhaseInfo){
-//					let input=document.createElement("input");
-//					input.className="special";
-//					input.setAttribute("type", "text");
-//					if(row.comment!=null) input.value=row.comment;
-//					input.onchange=createCommonAncestorChangeListener(row.ROWID);
-//					cell.appendChild(input);
-//				}
-//				else if(row.comment) cell.innerHTML=row.comment;
-//			}
-//		}
-		*/
 	}
 	// Creating the header after the body prevents rows from being inserted into header
 	var tablehead=table.createTHead();
@@ -1248,18 +935,13 @@ function createTable12(transaction, results, colorize){
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
-		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
-		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
-		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Genetic distance";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
 		if(enableShowSegments) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
-		//if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
 	}
 	createMatchSVG(table);
 }
@@ -1282,7 +964,7 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 	
 	var csvarray=new Array();
 	if(includeIds){
-		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID, Phase, Match phase, Label, Match label, Common ancestors\n");
+		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID\n");
 	}
 	else{
 		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs\n");
@@ -1302,31 +984,29 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		}
 		let name=null;
 		let matchName=null;
-		let chromosome=null;
-		let startPoint=null;
-		let endPoint=null;
-		let geneticDistance=null;
-		let snps=null;
 		let id=null;
 		let matchId=null;
+		let chromosome=null;
+		let startPoint=row.start;
+		let endPoint=row.end;
+		let geneticDistance=row.cM;
+		let snps=row.snps;
 		
-		let phase=null;
-		let matchPhase=null;
-		let label=null;
-		let matchLabel=null;
-		let commonAncestors=null;
+		// trim the names to avoid csv and string delimiters inside name fields.
+		let name_a = row.name1.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
+		let name_b = row.name2.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
 		
-		if(expectedIds[0]==row.id2_1 && expectedIds[1]==row.id2_2){
-			name=row.name2.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
-			id=numbers2id([row.id2_1, row.id2_2]);
-			matchName=row.name1.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
-			matchId=numbers2id([row.id1_1, row.id1_2]);
+		if(expectedIdStr==row.id2){
+			name = name_b;
+			id=row.id2;
+			matchName = name_a;
+			matchId=row.id1;
 		}
 		else{
-			name=row.name1.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
-			id=numbers2id([row.id1_1, row.id1_2]);
-			matchName=row.name2.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
-			matchId=numbers2id([row.id2_1, row.id2_2]);
+			name=name_a;
+			id=row.id1;
+			matchName = name_b;
+			matchId=row.id2;
 		}
 		if(row.chromosome==23){
 			chromosome="X";
@@ -1334,40 +1014,14 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		else{
 			chromosome=row.chromosome;
 		}
-		startPoint=row.start;
-		endPoint=row.end;
-		geneticDistance=row.centimorgans;
-		snps=row.snps;
 		
-		if(includeIds){
-			if(row.phase1!=null){
-				if(row.phase1==0) phase="M";
-				else if(row.phase1==1) phase="P";
-				else if(row.phase1==2) phase="B";
-				else if(row.phase1==3) phase="N";
-			}
-			else phase="";
-			if(row.relationship1!=null) label=row.relationship1;
-			else label="";
-			if(row.phase2!=null){
-				if(row.phase2==0) matchPhase="M";
-				else if(row.phase2==1) matchPhase="P";
-				else if(row.phase2==2) matchPhase="B";
-				else if(row.phase2==3) matchPhase="N";
-			}
-			else matchPhase="";
-			if(row.relationship2!=null) matchLabel=row.relationship2;
-			else matchLabel="";
-			if(row.comment!=null) commonAncestors=row.comment;
-			else commonAncestors="";
-		}
-		
+	
 		if(i==0) theName=name;
 		else{
 			if(name!=theName) theName=null;
 		}
 		if(includeIds){
-			csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+","+id+","+matchId+","+phase+","+label+","+matchPhase+","+matchLabel+","+commonAncestors+"\n");
+			csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+","+id+","+matchId+"\n");
 		}
 		else{
 			csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+"\n");
@@ -1381,7 +1035,7 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 	else theName="";
 	
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529andYou" + theName+ "_" + formattedDate()+ ".csv");
+	saveAs(blob, "529renew" + theName+ "_" + formattedDate()+ ".csv");
 }
 function formattedDate(){
 	var thisDay=new Date();
@@ -1441,7 +1095,7 @@ function createGEXF(transaction, results){
 		if((i+1)<results.rows.length){
 			if(results.rows.item(i+1).ROWID==row.ROWID) continue;
 		}
-		let nodeId=numbers2id([row.id1_1, row.id1_2]);
+		let nodeId=row.id1;
 		let j=0;
 		for(; j<nodeArray.length; j++){
 			if(nodeId==nodeArray[j]) break;
@@ -1450,7 +1104,7 @@ function createGEXF(transaction, results){
 			nodeArray.push(nodeId);
 			gexfarray.push('      <node id="' + nodeId +'" label="' + row.name1.replace(/"/g,'').replace(/'/g,"") + '"/>\n');
 		}
-		nodeId=numbers2id([row.id2_1, row.id2_2]);
+		nodeId=row.id2;
 		j=0;
 		for(; j<nodeArray.length; j++){
 			if(nodeId==nodeArray[j]) break;
@@ -1480,20 +1134,25 @@ function createGEXF(transaction, results){
 		
 		label=label+ row.start + "-" + row.end;
 		
-		if(expectedIds[0]==row.id2_1 && expectedIds[1]==row.id2_2){
-			gexfarray.push('      <edge source="' + numbers2id([row.id1_1, row.id1_2]) +'" target="' + numbers2id([row.id2_1, row.id2_2]) + '" weight="' + row.centimorgans/20 + '" label="'+label+'"/>\n');
+		if(expectedIdStr==row.id2){
+			gexfarray.push('      <edge source="' + row.id1 +'" target="' + row.id2 + '" weight="' + row.cM/20 + '" label="'+label+'"/>\n');
 		}
 		else{
-			gexfarray.push('      <edge source="' + numbers2id([row.id2_1, row.id2_2]) +'" target="' + numbers2id([row.id1_1, row.id1_2]) + '" weight="' + row.centimorgans/20 + '" label="' + label +'"/>\n');
+			gexfarray.push('      <edge source="' + row.id2 +'" target="' + row.id1 + '" weight="' + row.cM/20 + '" label="' + label +'"/>\n');
 		}
 	}
 	gexfarray.push('    </edges>\n');
 	gexfarray.push('  </graph>\n');
 	gexfarray.push('</gexf>\n');
 	let blob = new Blob(gexfarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529andYou.gexf");
+	saveAs(blob, "529renew.gexf");
 	
 }
+
+/*
+** createSegmentTable - db transaction callback, with results of query for matching segments
+*/
+
 function createSegmentTable(transaction, results){
 	
 	var build=getBuild();
@@ -1528,8 +1187,8 @@ function createSegmentTable(transaction, results){
 		
 	document.getElementById("table_div").appendChild(table);
 	
-	var matchingSegments=new Array();
-	var matchIds=new Array();
+	var matchingSegments=new Array();   // currently array or arrays
+	var matchIds=new Array();		// array of objects
 	
 		
 	var matchChromosome=null;
@@ -1541,6 +1200,8 @@ function createSegmentTable(transaction, results){
 		let ii=-1;
 		for (i=0; i<results.rows.length; i++) {
 			let row = results.rows.item(i);
+			// result rows are ordered in the first instance by chromosome number, so
+			// once we hit chr 100 there are no real results remaining
 			if(row.chromosome==100) break;
 			
 			if(omitAliases){
@@ -1550,91 +1211,69 @@ function createSegmentTable(transaction, results){
 			}
 			ii++;
 
-			let matchingSegment=new Array();
-			let matchId=new Array();
+			let matchingSegment={};
+			//let matchId=new Array();
+			let matchIDObj = {};
 	
-			matchingSegment[0]=row.ROWID; // 0
+			matchingSegment.ROWID=row.ROWID; // 0
 	
-			if((expected_id1_1==row.id2_1 && expected_id1_2==row.id2_2) || 
-			   (expected_id2_1==row.id2_1 && expected_id2_2==row.id2_2)){
+			if((expected_id1==row.id2) || (expected_id2==row.id2)){
 	
-				matchingSegment[1]=row.name2; // 1
-				matchingSegment[2]=row.name1; // 2
-				matchingSegment[3]=row.id2_1; // 3
-				matchingSegment[4]=row.id2_2; // 4
-				matchingSegment[5]=row.id1_1; // 5
-				matchingSegment[6]=row.id1_2; // 6
+				matchingSegment.name1=row.name2; // 1
+				matchingSegment.name2=row.name1; // 2
+				matchingSegment.id1=row.id2; // 3
+				//matchingSegment[4]=row.id2_2; // 4
+				matchingSegment.id2=row.id1; // 5
+				//matchingSegment[6]=row.id1_2; // 6
 				
-				if(showPhaseInfo || alwaysShowPhase){
-					matchingSegment[13]=[row.phase2, 2];
-					matchingSegment[14]=[row.phase1, 1];
-				}
-				if(showPhaseInfo || alwaysShowLabels){
-					matchingSegment[15]=[row.relationship2, 2];
-					matchingSegment[16]=[row.relationship1, 1];
-				}
 				
-				if(!((expected_id1_1==row.id1_1 && expected_id1_2==row.id1_2) || 
-				     (expected_id2_1==row.id1_1 && expected_id2_2==row.id1_2))){
+				if(!((expected_id1==row.id1) || (expected_id2==row.id1))){
 					let j;
 					for(j=0; j<matchIds.length; j++){
-						if(matchIds[j][0]==row.id1_1 && matchIds[j][1]==row.id1_2) break;
+						if(matchIds[j].id==row.id1 ) break;
 					}
 					if(j==matchIds.length){
-						matchId[0]=row.id1_1;
-						matchId[1]=row.id1_2;
-						matchId[2]=row.name1;
-						matchIds.push(matchId);
+						matchIDObj.name = row.name1;
+						matchIDObj.id = row.id1;
+						matchIds.push(matchIDObj);
 					}
 				}
 			}
 			else{
 			
-				matchingSegment[1]=row.name1; // 1
-				matchingSegment[2]=row.name2; // 2
-				matchingSegment[3]=row.id1_1; // 3
-				matchingSegment[4]=row.id1_2; // 4
-				matchingSegment[5]=row.id2_1; // 5
-				matchingSegment[6]=row.id2_2; // 6
+				matchingSegment.name1=row.name1; // 1
+				matchingSegment.name2=row.name2; // 2
+				matchingSegment.id1=row.id1; // 3
+				//matchingSegment[4]=row.id1_2; // 4
+				matchingSegment.id2=row.id2; // 5
+				//matchingSegment[6]=row.id2_2; // 6
 				
-				if(showPhaseInfo || alwaysShowPhase){
-					matchingSegment[13]=[row.phase1, 1];
-					matchingSegment[14]=[row.phase2, 2];
-				}
-				if(showPhaseInfo || alwaysShowLabels){
-					matchingSegment[15]=[row.relationship1, 1];
-					matchingSegment[16]=[row.relationship2, 2];
-				}
 	
-				if(!((expected_id1_1==row.id2_1 && expected_id1_2==row.id2_2) || 
-				     (expected_id2_1==row.id2_1 && expected_id2_2==row.id2_2))){
+				if(!((expected_id1 == row.id2) || (expected_id2 == row.id2))){
 					let j;
 					for(j=0; j<matchIds.length; j++){
-						if(matchIds[j][0]==row.id2_1 && matchIds[j][1]==row.id2_2) break;
+						if(matchIds[j].id==row.id2 ) break;
 					}
 					if(j==matchIds.length){
-						matchId[0]=row.id2_1;
-						matchId[1]=row.id2_2;
-						matchId[2]=row.name2;
-						matchIds.push(matchId);
+						matchIDObj.name = row.name2;
+						matchIDObj.id = row.id2;
+						matchIds.push(matchIDObj);
 					}
 				}
 			}
-			matchingSegment[7]=row.chromosome; // 7
+			matchingSegment.chromosome=row.chromosome; // 7
 			if(!matchChromosome && row.chromosome<24) matchChromosome=row.chromosome;
-			matchingSegment[8]=row.start; // 8 
-			matchingSegment[9]=row.end; // 9
-			matchingSegment[10]=row.centimorgans; // 10
-			matchingSegment[11]=row.snps; // 11
-			
-			if(showPhaseInfo) matchingSegment[12]=row.comment;
-			
+			matchingSegment.start=row.start; // 8 
+			matchingSegment.end=row.end; // 9
+			matchingSegment.cM=row.cM; // 10
+			matchingSegment.snps=row.snps; // 11
+					
 			matchingSegments[ii]=matchingSegment; // i
 		}
 		// Process the chromosome 100 matches
 		for(; i<results.rows.length; i++) {
 		
-			let row= results.rows.item(i);
+			let row = results.rows.item(i);
 			
 			if(omitAliases){
 				if((i+1)<results.rows.length){
@@ -1645,42 +1284,41 @@ function createSegmentTable(transaction, results){
 
 			let matchingSegment=new Array();
 			
-			matchingSegment[0]=row.ROWID;	// 0
+			matchingSegment.ROWID=row.ROWID;	// 0
 			
 			// Screen out segments that don't involve one of the two
-			// individuals of interest and someone on the matchId
+			// individuals of interest and someone on the matchIds
 			// list of people whom one of them match
-			if((expected_id1_1==row.id2_1 && expected_id1_2==row.id2_2) || 
-			   (expected_id2_1==row.id2_1 && expected_id2_2==row.id2_2)){
+			if((expected_id1 == row.id2) ||  (expected_id2 == row.id2)){
 			
 				let j;
 				for(j=0; j<matchIds.length; j++){
-					if(row.id1_1==matchIds[j][0] && row.id1_2==matchIds[j][1]) break;
+					if(row.id1 == matchIds[j].id) break;
 				}
 				if(j==matchIds.length) continue;
 				
-				matchingSegment[1]=row.name2; // 1
-				matchingSegment[2]=row.name1; // 2
-				matchingSegment[3]=row.id2_1; // 3
-				matchingSegment[4]=row.id2_2; // 4
-				matchingSegment[5]=row.id1_1; // 5
-				matchingSegment[6]=row.id1_2; // 6
+				matchingSegment.name1=row.name2; // 1
+				matchingSegment.name2=row.name1; // 2
+				matchingSegment.id1=row.id2; // 3
+				//matchingSegment[4]=row.id2_2; // 4
+				matchingSegment.id2=row.id1; // 5
+				//matchingSegment[6]=row.id1_2; // 6
 				
 			}
 			else{
 			
 				let j;
 				for(j=0; j<matchIds.length; j++){
-					if(row.id2_1==matchIds[j][0] && row.id2_2==matchIds[j][1]) break;
+					if(row.id2==matchIds[j].id ) break;
 				}
 				if(j==matchIds.length) continue;
 				
-				matchingSegment[1]=row.name1; // 1
-				matchingSegment[2]=row.name2; // 2
-				matchingSegment[3]=row.id1_1; // 3
-				matchingSegment[4]=row.id1_2; // 4
-				matchingSegment[5]=row.id2_1; // 5
-				matchingSegment[6]=row.id2_2; // 6
+				matchingSegment.name1=row.name1; // 1
+				matchingSegment.name2=row.name2; // 2
+				matchingSegment.id1=row.id1; // 3
+				//matchingSegment[4]=row.id1_2; // 4
+				matchingSegment.id2=row.id2; // 5
+				//matchingSegment[6]=row.id2_2; // 6
 				
 			}
 			{
@@ -1688,19 +1326,18 @@ function createSegmentTable(transaction, results){
 				// as matching on some actual chromosome
 				let k;
 				for(k=0; k<matchingSegments.length; k++){
-					if(matchingSegments[k][3]==matchingSegment[3] &&
-						matchingSegments[k][4]==matchingSegment[4] &&
-						matchingSegments[k][5]==matchingSegment[5] &&
-						matchingSegments[k][6]==matchingSegment[6]) break;
+					if(matchingSegments[k].id1==matchingSegment.id1 &&
+						//matchingSegments[k][4]==matchingSegment[4] &&
+						matchingSegments[k].id2==matchingSegment.id2 
+						//&& matchingSegments[k][6]==matchingSegment[6]
+						) break;
 				}
 				if(k==matchingSegments.length){
-					matchingSegment[7]=row.chromosome; // 7
-					matchingSegment[8]=row.start; // 8 
-					matchingSegment[9]=row.end; // 9
-					matchingSegment[10]=row.centimorgans; // 10
-					matchingSegment[11]=row.snps; // 11
-					
-					if(showPhaseInfo) matchingSegment[12]=row.comment;
+					matchingSegment.chromosome=row.chromosome; // 7
+					matchingSegment.start=row.start; // 8 
+					matchingSegment.end=row.end; // 9
+					matchingSegment.cM=row.cM; // 10
+					matchingSegment.snps=row.snps; // 11
 					
 					matchingSegments.push(matchingSegment); // i
 				}
@@ -1713,12 +1350,12 @@ function createSegmentTable(transaction, results){
 		let matches1=false;
 		let matches2=false;
 		for(i=0; i<matchingSegments.length; i++){
-			if(matchIds[j][0]==matchingSegments[i][5] && matchIds[j][1]==matchingSegments[i][6]){
-				if(matchingSegments[i][3]==expected_id1_1 && matchingSegments[i][4]==expected_id1_2){
+			if(matchIds[j].id==matchingSegments[i].id2 ){
+				if(matchingSegments[i].id1==expected_id1){
 					matches1=true;
 					if(matches2) break;
 				}
-				else if(matchingSegments[i][3]==expected_id2_1 && matchingSegments[i][4]==expected_id2_2){
+				else if(matchingSegments[i].id1==expected_id2){
 					matches2=true;
 					if(matches1) break;
 				}
@@ -1728,32 +1365,30 @@ function createSegmentTable(transaction, results){
 			}
 		}
 		if(i==matchingSegments.length){
-			let matchingSegment=new Array();
-			matchingSegment[0]=-1; // 0 
+			let matchingSegment={};
+			matchingSegment.ROWID=-1; // 0 
 			if(matches1){
-				matchingSegment[1]=expectedName2; // 1
-				matchingSegment[2]=matchIds[j][2]; // 2
-				matchingSegment[3]=expected_id2_1; // 3
-				matchingSegment[4]=expected_id2_2; // 4
+				matchingSegment.name1=expectedName2; // 1
+				matchingSegment.name2=matchIds[j].name; // 2
+				matchingSegment.id1=expected_id2; // 3
+				//matchingSegment[4]=expected_id2_2; // 4
 			}
 			else if(matches2){
-				matchingSegment[1]=expectedName1;
-				matchingSegment[2]=matchIds[j][2]; // 2
-				matchingSegment[3]=expected_id1_1; // 3
-				matchingSegment[4]=expected_id1_2; // 4
+				matchingSegment.name1=expectedName1;
+				matchingSegment.name2=matchIds[j].name; // 2
+				matchingSegment.id1=expected_id1; // 3
+				//matchingSegment[4]=expected_id1_2; // 4
 			}
 			else{
 				return; // The page has changed for a new query, so this task is no longer relevant
-				//alert("Programming error 2" + matchIds[j][2]);
 			}
 			
-			matchingSegment[5]=matchIds[j][0]; // 5
-			matchingSegment[6]=matchIds[j][1]; // 6
-			matchingSegment[7]=200; // 7
-			matchingSegment[8]="?"; // 8
-			matchingSegment[9]="?"; // 9
-			matchingSegment[10]="?"; // 10
-			matchingSegment[11]="?"; // 11
+			matchingSegment.id2=matchIds[j].id; // 5
+			matchingSegment.chromosome=200; // 7
+			matchingSegment.start="?"; // 8
+			matchingSegment.end="?"; // 9
+			matchingSegment.cM="?"; // 10
+			matchingSegment.snps="?"; // 11
 			
 			matchingSegments.push(matchingSegment);
 		}
@@ -1762,32 +1397,26 @@ function createSegmentTable(transaction, results){
 	// and to order the two people on the original target
 	// segment consistently
 	matchingSegments.sort(function(a, b){
-		if(a[5]>b[5]) return 1;
-		else if(a[5]<b[5]) return -1; 
-		else if(a[6]>b[6]) return 1;
-		else if(a[6]<b[6]) return -1; // match id
-		else if(a[3]>b[3]) return 1;
-		else if(a[3]<b[3]) return -1;
-		else if(a[4]>b[4]) return 1;
-		else if(a[4]<b[4]) return -1; // id
-		else if(a[8]>b[8]) return 1;
-		else if(a[8]<b[8]) return -1; // start
+		if(a.id2>b.id2) return 1;
+		else if(a.id2<b.id2) return -1; 
+		else if(a.id1>b.id1) return 1;
+		else if(a.id1<b.id1) return -1;
+		else if(a.start>b.start) return 1;
+		else if(a.start<b.start) return -1; // start
 		return 0;
 	});
 
 	if(matchingSegments.length>0){
 		let matchingSegmentsArray=new Array();
 		{
-			let target1=matchingSegments[0][5];
-			let target2=matchingSegments[0][6];
-			let matchingSegmentsK=new Array();
+			let target1=matchingSegments[0].id2;
+			let matchingSegmentsK=new Array();  //  array of segs for one person
 	
 			for(let i=0; i<matchingSegments.length; i++){
-				if(matchingSegments[i][5]!=target1 || matchingSegments[i][6]!=target2){
+				if(matchingSegments[i].id2!=target1 ){
 					matchingSegmentsArray.push(matchingSegmentsK);
 					matchingSegmentsK=new Array();
-					target1=matchingSegments[i][5];
-					target2=matchingSegments[i][6];
+					target1=matchingSegments[i].id2;
 				}
 				matchingSegmentsK.push(matchingSegments[i]);
 			}
@@ -1796,16 +1425,16 @@ function createSegmentTable(transaction, results){
 		matchingSegmentsArray.sort(function(a,b){
 			function score(a){
 				for(let i=0; i<a.length; i++){
-					if(a[i][10]=="?"){
-						if(a[i][3]==expected_id1_1 && a[i][4]==expected_id1_2){
+					if(a[i].cM=="?"){
+						if(a[i].id1==expected_id1){
 							return 0; // non compared to person 2
 						}
 						else return 4; // non compared to person 1
 					}
 				}
 				for(let i=0; i<a.length; i++){
-					if(a[i][10]==0){
-						if(a[i][3]==expected_id1_1 && a[i][4]==expected_id1_2){
+					if(a[i].cM==0){
+						if(a[i].id1==expected_id1){
 							return 1; // non match to person 2
 						}
 						else return 3; // non match to person 1
@@ -1816,18 +1445,18 @@ function createSegmentTable(transaction, results){
 			function findStart(a){
 				let start=10000000000;
 				for(let i=0; i<a.length; i++){
-					if(isNaN(parseInt(a[i][8]))) continue;
-					if(a[i][8]<0) continue;
-					if(a[i][8]<start) start=a[i][8];
+					if(isNaN(parseInt(a[i].start))) continue;
+					if(a[i].start<0) continue;
+					if(a[i].start<start) start=a[i].start;
 				}
 				return start;
 			}
 			function findEnd(a){
 				let end=-1;
 				for(let i=0; i<a.length; i++){
-					if(isNaN(parseInt(a[i][9]))) continue;
-					if(a[i][8]<0) continue;
-					if(a[i][9]>end) end=a[i][9];
+					if(isNaN(parseInt(a[i].end))) continue;
+					if(a[i].end<0) continue;
+					if(a[i].end>end) end=a[i].end;
 				}
 				return end;
 			}
@@ -1838,7 +1467,7 @@ function createSegmentTable(transaction, results){
 			return (findEnd(a)-findEnd(b));
 		});
 		for(let k=0; k<matchingSegmentsArray.length; k++){
-			for(let i=0; i<matchingSegmentsArray[k].length; i++) {	//results.rows.length
+			for(let i=0; i<matchingSegmentsArray[k].length; i++) {
 			
 				let tablerow = table.insertRow(i);
 				
@@ -1847,10 +1476,10 @@ function createSegmentTable(transaction, results){
 				{
 
 					let link = document.createElement("a");
-					link.setAttribute("href", "https://you.23andme.com/profile/" + numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]) +"/");
+					link.setAttribute("href", "https://you.23andme.com/profile/" + matchingSegmentsArray[k][i].id1 +"/");
 					
 					link.setAttribute("target", "_blank");
-					link.innerHTML=matchingSegmentsArray[k][i][1];
+					link.innerHTML=matchingSegmentsArray[k][i].name1;
 					link.className="special";
 					let cell=tablerow.insertCell(curColumnId++);
 					(cell).appendChild(link);
@@ -1859,92 +1488,12 @@ function createSegmentTable(transaction, results){
 					}
 				}
 				
-				if(showPhaseInfo || alwaysShowPhase){
-					{
-						let cell=tablerow.insertCell(curColumnId++);
-						if(matchingSegmentsArray[k][i][13]){
-						
-							if(showPhaseInfo){
-						
-								let select=document.createElement("select");
-								select.className="special";
-								
-								let optionUnknown=document.createElement("option");
-								optionUnknown.text="?";
-								optionUnknown.value=-1;
-								select.appendChild(optionUnknown);
-								
-								let optionMaternal=document.createElement("option");
-								optionMaternal.text="M";
-								optionMaternal.value=0;
-								select.appendChild(optionMaternal);
-								
-								let optionPaternal=document.createElement("option");
-								optionPaternal.text="P";
-								optionPaternal.value=1;
-								select.appendChild(optionPaternal);
-								
-								let optionBoth=document.createElement("option");
-								optionBoth.text="B";
-								optionBoth.value=2;
-								select.appendChild(optionBoth);
-								
-								let optionNeither=document.createElement("option");
-								optionNeither.text="N";
-								optionNeither.value=3;
-								select.appendChild(optionNeither);
-								
-								if(matchingSegmentsArray[k][i][13][0]==null) select.selectedIndex=0;
-								else{
-									select.selectedIndex=matchingSegmentsArray[k][i][13][0]+1;
-								}
-								select.style.backgroundColor=phaseColors[select.selectedIndex];
-								select.onchange=createPhaseChangeListener(matchingSegmentsArray[k][i][0], matchingSegmentsArray[k][i][13][1]);
-								cell.appendChild(select);
-							}
-							else if(matchingSegmentsArray[k][i][13][0]!=null){
-								if(matchingSegmentsArray[k][i][13][0]==0) cell.innerHTML="M";
-								else if(matchingSegmentsArray[k][i][13][0]==1) cell.innerHTML="P";
-								else if(matchingSegmentsArray[k][i][13][0]==2) cell.innerHTML="B";
-								else if(matchingSegmentsArray[k][i][13][0]==3) cell.innerHTML="N";
-							}
-						}
-						if(i==matchingSegmentsArray[k].length-1){
-							cell.className="bottom_center";
-						}
-						else cell.className="center";
-					}
-				}
-				if(showPhaseInfo || alwaysShowLabels){
-					{
-						let cell=tablerow.insertCell(curColumnId++);
-						if(matchingSegmentsArray[k][i][15]){
-
-							if(showPhaseInfo){
-								let input=document.createElement("input");
-								input.className="special";
-								input.setAttribute("list", "labels");
-								input.setAttribute("type", "text");
-								if(matchingSegmentsArray[k][i][15][0]!=null) input.value=matchingSegmentsArray[k][i][15][0];
-								input.onchange=createRelationshipChangeListener(matchingSegmentsArray[k][i][0], matchingSegmentsArray[k][i][15][1]);
-								cell.appendChild(input);
-							}
-							else if(matchingSegmentsArray[k][i][15][0]){
-								cell.innerHTML=matchingSegmentsArray[k][i][15][0];
-							}
-						}
-						if(i==matchingSegmentsArray[k].length-1){
-							cell.className="bottom_center";
-						}
-						else cell.className="center";
-					}
-				}
 				
 				{
 					let link = document.createElement("a");
-					link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]));
+					link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + matchingSegmentsArray[k][i].id2);
 					link.setAttribute("target", "_blank");
-					link.innerHTML=matchingSegmentsArray[k][i][2];
+					link.innerHTML=matchingSegmentsArray[k][i].name2;
 					link.className="special";
 					let cell=tablerow.insertCell(curColumnId++);
 					(cell).appendChild(link);
@@ -1952,87 +1501,9 @@ function createSegmentTable(transaction, results){
 						cell.className="bottom";
 					}
 				}
-				
-				if(showPhaseInfo || alwaysShowPhase){
-					{
-						let cell=tablerow.insertCell(curColumnId++);
-						if(matchingSegmentsArray[k][i][14]){
-						
-							if(showPhaseInfo){
-								let select=document.createElement("select");
-								select.className="special";
-								
-								let optionUnknown=document.createElement("option");
-								optionUnknown.text="?";
-								optionUnknown.value=-1;
-								select.appendChild(optionUnknown);
-								
-								let optionMaternal=document.createElement("option");
-								optionMaternal.text="M";
-								optionMaternal.value=0;
-								select.appendChild(optionMaternal);
-								
-								let optionPaternal=document.createElement("option");
-								optionPaternal.text="P";
-								optionPaternal.value=1;
-								select.appendChild(optionPaternal);
-								
-								let optionBoth=document.createElement("option");
-								optionBoth.text="B";
-								optionBoth.value=2;
-								select.appendChild(optionBoth);
-								
-								let optionNeither=document.createElement("option");
-								optionNeither.text="N";
-								optionNeither.value=3;
-								select.appendChild(optionNeither);
-								
-								if(matchingSegmentsArray[k][i][14][0]==null) select.selectedIndex=0;
-								else{
-									select.selectedIndex=matchingSegmentsArray[k][i][14][0]+1;
-								}
-								select.style.backgroundColor=phaseColors[select.selectedIndex];
-								select.onchange=createPhaseChangeListener(matchingSegmentsArray[k][i][0], matchingSegmentsArray[k][i][14][1]);
-								cell.appendChild(select);
-							}
-							else if(matchingSegmentsArray[k][i][14][0]!=null){
-								if(matchingSegmentsArray[k][i][14][0]==0) cell.innerHTML="M";
-								else if(matchingSegmentsArray[k][i][14][0]==1) cell.innerHTML="P";
-								else if(matchingSegmentsArray[k][i][14][0]==2) cell.innerHTML="B";
-								else if(matchingSegmentsArray[k][i][14][0]==3) cell.innerHTML="N";
-							}
-						}
-						if(i==matchingSegmentsArray[k].length-1){
-							cell.className="bottom_center";
-						}
-						else cell.className="center";
-					}
-				}
-				if(showPhaseInfo || alwaysShowLabels){
-					{
-						let cell=tablerow.insertCell(curColumnId++);
-						if(matchingSegmentsArray[k][i][16]){
-							if(showPhaseInfo){
-								let input=document.createElement("input");
-								input.className="special";
-								input.setAttribute("list", "labels");
-								input.setAttribute("type", "text");
-								if(matchingSegmentsArray[k][i][16][0]!=null) input.value=matchingSegmentsArray[k][i][16][0];
-								input.onchange=createRelationshipChangeListener(matchingSegmentsArray[k][i][0], matchingSegmentsArray[k][i][16][1]);
-								cell.appendChild(input);
-							}
-							else if(matchingSegmentsArray[k][i][16][0]){
-								cell.innerHTML=matchingSegmentsArray[k][i][16][0];
-							}
-						}
-						if(i==matchingSegmentsArray[k].length-1){
-							cell.className="bottom_center";
-						}
-						else cell.className="center";
-					}
-				}
 
-				if(matchingSegmentsArray[k][i][7]==100){
+
+				if(matchingSegmentsArray[k][i].chromosome==100){
 					{
 						let cell=tablerow.insertCell(curColumnId++);
 						(cell).innerHTML="";
@@ -2074,15 +1545,15 @@ function createSegmentTable(transaction, results){
 				else{
 					{
 						let tcell=tablerow.insertCell(curColumnId++);
-						if(matchingSegmentsArray[k][i][7]==23){
+						if(matchingSegmentsArray[k][i].chromosome==23){
 							tcell.innerHTML="X";
 						}
-						else if(matchingSegmentsArray[k][i][7]==200){
+						else if(matchingSegmentsArray[k][i].chromosome==200){
 							if(matchChromosome==23) tcell.innerHTML="X";
 							else tcell.innerHTML=matchChromosome;
 						}
 						else{
-							tcell.innerHTML=matchingSegmentsArray[k][i][7];
+							tcell.innerHTML=matchingSegmentsArray[k][i].chromosome;
 						}
 						if(i==matchingSegmentsArray[k].length-1){
 							tcell.className="bottom_center";
@@ -2091,7 +1562,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i][8];
+						(cell).innerHTML=matchingSegmentsArray[k][i].start;
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -2099,7 +1570,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i][9];
+						(cell).innerHTML=matchingSegmentsArray[k][i].end;
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -2107,7 +1578,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i][10]+" cM";
+						(cell).innerHTML=matchingSegmentsArray[k][i].cM+" cM";
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -2115,38 +1586,31 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i][11];
+						(cell).innerHTML=matchingSegmentsArray[k][i].snps;
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
 						else cell.className="right";
 					}
 						
-					if(matchingSegmentsArray[k][i][0]>=0){
-						function makeLink(id, name1, name2, id1_1, id1_2, id2_1, id2_2){
+					if(matchingSegmentsArray[k][i].ROWID>=0){
+						function makeLink(id, name1, name2, id1, id2){
 							return function(){
-								displayMatchingSegments(id, name1, name2, id1_1, id1_2, id2_1, id2_2);
+								displayMatchingSegments(id, name1, name2, id1, id2);
 							};
 						}
 						let button = document.createElement("button");
-						button.onclick=makeLink(matchingSegmentsArray[k][i][0], matchingSegmentsArray[k][i][1], matchingSegmentsArray[k][i][2], matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4], matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]);
+						button.onclick=makeLink(matchingSegmentsArray[k][i].ROWID, matchingSegmentsArray[k][i].name1, matchingSegmentsArray[k][i].name2, matchingSegmentsArray[k][i].id1, 		matchingSegmentsArray[k][i].id2);
 						button.className="special";
-						if((matchingSegmentsArray[k][i][3]==expected_id1_1 && 
-							matchingSegmentsArray[k][i][4]==expected_id1_2 && 
-							matchingSegmentsArray[k][i][5]==expected_id2_1 && 
-							matchingSegmentsArray[k][i][6]==expected_id2_2) || 
-							(matchingSegmentsArray[k][i][3]==expected_id2_1 &&
-							matchingSegmentsArray[k][i][4]==expected_id2_2 &&
-							matchingSegmentsArray[k][i][5]==expected_id1_1 && 
-							matchingSegmentsArray[k][i][6]==expected_id1_2
-							)){
+						if((matchingSegmentsArray[k][i].id1==expected_id1 && matchingSegmentsArray[k][i].id2==expected_id2 ) || 
+							(matchingSegmentsArray[k][i].id1==expected_id2 &&	matchingSegmentsArray[k][i].id2==expected_id1 )){
 							
 							button.innerHTML="reload";
-							if(matchingSegmentsArray[k][i][7]==23){
-								tableTitle.innerHTML="Segments overlapping match of " + matchingSegmentsArray[k][i][1] + " and " + matchingSegmentsArray[k][i][2] + ", chr X:" +matchingSegmentsArray[k][i][8]+ "-" + matchingSegmentsArray[k][i][9];
+							if(matchingSegmentsArray[k][i].chromosome==23){
+								tableTitle.innerHTML="Segments overlapping match of " + matchingSegmentsArray[k][i].name1 + " and " + matchingSegmentsArray[k][i].name2 + ", chr X:" +matchingSegmentsArray[k][i].start+ "-" + matchingSegmentsArray[k][i].end;
 							}
 							else{
-								tableTitle.innerHTML="Segments overlapping match of " + matchingSegmentsArray[k][i][1] + " and " + matchingSegmentsArray[k][i][2] + ", chr " + matchingSegmentsArray[k][i][7]+ ":" +matchingSegmentsArray[k][i][8]+ "-" + matchingSegmentsArray[k][i][9];
+								tableTitle.innerHTML="Segments overlapping match of " + matchingSegmentsArray[k][i].name1 + " and " + matchingSegmentsArray[k][i].name2 + ", chr " + matchingSegmentsArray[k][i].chromosome+ ":" +matchingSegmentsArray[k][i].start+ "-" + matchingSegmentsArray[k][i].end;
 							}
 						}
 						else button.innerHTML="show overlapping segments";
@@ -2154,28 +1618,6 @@ function createSegmentTable(transaction, results){
 						
 					}
 					else{
-						//let bothAreSharing=true;
-						//let firstId=numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]);
-						//let secondId=numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]);
-						//let firstIsSharing=false;
-						//let secondIsSharing=false;
-						// if(sharingNamesAndIds){
-						// 	for(let ii=0; ii<sharingNamesAndIds.length; ii++){
-						// 		if(sharingNamesAndIds[ii][1]===firstId){
-						// 			firstIsSharing=true;
-						// 			break;
-						// 		}
-						// 	}
-						// 	if(firstIsSharing){
-						// 		for(let ii=0; ii<sharingNamesAndIds.length; ii++){
-						// 			if(sharingNamesAndIds[ii][1]===secondId){
-						// 				secondIsSharing=true;
-						// 			}
-						// 		}
-						// 	}
-						// }
-						//if((firstIsSharing && secondIsSharing) || !sharingNamesAndIds)
-						{
 							let buttonCompare = document.createElement("button");
 							function makeComparison(indexId, matchId, indexName, matchName){
 								return function(evt){
@@ -2184,29 +1626,14 @@ function createSegmentTable(transaction, results){
 								};
 							}
 							buttonCompare.className="special";
-							buttonCompare.onclick=makeComparison(numbers2id([matchingSegmentsArray[k][i][3], matchingSegmentsArray[k][i][4]]), numbers2id([matchingSegmentsArray[k][i][5], matchingSegmentsArray[k][i][6]]), matchingSegmentsArray[k][i][1], matchingSegmentsArray[k][i][2]);
+							buttonCompare.onclick=makeComparison(matchingSegmentsArray[k][i].id1, matchingSegmentsArray[k][i].id2, matchingSegmentsArray[k][i].name1, matchingSegmentsArray[k][i].name2);
 							buttonCompare.innerHTML="compare";
 							// Previously provided link to compare
 							(tablerow.insertCell(curColumnId++)).append(buttonCompare);
-						}
-						// else{
-						// 	let cell=tablerow.insertCell(curColumnId++);
-						// 	if(!firstIsSharing){
-						// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][1];
-						// 	}
-						// 	else{
-						// 		(cell).innerHTML="Not currently sharing with " + matchingSegmentsArray[k][i][2];
-						// 	}
-						// }
 					}
 				}
 	
 				
-				if(showPhaseInfo){
-					let cell=tablerow.insertCell(curColumnId++);
-					if(matchingSegmentsArray[k][i][12]!=null)
-						(cell).innerHTML=matchingSegmentsArray[k][i][12];
-				}
 			}
 		}
 	}
@@ -2216,32 +1643,24 @@ function createSegmentTable(transaction, results){
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
-		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Phase";
-		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		//if(showPhaseInfo || alwaysShowPhase) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match phase";
-		//if(showPhaseInfo || alwaysShowLabels) (tableheadrow.insertCell(curColumnId++)).innerHTML="Match label";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="cM";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
-		//if(showPhaseInfo || alwaysShowCommonAncestors) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
-		//if(showPhaseInfo) (tableheadrow.insertCell(curColumnId++)).innerHTML="Common ancestors";
 	}
 	createSVG(table);
 }
 
 
-function displayMatchingSegments(rowid, name1, name2, id1_1, id1_2, id2_1, id2_2){
+function displayMatchingSegments(rowid, name1, name2, id1, id2){
 	expectedName1=name1;
 	expectedName2=name2;
-	expected_id1_1=id1_1;
-	expected_id1_2=id1_2;
-	expected_id2_1=id2_1;
-	expected_id2_2=id2_2;
+	expected_id1=id1;
+	expected_id2=id2;
 	db_conlog( 2, `displayMatchingSegments: n1=${name1} and n2=${name2}`);
-	if(document.getElementById("displayMode").value>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked){
+	if(document.getElementById("displayMode").value>2 ){
 		selectSegmentMatchesAndPhaseFromDatabase(createSegmentTable, rowid);
 	}
 	else{
@@ -2253,10 +1672,11 @@ function requestSelectFromDatabase(shiftIsDown){
 	if(document.getElementById("selectName").selectedIndex<0) return;
 	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
-	//if(expectedId=='all') expectedIds=[0,0];
-	//else expectedIds=id2numbers(expectedId);
+	if(expectedId=='all')
+		expectedIdStr=0;
+	else
+		expectedIdStr=expectedId;
 	
-	//var wantPhaseInfo=(document.getElementById("displayMode")).selectedIndex>2 || document.getElementById("alwaysShowPhaseCheckBox").checked || document.getElementById("alwaysShowLabelsCheckBox").checked || document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
 	
 	if(shiftIsDown){
 		selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
@@ -2271,8 +1691,10 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 	if(document.getElementById("selectName").selectedIndex<0) return;
 	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
-	if(expectedId=='all') expectedIds=[0,0];
-	else expectedIds=id2numbers(expectedId);
+	if(expectedId=='all')
+		expectedIdStr=0;
+	else
+		expectedIdStr=expectedId;
 	if(altIsDown){
 		selectFromDatabase(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, true);
 	}
@@ -2287,8 +1709,10 @@ function requestSelectFromDatabaseForGEXF(){
 	if(document.getElementById("selectName").selectedIndex<0) return;
 	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
-	if(expectedId=='all') expectedIds=[0,0];
-	else expectedIds=id2numbers(expectedId);
+	if(expectedId=='all')
+		expectedIdStr=0;
+	else
+		expectedIdStr=expectedId;
 	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
 }
 

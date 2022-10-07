@@ -1,5 +1,5 @@
 /*
-* this content script version is for idb segment access.
+* this content script version is for ibdsegment access.
 ** Most comments in this file were made trying to interpret the original code and
 * do not carry any warranty as to accuracy.
 ** This version is run using a fifo queue to allow more control over adding delays
@@ -37,13 +37,17 @@ var dispatchMouseEvent = function(target, var_args) {
   target.dispatchEvent(e);
 };
 
+/*
+** Start the process to run the query to get DNA segments between pair of matches
+** Start by checking if the pair is already in the DB, 
+*/
 function run_query(personaId, personbId, personaName, personbName){
 	chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
 }
 
 /* this listener handles the return from run_query()
 ** The message will set needToCompare to true if we need
-** to get the results from 23 and me.
+** to get the results from 23 and me for inclusion in local DB.
 */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -107,13 +111,6 @@ chrome.runtime.onMessage.addListener(
 							};
 							if(matchingSegment.start==0)
 								matchingSegment.start=1;
-							/*
-							//[3]=roundBaseAddress(data[j].start),
-							//matchingSegment[4]=roundBaseAddress(data[j].end),
-							//matchingSegment[5]=round_cM(data[j].seg_cm),
-							//matchingSegment[6]=data[j].num_snps,
-							*/
-							// Chromosome X=chromosome 23
 							if(String(matchingSegment.chromosome)==="X")
 								matchingSegment.chromosome=23;	
 
@@ -184,7 +181,8 @@ function launch_next_IBD_query() {
 }
 /*
 ** this function cleans up at the end of runComparison3
-** It should only get called when the segment request queue is empty.
+** It should only get called when the segment request queue is empty
+** and all people on the page have been processed.
 */
 let pendingMismatches = 0;
 
@@ -245,7 +243,7 @@ function finishComparisons() {
 		}
 	}
 	else{
-		// Go to the next page and process...
+		// Go to the next page and process it...
 		if( debug_q > 0 )
 			console.log( "    runComp3: to next page at " + new Date().toISOString()  );
 		dispatchMouseEvent(nextButton, 'click', true, true);
@@ -260,6 +258,9 @@ function finishComparisons() {
 
 /*
 ** this function is run to process a page of (up to 10) shared matches.
+** The "primaryComparison" is that between the profile person and personA
+** (the match against whom all the ICW/triangulations are being compared in this page)
+** This code reads the page and loads all required matches into teh processing queue
 */
 
 function runComparison3(ranPrimaryComparison ){
@@ -451,6 +452,10 @@ function getMyName(){
 	}
 }
 
+/*
+** this function handles the "get triangulation data" button.
+** It scrapes the page for names
+*/
 tr_el.onclick=function(evt){
 	var loaded=false;
 	try{
@@ -502,6 +507,12 @@ tr_el.onclick=function(evt){
 	
 };
 
+/*
+** this creates the button and action to open the tab to display results.
+The process is:
+**	 1 send a message to the service worker script
+**   2. it decides to create new tab or switch to existing one.
+*/
 div.appendChild(tr_el);
 
 let b529r=document.createElement('button');
@@ -514,7 +525,7 @@ b529r.onclick=function(){
 		query="?id="+query;
 	}
 	else query="";
-	//fixYouAreComparingWithBug();
+
 	chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query} );
 };
 let img=document.createElement('img');

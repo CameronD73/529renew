@@ -7,7 +7,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 0, "loading DB_results script");
+db_conlog( 1, "loading DB_results script");
 
 
 /*
@@ -19,20 +19,19 @@ db_conlog( 0, "loading DB_results script");
 // id1 and id2 are the text representation of the 23 and me UID
 // It requests count of segment hits that are saved between ID1 and ID2.
 //     This includes the fake "chromosome 100" record.
+// function formerly known as "upgradeToCurrentBuild"
 function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 
 	function makeTransaction(id1, id2, callBackSuccess, callBackFailed){
 		// Don't query matches with self. Not sure I understand this because neither callback is fired off.
 		if(id1 == id2) return; 
+		var firstid = id1;
+		var secondid = id2;
 		if(id1 > id2){
 			firstid = id2;
 			secondid = id1;
 		}
-		else {
-			firstid = id2;
-			secondid = id1;
-		}
-		return function(transaction){
+		return function(transaction, firstid, secondid){
 			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=?  AND build=?',[firstid, secondid, current23andMeBuild], callBackSuccess, callBackFailed);
 		};
 	}
@@ -43,8 +42,8 @@ function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 const sellist1 = "ibdsegs.ROWID as ROWID,\
 	t1.name AS name1,\
 	t2.name AS name2,\
-	t1.id AS id1,\
-	t2.id AS id2,\
+	t1.idText AS id1,\
+	t2.idText AS id2,\
 	ibdsegs.chromosome AS chromosome,\
 	ibdsegs.start AS start,\
 	ibdsegs.end AS end,\
@@ -58,8 +57,8 @@ const sellist2 = "	ibdsegs.phase1 AS phase1,\
 	ibdsegs.comment AS comment";
 
 const joinlist = "ibdsegs \
-	JOIN idalias t1 ON (t1.id=ibdsegs.id1 ) \
-	JOIN idalias t2 ON (t2.id=ibdsegs.id2 ) \
+	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
+	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
 	JOIN ibdsegs t3 ON 	(ibdsegs.build=?  \
 		AND t3.build=? \
 		AND t3.ROWID=? \
@@ -87,10 +86,13 @@ ibdsegs.ROWID, \
 julianday(t1.date)+julianday(t2.date), \
 t1.ROWID+t2.ROWID";
 
-
+/*
+** returns a table of all segment matches that overlap the one specified by
+** input parameter segmentId (which is a ROWID value)
+*/
 function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	const sel_short=`SELECT ${sellist1} FROM ${joinlist} ORDER BY ${orderlist}`;
-	db_conlog( 2, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
+	db_conlog( 32, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
 	function makeTransaction(callback){
 		return function(transaction){
 			transaction.executeSql( sel_short, [build, build, segmentId], callback, callback);
@@ -126,7 +128,7 @@ function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
 // function getLabelList - no longer used
 /*
 ** 
-function getLabelList(callbackSuccess){
+//function getLabelList(callbackSuccess){
 	
 	function makeTransaction(callback){
 		return function(transaction){
@@ -155,52 +157,54 @@ function selectFromDatabase(callbackSuccess, id, chromosome, includeChr100){
 	}
 	function makeTransaction(callback, includeChr100){
 		// create export table for entire DB
+		const qry_sel = 'SELECT \
+				ibdsegs.ROWID as ROWID, \
+				t1.name AS name1, \
+				t2.name AS name2, \
+				t1.idText AS id1, \
+				t2.idText AS id2, \
+				chromosome, start, end, cM, snps \
+			FROM ibdsegs \
+			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
+			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
+			WHERE build=?  AND ';
+		const qry_cond = '(chromosome>? AND chromosome<?) ';
+		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
+		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+		var query;
+		if ( includeChr100 )
+			query = qry_sel + qry_cond100 + qry_order;
+		else
+			query = qry_sel + qry_cond + qry_order;
+
 		return function(transaction){
-			const qry_sel = 'SELECT \
-					ibdsegs.ROWID as ROWID, \
-					t1.name AS name1, \
-					t2.name AS name2, \
-					t1.idText AS id1, \
-					t2.idText AS id2, \
-					chromosome, start, end, cM, snps \
-				FROM ibdsegs \
-				JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
-				JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
-				WHERE build=?  AND ';
-			const qry_cond = '(chromosome>? AND chromosome<?) ';
-			const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
-			const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
-			var query;
-			if ( includeChr100 )
-				query = qry_sel + qry_cond100 + qry_order;
-			else
-				query = qry_sel + qry_cond + qry_order;
 			transaction.executeSql( query, [build, lowerBound, upperBound], callback, callback);
 		};
 	}
-	function makeTransactionWithId(callback, id, includeChr100){
-		return function(transaction){
 
-			const qry_sel = 'SELECT \
-					ibdsegs.ROWID as ROWID, \
-					t1.name AS name1, \
-					t2.name AS name2, \
-					t1.idText AS id1, \
-					t2.idText AS id2, \
-					chromosome, start, end, cM, snps \
-				FROM ibdsegs \
-				JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
-				JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
-				WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) AND build=? AND ';
-			const qry_cond = 'chromosome>? AND chromosome<? ';
-			const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
-			const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
-			var query;
-			if ( includeChr100 )
-				query = qry_sel + qry_cond100 + qry_order;
-			else
+	function makeTransactionWithId(callback, id, includeChr100){
+
+		const qry_sel = 'SELECT \
+				ibdsegs.ROWID as ROWID, \
+				t1.name AS name1, \
+				t2.name AS name2, \
+				t1.idText AS id1, \
+				t2.idText AS id2, \
+				chromosome, start, end, cM, snps \
+			FROM ibdsegs \
+			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
+			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
+			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) AND build=? AND ';
+		const qry_cond = 'chromosome>? AND chromosome<? ';
+		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
+		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+		var query;
+		if ( includeChr100 )
+			query = qry_sel + qry_cond100 + qry_order;
+		else
 				query = qry_sel + qry_cond + qry_order;
 
+		return function(transaction){
 			transaction.executeSql(query, [id, id, build, lowerBound, upperBound], callback, callback);
 		};
 	}
@@ -251,7 +255,7 @@ function import529CSV(lineList, nFields, callback){
 		let name = username;
 		let today = date;
 		var arr = [idtext, name, today, comment];
-		db_conlog( 2, ` in makealiastrans, array ${arr.length} items, type: ${typeof(arr)}, 2nd elem is ${arr[1]}`);
+		db_conlog( 22, ` in makealiastrans, array ${arr.length} items, type: ${typeof(arr)}, 2nd elem is ${arr[1]}`);
 
 		return function(transaction){
 			transaction.executeSql( 'INSERT or IGNORE INTO idalias ( idText, name, "date", "comment" ) VALUES(?, ?, ?, ? );', arr );
@@ -264,12 +268,12 @@ function import529CSV(lineList, nFields, callback){
 		let firstID = id1;
 		let secondID = id2;
 		if( id1 > id2 ) {
-			db_conlog( 2, `    Segments: swapping order: ${id2} then  ${id1}`);
+			db_conlog( 23, `    Segments: swapping order: ${id2} then  ${id1}`);
 			firstID = id2;
 			secondID = id1;
 		}
 		else
-			db_conlog( 2, `    Segments:  order: ${id1} then  ${id2}`);
+			db_conlog( 23, `    Segments:  order: ${id1} then  ${id2}`);
 		const qry1 = 'INSERT or IGNORE INTO ibdsegs ( id1, id2, chromosome, start, end, cM, snps, "date", build )VALUES(?,?,?,?,?,?,?,?,?);';
 		
 		return function(transaction){
@@ -330,14 +334,14 @@ function import529CSV(lineList, nFields, callback){
 			matchesmap.get( matchkey).cMtotal += cM;
 		}
 	}
-	db_conlog( 1, `  adding ${aliasmap.size} alias rows`);
+	db_conlog( 21, `  adding ${aliasmap.size} alias rows`);
 	// add all the unique keys and names to the alias table
 	for( const[key, obj] of aliasmap ) {
 		pendingTransactionCount++;
 		db_conlog( 2, `    inserting ${obj.name} (ID: ${key})`)
 		db23.transaction(makeIdAliasTransaction(key, obj.name, today, obj.comment), importRowFail, importRowSuccess);
 	}
-	db_conlog( 1, `adding ${lineList.length} segment rows`);
+	db_conlog( 21, `adding ${lineList.length} segment rows`);
 	// Now reprocess the list and save the matched segments
 	for(let i=1; i< lineList.length; i++){
 		var entry=lineList[i].split(',');
@@ -363,7 +367,7 @@ function import529CSV(lineList, nFields, callback){
 			db23.transaction(makeMatchingSegmentTransaction(firstID, secondID, entryChromosome, entryStart, entryEnd, entrycM, entrySNPs, today), importRowFail, importRowSuccess);
 		}
 	}
-	db_conlog( 1, `adding ${matchesmap.size} chr 100 rows`);
+	db_conlog( 21, `adding ${matchesmap.size} chr 100 rows`);
 	for( const[key, obj] of matchesmap ) {
 		pendingTransactionCount++;
 		db23.transaction(makeMatchingSegmentTransaction(obj.id1, obj.id2, 100, -1, -1, obj.cMtotal, 0, today), importRowFail, importRowSuccess);
@@ -377,11 +381,13 @@ function onRequest(request, sender, sendResponse) {
 	
 //CJD FIX - needs adjusting for ? ID.  BUT  this  duplicates idsRequest - do we need both?
 // At the moment, NEITHER routine is called!.
-
+// replaced by storeSegments
+	alert("we've called onRequest! oops");
+	return false;
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(val){
 		// Transaction factory to allow looping
-		var numbers=id2numbers(val[0]);
+		//var numbers=id2numbers(val[0]);
 		var name=val[1];
 		return function(transaction){
 			transaction.executeSql("INSERT INTO idalias (id, id_2, name, date, company_id) VALUES(?, ?, ?, date('now'), 1);", [numbers[0], numbers[1], name]);
@@ -410,7 +416,7 @@ function onRequest(request, sender, sendResponse) {
 		}
 		return function(transaction){
 			transaction.executeSql("INSERT INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, date, build) VALUES(?, ?, ?, ?, ?, ?, ?, date('now'),?);",[number1,  number2, val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
-		};
+		}
 	}
 	for(let i=0; i<request.matchingSegments.length; i++){
 		//if(request.matchingSegments[i][0]===request.matchingSegments[i][1]) continue; // Ignore matches to self
@@ -437,19 +443,9 @@ function onRequest(request, sender, sendResponse) {
 	sendResponse({});
 }
 
-function deleteAllData(callbackSuccess){
-	if(confirm("Delete all data stored in your 529Renew local database?")){
-		db23.transaction(
-			function(transaction) {
-				transaction.executeSql("DELETE from ibdsegs",[]);		// this is sqlite's TRUNCATE equivalent
-				transaction.executeSql("DELETE from idalias",[]);
-			}, function(){alert("Failed to delete data stored in 529Renew local database");}, callbackSuccess
-		);
-	}
-}
-
 //CJD FIX - needs adjusting for ? ID
 // CURRENTLY not called but probably old message passing not updated.
+// replaced by storeSegments
 function idsRequest(request, sender, sendResponse) {
 
 	// Store the names and ids of the matches
@@ -511,3 +507,14 @@ function idsRequest(request, sender, sendResponse) {
 	sendResponse({});
 }
 
+
+function deleteAllData(callbackSuccess){
+	if(confirm("Delete all data stored in your 529Renew local database?")){
+		db23.transaction(
+			function(transaction) {
+				transaction.executeSql("DELETE from ibdsegs",[]);		// this is sqlite's TRUNCATE equivalent
+				transaction.executeSql("DELETE from idalias",[]);
+			}, function(){alert("Failed to delete data stored in 529Renew local database");}, callbackSuccess
+		);
+	}
+}

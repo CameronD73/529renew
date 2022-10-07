@@ -58,7 +58,7 @@ function checkIfInDatabase( request, sender ) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-  
+	db_conlog( `dbactions listener, mode: ${request.mode}`);
 	if(request.mode == "checkIfInDatabase"){
 		checkIfInDatabase( request, sender );
 	}
@@ -73,105 +73,10 @@ chrome.runtime.onMessage.addListener(
 		errmsg = `dbactions_listen: unhandled message mode${request.mode}`;
 		db_conlog( 0, errmsg);
 		alert ( errmsg);
+		return false;		// not handled here
 	}
   });
 
-  // this is no longer possible as the IDs have uniqueness constraints already.
-  /*
-const subselect_yacw = "SELECT i1.ROWID AS ROWID FROM idalias i1, idalias i2 WHERE i1.id_1=i2.id_1 AND i1.id_2=i2.id_2 AND i1.name!=i2.name AND i1.name='You are comparing with'";
-
-function fixYouAreComparingWithBug() {
-	// Delete 'You are comparing with' entries from idalias if there is an alternative alias stored
-	function makeCorrectionTransaction(){
-		return function(transaction){
-			transaction.executeSql(`DELETE FROM idalias WHERE ROWID IN (${subselect_yacw});`);
-		};
-	}
-	db23.transaction(makeCorrectionTransaction());
-}
-  */
-
-// not valid in V3...
-/*
-** not used...
-//function onRequest(request, sender, sendResponse) {
-
-	
-	if(request.ids==null){
-		if(request.url!=null){
-			// Handles new experience 529andYou button
-			openActiveURL(request.url);
-		}
-		//if(request.sharingNamesAndIds!=null){
-		//	sharingNamesAndIds=request.sharingNamesAndIds;
-		//}
-		//else if(request.profileNamesAndIds!=null){
-		//	profileNamesAndIds=request.profileNamesAndIds;
-		//}
-		sendResponse({});
-		return;
-	}
-
-	// Store the names and ids of the matches
-	function makeIdAliasTransaction(val){
-		// Transaction factory to allow looping
-		var numbers=id2numbers(val[0]);
-		var name=val[1];
-		return function(transaction){
-			transaction.executeSql("INSERT INTO idalias (id_1, id_2, name, date, company_id) VALUES(?, ?, ?, date('now'), 1);", [numbers[0], numbers[1], name]);
-		};
-	}
-	
-	for(let i=0; i<request.ids.length; i++){
-		// Attempt to insert this number, name combo
-		db23.transaction(makeIdAliasTransaction(request.ids[i]));
-	}
-	
-	// Store the matching segments
-	function makeMatchingSegmentTransaction(id1, id2, val){
-		// Transaction factory to allow looping
-		var compared=compareIds(id1, id2);
-		if(compared==0) return; // Don't enter matches with self
-		var numbers1;
-		var numbers2;
-		// Order matches consistently
-		if(compared>0){
-			numbers1=id2numbers(id1);
-			numbers2=id2numbers(id2);
-		}
-		else{
-			numbers1=id2numbers(id2);
-			numbers2=id2numbers(id1);
-		}
-		return function(transaction){
-			transaction.executeSql("INSERT INTO ibdsegs (id1_1, id1_2, id2_1, id2_2, chromosome, start, end, centimorgans, snps, date, build) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, date('now'),?);",[numbers1[0], numbers1[1], numbers2[0], numbers2[1], val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
-		};
-	}
-	for(let i=0; i<request.matchingSegments.length; i++){
-		//if(request.matchingSegments[i][0]===request.matchingSegments[i][1]) continue; // Ignore matches to self
-		if(request.matchingSegments[i][0]!==request.ids[0][1]){
-			alert("unexpected name mismatch: " + request.matchingSegments[i][0] + " " + request.ids[0][1]);
-			continue;
-		}
-		let j=1;
-		for( ; j<request.ids.length; j++){
-			if(request.matchingSegments[i][1]===request.ids[j][1]){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], request.matchingSegments[i]));
-				break;
-			}
-		}
-		if(j==request.ids.length) alert("failed to find match for " + request.matchingSegments[i][1]);
-	}
-	
-	// Create bogus 'chromosome 100' match to signify that comparison has been performed
-	for(let j=1; j<request.ids.length; j++){
-		db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], [ "filler", "filler", 100, -1, -1, 0, 0]));
-	}
-			
-	// Return nothing to let the connection be cleaned up.
-	sendResponse({});
-}
-*/
 
 /* 
 ** store a matching segment.
@@ -182,19 +87,27 @@ function fixYouAreComparingWithBug() {
 **			 "name" - the testers name or alias.
 ** matchingSegments - an array of objects - each object has details about one matching segment
 */
+function insert_OK( ){
+	return;
+}
+function insertRowFail( error ) {
+	db_conlog( 1, `Insert transact failed: ${error.message}`);
+	alert( `INSERT FAILED: ${error.message}`);
+}
 function storeSegments(request) {
 
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(idobj){
 		return function(transaction){
 			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql("INSERT or IGNORE INTO idalias ( idText, name, `date` ) VALUES(?, ?, date('now'), 1);", [idobj.id, idobj.name]);
+			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
 		};
 	}
 	
 	for(let i=0; i<request.ids.length; i++){
 		// Attempt to insert these two number, name combos
-		db23.transaction(makeIdAliasTransaction(request.ids[i]));
+		db_conlog( 2, `storeSeg: alias ${i} for ${request.ids[i].name}`)
+		db23.transaction(makeIdAliasTransaction(request.ids[i]),  insertRowFail, insert_OK);
 	}
 	
 	// Store the matching segments
@@ -211,7 +124,7 @@ function storeSegments(request) {
 		return function(transaction){
 			// Normally code will skip any matches we have already.
 			// if we have forced a reread then presumably we intend it to replace older value
-			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, centimorgans, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?,  date(),?);', 	[firstid, secondid, val.chromosome, val.start, val.end, val,cM, val.snps, current23andMeBuild]);
+			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?,  date(),?);', 	[firstid, secondid, val.chromosome, val.start, val.end, val.cM, val.snps, current23andMeBuild]);
 		};
 	}
 	for(let i=0; i<request.matchingSegments.length; i++){
@@ -223,7 +136,7 @@ function storeSegments(request) {
 		let j=1;
 		for( ; j<request.ids.length; j++){
 			if(request.matchingSegments[i].uid2===request.ids[j].id){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, request.matchingSegments[i]));
+				db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, request.matchingSegments[i]),  insertRowFail, insert_OK);
 				break;
 			}
 		}
@@ -232,7 +145,7 @@ function storeSegments(request) {
 	
 	// Create bogus 'chromosome 100' match to signify that comparison has been performed
 	for(let j=1; j<request.ids.length; j++){
-		db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, [ "filler", "filler", 100, -1, -1, 0, 0]));
+		db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
 	}
 			
 }

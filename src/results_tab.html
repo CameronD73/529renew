@@ -3,13 +3,12 @@
   <head>
   	<script src="database_init.js"></script>
   	<script src="database_actions.js"></script>
-  	<!-- <script src="split_id_utils.js"></script>  -->
   	<script src="results_options.js"></script>
   	<script src="database_IO.js"></script>
   	<script src="results_tab.js"></script>
   	<script src="FileSaver.js"></script>
 	<LINK href="results_tab.css" rel="stylesheet" title="Small" type="text/css">
-	<LINK href="results_tab2.css" rel="stylesheet" type="text/css">
+	<!-- <LINK href="results_tab2.css" rel="stylesheet" type="text/css"> -->
     <title>529Renew Database Actions</title>
   </head>
   <body>
@@ -18,14 +17,14 @@
   	<img src="529Renew.png" alt="" />
 	<div>Display mode:
 	  <select id="displayMode">
-  		<option selected value="0">Basic</option>
+  		<option selected value="2">Basic</option>
   		<option value="1">Match Links</option>
   		<option value="2">Match and Overlapping Segment Links</option>
-  		<option value="3">Edit Phasing -- Broken</option>
+  		<!-- <option value="3">Edit Phasing -- Broken</option>-->
   	  </select>
   	  <select id="build">
   	  	<option selected value="37">Build 37</option>
-  	  	<option value="36">Build 36</option>
+  	  	<option value="36">Build 36 (does nothing)</option>
   	  </select>
   	  <select id="textSize">
   	  	<option selected value="small">Small Text</option>
@@ -71,6 +70,7 @@
 		<input id="hideCloseMatchesCheckBox" type="checkbox">
 		<label for="hideCloseMatchesCheckBox">Don't display close relatives with more than 21 such segments</label>
 	</div>
+	<!--
 	<div>
 		Always display:
 		<input id="alwaysShowPhaseCheckBox" type="checkbox">
@@ -80,6 +80,7 @@
 		<input id="alwaysShowCommonAncestorsCheckBox" type="checkbox">
 		<label for="alwaysShowCommonAncestorsCheckBox">Common ancestors</label>
 	</div>
+-->
 	<!-- <div class="fileupload" style='height: 0px;width:0px; overflow:hidden;'><input id="upfile" type="file" value="upload"/></div> -->
 	<div class="fileupload"><input id="upfile" type="file" value="upload"/></div>
   	<div id="test"></div>

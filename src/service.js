@@ -21,6 +21,7 @@ conlog( 0, "loading service worker from " + location);
 /*
 ** create the new tab for results presentation.
 ** It has to be done here because the content scripts do not have permission.
+** I can't find evidence that it is not used for anything now other than "results.html"
 */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
@@ -33,12 +34,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 			sendResponse({});
 		}
+		else
+			return false;	// request not handled here
 		return;
 	}
 );
 
 /* this code will create and bring to front a results and database handler tab
-** but only is one does not exist already.
+** but only if one does not exist already.
 ** The URL might simply be the html file name in the extension, or a full path with a query parameter.
 */
 function open_results_tab( url ) {
