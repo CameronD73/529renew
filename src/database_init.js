@@ -34,38 +34,13 @@ function decrementPendingTransactionCount(){
 	}
 }
 
-
-const sharingNamesAndIds=null;		// don't think this is used now
-// function getSharingNamesAndIds(){
-// 	return sharingNamesAndIds;
-// }
-
-const profileNamesAndIds=null;		// don't think this is used now
-// function getProfileNamesAndIds(){
-// 	return profileNamesAndIds;
-// }
-
 const current23andMeBuild=37;
-var build=37;
-function setBuild(val){
-	build=val;
-}
-function getBuild(){
-	return build;
-}
 
 
-
-const setting_values = '("lastCSVExportDate", "1900-01-01"),\
-	("lastGEFXExportDate", "1900-01-01"),\
-	("displayMode", "0"),\
-	("textSize", "small"),\
-	("omitAliases", "n"),\
-	("alwaysShowPhase", "n"),\
-	("alwaysShowLabels", "n"),\
-	("alwaysShowCommonAncestors", "n"),\
-	("hideCloseMatches", "n") ';
-const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setting_values} ;`
+const setting_values = '("lastCSVExportDate", ?), ("lastGEFXExportDate", ?), ("displayMode", ?), ("textSize", ?),\
+	("build", ?), ("omitAliases", ?), ("hideCloseMatches", ?), ("baseAddressRounding", ?), ("cMRounding", ?),\
+	("delay", ?), ("minimumOverlap", ?) ';
+const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setting_values} ;`;
 
 
 function createTables( db23new ){
@@ -93,10 +68,14 @@ function createTables( db23new ){
 		function(error){alert(`Failed to create segments table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
     )
+	const setting_params = [settings529.lastCSVExportDate, settings529.lastGEFXExportDate, settings529.displayMode, settings529.textSize,
+		settings529.build, settings529.omitAliases, settings529.hideCloseMatches,
+		settings529.baseAddressRounding, settings529.cMRounding, settings529.delay,  settings529.minimumOverlap];
+
 	db23new.transaction(
         function (transaction) {
 			transaction.executeSql('CREATE TABLE  IF NOT EXISTS settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting));', [] );
-			transaction.executeSql( set_defaults_sql, [] );
+			transaction.executeSql( set_defaults_sql, setting_params );
     	},
 		function(error){alert(`Failed to create settings table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
@@ -113,7 +92,7 @@ function createTables( db23new ){
 
 	;
 	
-	alert(`Created 529Renew local database from v"${db23new.version}"`);
+	alert(`Created 529Renew local database`);
 }
 
 /* I don't use this any more... but leave it around as a template for a new db version.

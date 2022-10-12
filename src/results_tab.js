@@ -4,12 +4,11 @@
 "use strict";
 
 var expectedName=null;		// assigned values in various places but some never used. why?
-var expectedName1=null;
-var expectedName2=null;		// these are assigned and used (once) but 
+var expectedName1=null; 	// these are assigned and used (once)
+var expectedName2=null;	
 
-var expectedIdStr=null;	// seems to be originally the 2 parts for second ID only, but why are expected_id2_1 and 2 also used?
-						// used in differing contexts, but do they overlap and need to be distinct?
-var expected_id1=null;	// CJD - used a lot - need to convert from 2-part to single string
+var expectedIdStr=null;	// The ID of the profile person selected from the dropdown list (or "all")
+var expected_id1=null;	// IDs of testers with possibly overlapping matching segments.
 var expected_id2=null;
 
 /*
@@ -18,14 +17,14 @@ var expected_id2=null;
 
 ** displayMode (first drop-down list on page) determines what is shown when "Create Match Table" is clicked
 **	  0:  basic table
-**    1: people's names become clickable links 
+**    1: people's names become clickable links
 **    2:  append overlapping segment "button" to each line
 **    3:  (disabled)enable editing of phase info and relatives.
 */
 function createMatchSVG(table){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
-	
+
 	if(document.getElementById("chromosome").value==0) return;
 	if(document.getElementById("displayMode").value!=3) return;
 
@@ -77,7 +76,7 @@ function createMatchSVG(table){
 	var tbody=table.children[1];
 
 	var chromosome;
-	for(let i=0; i<tbody.children.length; i++){	
+	for(let i=0; i<tbody.children.length; i++){
 		chromosome=tbody.children[i].children[chromosomeIndex].innerText;
 		if(chromosome!="") break;
 	}
@@ -110,17 +109,17 @@ function createMatchSVG(table){
 		newLine.setAttribute("stroke", "#999999");
 		svg.appendChild(newLine);
 	}
-	
+
 	let rect = document.createElementNS(svgNS,'rect');
 		rect.setAttribute('x', "0%");
 		rect.setAttribute('y',0);
 		rect.setAttribute('width',"100%");
 		rect.setAttribute('height',10);
 		svg.appendChild(rect);
-		
+
 	for(let i=10; i<250; i+=10){
 		if(i*1000000>clengths[chromosomeIndex]) break;
-	
+
 			let text= document.createElementNS(svgNS, 'text');
 			let x1x2=i*100000000/clengths[chromosomeIndex];
 
@@ -261,9 +260,9 @@ function createSVG(table){
 	var secondRef=getSecondRef(tbody, firstRef, nameIndex);
 
 
-	
+
 	var chromosome;
-	for(let i=0; i<tbody.children.length; i++){	
+	for(let i=0; i<tbody.children.length; i++){
 		chromosome=tbody.children[i].children[chromosomeIndex].innerText;
 		if(chromosome!="") break;
 	}
@@ -296,17 +295,17 @@ function createSVG(table){
 		newLine.setAttribute("stroke", "#999999");
 		svg.appendChild(newLine);
 	}
-	
+
 	let rect = document.createElementNS(svgNS,'rect');
 		rect.setAttribute('x', "0%");
 		rect.setAttribute('y',0);
 		rect.setAttribute('width',"100%");
 		rect.setAttribute('height',10);
 		svg.appendChild(rect);
-		
+
 	for(let i=10; i<250; i+=10){
 		if(i*1000000>clengths[chromosomeIndex]) break;
-	
+
 			let text= document.createElementNS(svgNS, 'text');
 			let x1x2=i*100000000/clengths[chromosomeIndex];
 
@@ -354,10 +353,10 @@ function createSVG(table){
 						else{
 							rect.setAttribute('fill','#CAE1EB');
 						}
-						
+
 					if(tbody.children[i].children[reloadIndex].innerText=="reload") rect.setAttribute('fill','#FF8888');
 					svg.appendChild(rect);
-		
+
 					if(matchRef!=priorMatchRef){
 						let text= document.createElementNS(svgNS, 'text');
 						if(offset+width/2.0<50){
@@ -389,7 +388,7 @@ function createSVG(table){
 		}
 		else{
 			if(!Number.isNaN(offset) && !Number.isNaN(width)){
-		
+
 				if(priorNameRef!=nameRef || priorMatchRef!=matchRef || priorOffset!=offset || priorWidth!=width){
 					if(priorNameRef!=nameRef || matchRef!=priorMatchRef) iii++;
 					if(priorNameRef!=nameRef && matchRef!=priorMatchRef) iii++;
@@ -454,14 +453,14 @@ function createButton( ){
 	newButton.innerHTML="Create Match Table";
 	newButton.title="Shift-click to color code buttons (red=unchecked matches, blue=all matches checked)";
 	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', function(evt){requestSelectFromDatabase(evt.shiftKey);});
+	newButton.addEventListener('click', function(evt){requestSelectFromDatabase(evt.shiftKey, evt.altKey);});
 	document.getElementById("test").appendChild(newButton);
 }
 
 function createCSVButton( ){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Download CSV";
-	newButton.title="Shift-click to include 23andMe ID's; Alt-click to also include non-match info";
+	newButton.innerHTML="Download CSV update";
+	newButton.title="Always includes 23andMe ID's; Shift-click to include all previously exported; Alt-click to also include non-match info";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseForCSV(evt.shiftKey, evt.altKey);});
 	document.getElementById("test").appendChild(newButton);
@@ -514,22 +513,22 @@ function createDeleteButton(){
 
 function resetAfterDeletion(){
 	getMatchesFromDatabase(createNameSelector);
-	requestSelectFromDatabase(false);
+	requestSelectFromDatabase(false, false);
 	alert("All data stored in your 529andYou local database has been deleted");
 }
 function setDisplayModeSelector(){
 	let widget=document.getElementById("displayMode");
-	widget.value=getDisplayMode();
+	widget.value=getSetting( "displayMode" );
 	widget.onchange=function(){
-		setDisplayMode(widget.value);
+		setSetting( "displayMode", widget.value);
 		if(document.getElementById("table_div").hasChildNodes()){
-			requestSelectFromDatabase(false);
+			requestSelectFromDatabase(false, false);
 		}
 	};
 }
 function setTextSizeSelector(){
-	function setTextSize(){
-		let desiredSize=getTextSize();
+	function setTextSizeLocal(){
+		let desiredSize=getSetting( "textSize" );
 		let smallCSS=null;
 		for(let i=0; i<document.styleSheets.length; i++){
 			if(document.styleSheets[i].title=="Small"){
@@ -543,37 +542,36 @@ function setTextSizeSelector(){
 		}
 	}
 	var widget=document.getElementById("textSize");
-	widget.value=getTextSize();
+	widget.value=getSetting( "textSize" );
 	widget.onchange=function(){
-		setTextSize(widget.value);
-		setTextSize();
+		setSetting( "textSize", widget.value);
+		setTextSizeLocal();
 	};
-	setTextSize();
+	setTextSizeLocal();
 }
 function setBuildSelector(){
 	var widget=document.getElementById("build");
-	widget.value=getBuild();
+	widget.value=getSetting( "build");
 	widget.onchange=function(){
-		setBuild(widget.value);
+		setSetting( "build", widget.value);
 		if(document.getElementById("table_div").hasChildNodes()){
-			requestSelectFromDatabase(false);
+			requestSelectFromDatabase(false, false);
 		}
 	};
 }
 
-
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
-	widget.checked=getOmitAliases();
+	widget.checked=getSetting( "omitAliases");
 	widget.onclick=function(){
-		setOmitAliases(widget.checked);
+		setSetting( "omitAliases", widget.checked);
 	};
 }
 function setHideCloseMatchesCheckBox(){
 	var widget=document.getElementById("hideCloseMatchesCheckBox");
-	widget.checked=getHideCloseMatches();
+	widget.checked=getSetting( "hideCloseMatches" );
 	widget.onclick=function(){
-		setHideCloseMatches(widget.checked);
+		setSetting( "hideCloseMatches", widget.checked);
 	};
 }
 
@@ -625,7 +623,7 @@ function colorizeButton(button, cid1,  cid2){
 					if(results.rows.item(ci+1).ROWID==crow.ROWID){
 						continue;
 					}
-				}															
+				}
 				if(cid1==crow.id1){
 					// ID1 is listed first in match
 					if(cid2!=crow.id2 ){
@@ -729,13 +727,13 @@ function createTable12(transaction, results, colorize){
 		return;
 	}
 
-	var build=getBuild();
-	var omitAliases=getOmitAliases();
-	var hideCloseMatches=getHideCloseMatches();
-	
-	
+	//var build=getSetting( "build" );
+	var omitAliases=getSetting( "omitAliases");
+	var hideCloseMatches=getSetting( "hideCloseMatches" );
+
+
 	if(hideCloseMatches && document.getElementById("selectName").selectedIndex==0) hideCloseMatches=false;
-	
+
 	var displayMode=document.getElementById("displayMode");
 	var showURL=(displayMode.value>0);
 	var enableShowSegments=(displayMode.value>1);
@@ -748,17 +746,18 @@ function createTable12(transaction, results, colorize){
 	if(results.rows.length>5000){
 		if(!confirm("Display " + results.rows.length + " matching segments? That could take a while.")) return;
 	}
+	db_conlog( 1, `query returned ${results.rows.length} rows.`)
 	var table=document.createElement("table");
-		
+
 	document.getElementById("table_div").appendChild(table);
-	
+
 	var suppressed_ids=null;
 	if(hideCloseMatches && results.rows.length>21){
 		let ids=new Array();
 		let counts=new Array();
-		
+
 		for(let i=0; i<results.rows.length; i++){
-		
+
 			let row = results.rows.item(i);
 			if(!row.chromosome) break;
 			if(row.chromosome==100) break;
@@ -768,7 +767,7 @@ function createTable12(transaction, results, colorize){
 			let curr_id;
 			if(expectedIdStr==row.id2)
 				curr_id=row.id1;
-			else 
+			else
 				curr_id=row.id2;
 			{
 				let j=0;
@@ -795,14 +794,14 @@ function createTable12(transaction, results, colorize){
 			}
 		}
 	}
-	
+
 	let ii=-1;
 	for(let i=0; i<results.rows.length; i++) {
-	
+
 		let row = results.rows.item(i);
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
-		
+
 		if(omitAliases){
 			if((i+1)<results.rows.length){
 				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
@@ -812,7 +811,7 @@ function createTable12(transaction, results, colorize){
 			let curr_id=null;
 			if(expectedIdStr==row.id2)
 				curr_id=row.id1;
-			else 
+			else
 				curr_id=row.id2;
 
 			let j=0;
@@ -823,15 +822,15 @@ function createTable12(transaction, results, colorize){
 			}
 			if(j< suppressed_ids.length) continue;
 		}
-		
+
 		ii++;
-		
+
 		let tablerow = table.insertRow(ii);
-		
+
 		let curColumnId=0;
-		
+
 		if(expectedIdStr==row.id2){
-		
+
 			if(showURL && row.id2){
 
 				let link = document.createElement("a");
@@ -858,7 +857,7 @@ function createTable12(transaction, results, colorize){
 		}
 		else{
 			if(showURL && row.id1){
-			
+
 				let link = document.createElement("a");
 				link.setAttribute("href", "https://you.23andme.com/profile/" + row.id1 +"/");
 
@@ -869,9 +868,9 @@ function createTable12(transaction, results, colorize){
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name1;
 
-			
+
 			if(showURL && row.id2){
-			
+
 				let link = document.createElement("a");
 				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + row.id2);
 				link.setAttribute("target", "_blank");
@@ -880,7 +879,7 @@ function createTable12(transaction, results, colorize){
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
-			
+
 
 		}
 		{
@@ -924,7 +923,7 @@ function createTable12(transaction, results, colorize){
 			button.onclick=makeLink(row.ROWID, row.name1, row.name2, row.id1, row.id2);
 			button.innerHTML="show overlapping segments";
 			(tablerow.insertCell(curColumnId++)).appendChild(button);
-			if(build==37 && colorize){
+			if( colorize ){
 				selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1, row.id2), row.ROWID);
 			}
 		}
@@ -955,13 +954,13 @@ function createCSV3(transaction, results){
 	createCSV12(transaction, results, true, true);
 }
 function createCSV12(transaction, results, includeIds, includeNonMatch){
-	
+
 	if(results.message){
 		alert("createCSV12: Failed to retrieve 12 match data: "+ results.message);
 		return;
 	}
-	var omitAliases=getOmitAliases();
-	
+	var omitAliases=getSetting( "omitAliases");
+
 	var csvarray=new Array();
 	if(includeIds){
 		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID\n");
@@ -970,13 +969,13 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs\n");
 	}
 	var theName=null;
-	
+
 	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
-	
+
 		let row = results.rows.item(i);
 		if(!row.chromosome) break;
 		if(row.chromosome==100 && !includeNonMatch) break;
-		
+
 		if(omitAliases){
 			if((i+1)<results.rows.length){
 				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
@@ -991,11 +990,11 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		let endPoint=row.end;
 		let geneticDistance=row.cM;
 		let snps=row.snps;
-		
+
 		// trim the names to avoid csv and string delimiters inside name fields.
 		let name_a = row.name1.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
 		let name_b = row.name2.replace(/,/g,'').replace(/"/g,'').replace(/'/g,'');
-		
+
 		if(expectedIdStr==row.id2){
 			name = name_b;
 			id=row.id2;
@@ -1014,8 +1013,8 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		else{
 			chromosome=row.chromosome;
 		}
-		
-	
+
+
 		if(i==0) theName=name;
 		else{
 			if(name!=theName) theName=null;
@@ -1033,9 +1032,11 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		theName="_"+theName;
 	}
 	else theName="";
-	
+
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529renew" + theName+ "_" + formattedDate()+ ".csv");
+	if ( expectedIdStr == 0 ) // only save date when we save all testers 
+		setSetting( "lastCSVExportDate", formattedDate2() );
 }
 function formattedDate(){
 	var thisDay=new Date();
@@ -1047,6 +1048,8 @@ function formattedDate(){
 	return year.toString()+month.toString()+date.toString();
 }
 function formattedDate2(){
+	return new Date().toISOString().substring(0, 10);
+	/*
 	var thisDay=new Date();
 	var year=thisDay.getFullYear();
 	var month=thisDay.getMonth()+1;
@@ -1054,6 +1057,7 @@ function formattedDate2(){
 	if(month<10) month="0"+month.toString();
 	if(date<10) date="0"+date.toString();
 	return year.toString()+"-"+ month.toString()+"-"+date.toString();
+	*/
 }
 function downloadSVG(){
 	if(document.getElementById("529graph")==null){
@@ -1074,8 +1078,8 @@ function createGEXF(transaction, results){
 	if(results.message){
 		alert("createGEFX: Failed to retrieve match data: "+ results.message);
 		return;
-	}	
-	
+	}
+
 	var gexfarray=new Array();
 	gexfarray.push('<?xml version="1.0" encoding="UTF-8"?>\n');
 	// Was 1.2 draft, but this code is compatible with 1.3...
@@ -1088,7 +1092,7 @@ function createGEXF(transaction, results){
 	gexfarray.push('    <nodes>\n');
 	var nodeArray=new Array();
 	for(let i=0; i<results.rows.length; i++){
-	
+
 		let row= results.rows.item(i);
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
@@ -1116,24 +1120,24 @@ function createGEXF(transaction, results){
 	}
 	gexfarray.push('      </nodes>\n');
 	gexfarray.push('    <edges>\n');
-			
-	
+
+
 	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
-	
+
 		let row = results.rows.item(i);
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
-		
+
 		if((i+1)<results.rows.length){
 			if(results.rows.item(i+1).ROWID==row.ROWID) continue;
 		}
-		
+
 		let label;
 		if(row.chromosome==23) label="X:";
 		else label=row.chromosome+":";
-		
+
 		label=label+ row.start + "-" + row.end;
-		
+
 		if(expectedIdStr==row.id2){
 			gexfarray.push('      <edge source="' + row.id1 +'" target="' + row.id2 + '" weight="' + row.cM/20 + '" label="'+label+'"/>\n');
 		}
@@ -1146,37 +1150,30 @@ function createGEXF(transaction, results){
 	gexfarray.push('</gexf>\n');
 	let blob = new Blob(gexfarray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529renew.gexf");
-	
+
 }
 
 /*
 ** createSegmentTable - db transaction callback, with results of query for matching segments
+** - creates html table of segment overlaps between testing pairs
 */
 
 function createSegmentTable(transaction, results){
-	
-	var build=getBuild();
-	var omitAliases=getOmitAliases();
-	var hideCloseMatches=getHideCloseMatches();
-	
+
+	//let build=getSetting( "build" );
+	let omitAliases=getSetting( "omitAliases");
+	let hideCloseMatches=getSetting( "hideCloseMatches" );
+
 	if(hideCloseMatches && document.getElementById("selectName").selectedIndex==0) hideCloseMatches=false;
 
-	
+
 	if(results.message){
 		alert("createSegmentTable: Failed to retrieve match data: "+ results.message);
 		return;
 	}
-	
-	var displayMode=document.getElementById("displayMode");
-	//var showURL=(displayMode.value>0);
-	//var enableShowSegments=(displayMode.value>1);
-	/* CJD V3 removed phase etc...
-	//var showPhaseInfo=(displayMode.value>2);
-	//var alwaysShowPhase=document.getElementById("alwaysShowPhaseCheckBox").checked;
-	//var alwaysShowLabels=document.getElementById("alwaysShowLabelsCheckBox").checked;
-	//var alwaysShowCommonAncestors=document.getElementById("alwaysShowCommonAncestorsCheckBox").checked;
-	*/
 
+	var displayMode=document.getElementById("displayMode");
+	
 	// Remove any preexisting table
 	while(document.getElementById("table_div").hasChildNodes()){
 		document.getElementById("table_div").removeChild(document.getElementById("table_div").children[0]);
@@ -1184,13 +1181,13 @@ function createSegmentTable(transaction, results){
 	var tableTitle=document.createElement("h3");
 	document.getElementById("table_div").appendChild(tableTitle);
 	var table=document.createElement("table");
-		
+
 	document.getElementById("table_div").appendChild(table);
-	
+
 	var matchingSegments=new Array();   // currently array or arrays
 	var matchIds=new Array();		// array of objects
-	
-		
+
+
 	var matchChromosome=null;
 	{
 		// Process the real (non-chromosome 100) matches into the matchingSegments array
@@ -1203,7 +1200,7 @@ function createSegmentTable(transaction, results){
 			// result rows are ordered in the first instance by chromosome number, so
 			// once we hit chr 100 there are no real results remaining
 			if(row.chromosome==100) break;
-			
+
 			if(omitAliases){
 				if((i+1)<results.rows.length){
 					if(results.rows.item(i+1).ROWID==row.ROWID) continue;
@@ -1214,19 +1211,19 @@ function createSegmentTable(transaction, results){
 			let matchingSegment={};
 			//let matchId=new Array();
 			let matchIDObj = {};
-	
+
 			matchingSegment.ROWID=row.ROWID; // 0
-	
+
 			if((expected_id1==row.id2) || (expected_id2==row.id2)){
-	
+
 				matchingSegment.name1=row.name2; // 1
 				matchingSegment.name2=row.name1; // 2
 				matchingSegment.id1=row.id2; // 3
 				//matchingSegment[4]=row.id2_2; // 4
 				matchingSegment.id2=row.id1; // 5
 				//matchingSegment[6]=row.id1_2; // 6
-				
-				
+
+
 				if(!((expected_id1==row.id1) || (expected_id2==row.id1))){
 					let j;
 					for(j=0; j<matchIds.length; j++){
@@ -1240,15 +1237,15 @@ function createSegmentTable(transaction, results){
 				}
 			}
 			else{
-			
+
 				matchingSegment.name1=row.name1; // 1
 				matchingSegment.name2=row.name2; // 2
 				matchingSegment.id1=row.id1; // 3
 				//matchingSegment[4]=row.id1_2; // 4
 				matchingSegment.id2=row.id2; // 5
 				//matchingSegment[6]=row.id2_2; // 6
-				
-	
+
+
 				if(!((expected_id1 == row.id2) || (expected_id2 == row.id2))){
 					let j;
 					for(j=0; j<matchIds.length; j++){
@@ -1263,18 +1260,18 @@ function createSegmentTable(transaction, results){
 			}
 			matchingSegment.chromosome=row.chromosome; // 7
 			if(!matchChromosome && row.chromosome<24) matchChromosome=row.chromosome;
-			matchingSegment.start=row.start; // 8 
+			matchingSegment.start=row.start; // 8
 			matchingSegment.end=row.end; // 9
 			matchingSegment.cM=row.cM; // 10
 			matchingSegment.snps=row.snps; // 11
-					
+
 			matchingSegments[ii]=matchingSegment; // i
 		}
 		// Process the chromosome 100 matches
 		for(; i<results.rows.length; i++) {
-		
+
 			let row = results.rows.item(i);
-			
+
 			if(omitAliases){
 				if((i+1)<results.rows.length){
 					if(results.rows.item(i+1).ROWID==row.ROWID) continue;
@@ -1283,43 +1280,43 @@ function createSegmentTable(transaction, results){
 			ii++;
 
 			let matchingSegment=new Array();
-			
+
 			matchingSegment.ROWID=row.ROWID;	// 0
-			
+
 			// Screen out segments that don't involve one of the two
 			// individuals of interest and someone on the matchIds
 			// list of people whom one of them match
 			if((expected_id1 == row.id2) ||  (expected_id2 == row.id2)){
-			
+
 				let j;
 				for(j=0; j<matchIds.length; j++){
 					if(row.id1 == matchIds[j].id) break;
 				}
 				if(j==matchIds.length) continue;
-				
+
 				matchingSegment.name1=row.name2; // 1
 				matchingSegment.name2=row.name1; // 2
 				matchingSegment.id1=row.id2; // 3
 				//matchingSegment[4]=row.id2_2; // 4
 				matchingSegment.id2=row.id1; // 5
 				//matchingSegment[6]=row.id1_2; // 6
-				
+
 			}
 			else{
-			
+
 				let j;
 				for(j=0; j<matchIds.length; j++){
 					if(row.id2==matchIds[j].id ) break;
 				}
 				if(j==matchIds.length) continue;
-				
+
 				matchingSegment.name1=row.name1; // 1
 				matchingSegment.name2=row.name2; // 2
 				matchingSegment.id1=row.id1; // 3
 				//matchingSegment[4]=row.id1_2; // 4
 				matchingSegment.id2=row.id2; // 5
 				//matchingSegment[6]=row.id2_2; // 6
-				
+
 			}
 			{
 				// Keep only those pairs that are not already in the list
@@ -1328,17 +1325,17 @@ function createSegmentTable(transaction, results){
 				for(k=0; k<matchingSegments.length; k++){
 					if(matchingSegments[k].id1==matchingSegment.id1 &&
 						//matchingSegments[k][4]==matchingSegment[4] &&
-						matchingSegments[k].id2==matchingSegment.id2 
+						matchingSegments[k].id2==matchingSegment.id2
 						//&& matchingSegments[k][6]==matchingSegment[6]
 						) break;
 				}
 				if(k==matchingSegments.length){
 					matchingSegment.chromosome=row.chromosome; // 7
-					matchingSegment.start=row.start; // 8 
+					matchingSegment.start=row.start; // 8
 					matchingSegment.end=row.end; // 9
 					matchingSegment.cM=row.cM; // 10
 					matchingSegment.snps=row.snps; // 11
-					
+
 					matchingSegments.push(matchingSegment); // i
 				}
 			}
@@ -1366,7 +1363,7 @@ function createSegmentTable(transaction, results){
 		}
 		if(i==matchingSegments.length){
 			let matchingSegment={};
-			matchingSegment.ROWID=-1; // 0 
+			matchingSegment.ROWID=-1; // 0
 			if(matches1){
 				matchingSegment.name1=expectedName2; // 1
 				matchingSegment.name2=matchIds[j].name; // 2
@@ -1382,23 +1379,23 @@ function createSegmentTable(transaction, results){
 			else{
 				return; // The page has changed for a new query, so this task is no longer relevant
 			}
-			
+
 			matchingSegment.id2=matchIds[j].id; // 5
 			matchingSegment.chromosome=200; // 7
 			matchingSegment.start="?"; // 8
 			matchingSegment.end="?"; // 9
 			matchingSegment.cM="?"; // 10
 			matchingSegment.snps="?"; // 11
-			
+
 			matchingSegments.push(matchingSegment);
 		}
-	}	
+	}
 	// Sort segments to bring the 3rd party matches together
 	// and to order the two people on the original target
 	// segment consistently
 	matchingSegments.sort(function(a, b){
 		if(a.id2>b.id2) return 1;
-		else if(a.id2<b.id2) return -1; 
+		else if(a.id2<b.id2) return -1;
 		else if(a.id1>b.id1) return 1;
 		else if(a.id1<b.id1) return -1;
 		else if(a.start>b.start) return 1;
@@ -1411,7 +1408,7 @@ function createSegmentTable(transaction, results){
 		{
 			let target1=matchingSegments[0].id2;
 			let matchingSegmentsK=new Array();  //  array of segs for one person
-	
+
 			for(let i=0; i<matchingSegments.length; i++){
 				if(matchingSegments[i].id2!=target1 ){
 					matchingSegmentsArray.push(matchingSegmentsK);
@@ -1468,16 +1465,16 @@ function createSegmentTable(transaction, results){
 		});
 		for(let k=0; k<matchingSegmentsArray.length; k++){
 			for(let i=0; i<matchingSegmentsArray[k].length; i++) {
-			
+
 				let tablerow = table.insertRow(i);
-				
+
 				let curColumnId=0;
 
 				{
 
 					let link = document.createElement("a");
 					link.setAttribute("href", "https://you.23andme.com/profile/" + matchingSegmentsArray[k][i].id1 +"/");
-					
+
 					link.setAttribute("target", "_blank");
 					link.innerHTML=matchingSegmentsArray[k][i].name1;
 					link.className="special";
@@ -1487,8 +1484,8 @@ function createSegmentTable(transaction, results){
 						cell.className="bottom";
 					}
 				}
-				
-				
+
+
 				{
 					let link = document.createElement("a");
 					link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + matchingSegmentsArray[k][i].id2);
@@ -1592,7 +1589,7 @@ function createSegmentTable(transaction, results){
 						}
 						else cell.className="right";
 					}
-						
+
 					if(matchingSegmentsArray[k][i].ROWID>=0){
 						function makeLink(id, name1, name2, id1, id2){
 							return function(){
@@ -1602,9 +1599,9 @@ function createSegmentTable(transaction, results){
 						let button = document.createElement("button");
 						button.onclick=makeLink(matchingSegmentsArray[k][i].ROWID, matchingSegmentsArray[k][i].name1, matchingSegmentsArray[k][i].name2, matchingSegmentsArray[k][i].id1, 		matchingSegmentsArray[k][i].id2);
 						button.className="special";
-						if((matchingSegmentsArray[k][i].id1==expected_id1 && matchingSegmentsArray[k][i].id2==expected_id2 ) || 
+						if((matchingSegmentsArray[k][i].id1==expected_id1 && matchingSegmentsArray[k][i].id2==expected_id2 ) ||
 							(matchingSegmentsArray[k][i].id1==expected_id2 &&	matchingSegmentsArray[k][i].id2==expected_id1 )){
-							
+
 							button.innerHTML="reload";
 							if(matchingSegmentsArray[k][i].chromosome==23){
 								tableTitle.innerHTML="Segments overlapping match of " + matchingSegmentsArray[k][i].name1 + " and " + matchingSegmentsArray[k][i].name2 + ", chr X:" +matchingSegmentsArray[k][i].start+ "-" + matchingSegmentsArray[k][i].end;
@@ -1615,7 +1612,7 @@ function createSegmentTable(transaction, results){
 						}
 						else button.innerHTML="show overlapping segments";
 						(tablerow.insertCell(curColumnId++)).appendChild(button);
-						
+
 					}
 					else{
 							let buttonCompare = document.createElement("button");
@@ -1632,8 +1629,8 @@ function createSegmentTable(transaction, results){
 							(tablerow.insertCell(curColumnId++)).append(buttonCompare);
 					}
 				}
-	
-				
+
+
 			}
 		}
 	}
@@ -1660,15 +1657,11 @@ function displayMatchingSegments(rowid, name1, name2, id1, id2){
 	expected_id1=id1;
 	expected_id2=id2;
 	db_conlog( 2, `displayMatchingSegments: n1=${name1} and n2=${name2}`);
-	if(document.getElementById("displayMode").value>2 ){
-		selectSegmentMatchesAndPhaseFromDatabase(createSegmentTable, rowid);
-	}
-	else{
-		selectSegmentMatchesFromDatabase(createSegmentTable, rowid);
-	}
+	selectSegmentMatchesFromDatabase(createSegmentTable, rowid);
 }
 
-function requestSelectFromDatabase(shiftIsDown){
+// display match table on screen
+function requestSelectFromDatabase(shiftIsDown, altIsDown){
 	if(document.getElementById("selectName").selectedIndex<0) return;
 	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
 	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
@@ -1676,15 +1669,13 @@ function requestSelectFromDatabase(shiftIsDown){
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
-	
-	
+
 	if(shiftIsDown){
-		selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
+		selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, altIsDown, false);
 	}
 	else{
-		selectFromDatabase(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
+		selectFromDatabase(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, altIsDown, false);
 	}
-
 }
 
 function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
@@ -1695,14 +1686,13 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
+	let limitDates = !shiftIsDown;
+
 	if(altIsDown){
-		selectFromDatabase(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, true);
+		selectFromDatabase(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, limitDates, true);
 	}
-	//else if(shiftIsDown){
-	//	selectFromDatabaseWithPhaseInfo(createCSV2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value);
-	//}
 	else{
-		selectFromDatabase(createCSV, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
+		selectFromDatabase(createCSV, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, limitDates, false);
 	}
 }
 function requestSelectFromDatabaseForGEXF(){
@@ -1713,7 +1703,7 @@ function requestSelectFromDatabaseForGEXF(){
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
-	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false);
+	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false, false);
 }
 
 function reloadSoon(){
@@ -1731,7 +1721,7 @@ function requestImportToDatabase(evt){
 		//return;
 	//}
 	var file=files[0];
-    
+
 	var reader = new FileReader();
 
       // Closure to capture the file information.
@@ -1761,6 +1751,8 @@ function requestDeletionFromDatabase(){
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+	//if( settings_from_storage === undefined )
+	wait4Settings();
 	db_conlog( 1, "domload");
 	getMatchesFromDatabase(createNameSelector);
 	//getLabelList(createLabelList);
@@ -1776,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	setBuildSelector();
 	setOmitAliasesCheckBox();
 	setHideCloseMatchesCheckBox();
-	
+
 	document.getElementById("selectNameFilter").onchange=function(){
 		if(document.getElementById("selectNameFilter").value.length>0){
 			document.getElementById("clearFilterButton").style.visibility="visible";

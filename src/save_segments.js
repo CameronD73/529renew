@@ -6,7 +6,6 @@
 * to the server-querying process.
 */
 /* eslint no-unused-vars: "off"*/
-/* globals roundBaseAddress, round_cM  */
 'use strict';
 
 let div=document.createElement('div');
@@ -22,7 +21,7 @@ var pendingPages=false;		// not used - I think redundant with new code organisat
 var failedInSomeWay=false;
 
 let debug_q = 3;			// if nonzero, add debugging console output
-const increment_ms = 2 * 1000;	// timer delay in milliseconds
+let increment_ms = 2 * 1000;	// timer delay in milliseconds
 //let queued_requests = 0;	// no longer used
 
 const qQueue = new Queue();
@@ -39,7 +38,7 @@ var dispatchMouseEvent = function(target, var_args) {
 
 /*
 ** Start the process to run the query to get DNA segments between pair of matches
-** Start by checking if the pair is already in the DB, 
+** Start by checking if the pair is already in the DB,
 */
 function run_query(personaId, personbId, personaName, personbName){
 	chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
@@ -54,7 +53,11 @@ chrome.runtime.onMessage.addListener(
 	/* this callback is made when the query made via run_query() returns with the required details
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
-  	if(request.mode == "returnNeedCompare"){
+	if(request.mode == "returnQDelay"){
+		process_qDelay( request );
+		return;
+	}
+  	else if(request.mode == "returnNeedCompare"){
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
@@ -70,7 +73,7 @@ chrome.runtime.onMessage.addListener(
 				** every return path from here should launch_next_IBD_query()
 				*/
 				return function(){
-				
+
 					if(this.status!=200){
 						if( this.status == 429 ){
 							console.log("Oops = makesegsaver saw err429 with " + indexName+ " and " + matchName );
@@ -85,7 +88,7 @@ chrome.runtime.onMessage.addListener(
 					/* data is an array of objects, each of which is a segment match between two people:
 					** each object has 8 records
 					*/
-					
+
 					var matchingSegments=new Array();
 					var ids=new Array();
 					ids[0] = {id: indexId, name: indexName };
@@ -104,15 +107,15 @@ chrome.runtime.onMessage.addListener(
 								name2: matchName,
 								uid2: matchId,
 								chromosome: data[j].chromosome,
-								start: roundBaseAddress(data[j].start),
-								end: roundBaseAddress(data[j].end),
-								cM: round_cM(data[j].seg_cm),
+								start: data[j].start,
+								end: data[j].end,
+								cM: data[j].seg_cm,
 								snps: data[j].num_snps,
 							};
 							if(matchingSegment.start==0)
 								matchingSegment.start=1;
 							if(String(matchingSegment.chromosome)==="X")
-								matchingSegment.chromosome=23;	
+								matchingSegment.chromosome=23;
 
 							matchingSegments[j]=matchingSegment;
 						}
@@ -142,15 +145,14 @@ chrome.runtime.onMessage.addListener(
 					return;
 				};
 			}
-
 			var compareURL="/tools/ibd/?human_id_1=" + request.indexId +"&human_id_2="+request.matchId;
-			
+
 			var oReq = new XMLHttpRequest();
 			oReq.withCredentials = true;
 			oReq.onload=makeSegmentSaver(request.indexName, request.indexId, request.matchName, request.matchId);
 			oReq.onerror=makeErrorHandler(request.indexName, request.matchName);
 			oReq.open("get", compareURL, true);
-			
+
 			if( debug_q > 2 )
 				console.log( "    requesting segs after delay at " + new Date().toISOString() + " for " + request.indexName + " and " + request.matchName );
 			setTimeout( () => oReq.send(), increment_ms );
@@ -187,7 +189,7 @@ function launch_next_IBD_query() {
 let pendingMismatches = 0;
 
 function finishComparisons() {
-	
+
 	if( pendingComparisons > 0 || qQueue.length > 0 ) {
 		if ( pendingMismatches > 0 ) {
 			alert( `program failure - giving up. Cannot finalise with ${pendingComparisons} pending and Q ${qQueue.length}`);
@@ -201,7 +203,7 @@ function finishComparisons() {
 		return;
 	}
 	pendingMismatches = 0;
-	
+
 	var nextButton=null;
 	/*
 	* for fewer than 10 entries the paginator bar will be hidden, and
@@ -251,7 +253,7 @@ function finishComparisons() {
 		setTimeout(function(){runComparison3(true);}, 2000);
 		return;
 	}
-	
+
 	if( debug_q > 0 )
 		console.log( "    comparisons finished at " + new Date().toISOString()  );
 }
@@ -265,7 +267,7 @@ function finishComparisons() {
 
 function runComparison3(ranPrimaryComparison ){
 	var row_container=null;
-	
+
 	if( debug_q > 0 )
 		console.log( "runComp3: entry: for " + matchName + " and " + profileName  );
 	try{
@@ -317,7 +319,7 @@ function runComparison3(ranPrimaryComparison ){
 							if(yes_no_text=="Yes" || yes_no_text=="No" || yes_no_text=="Share to see") foundData=true;
 							if(yes_no_text=="Share to see") continue;
 							if(yes_no_text=="No" && !loadAllRequested) continue;
-							
+
 							// parse the url to get the 3 profile IDs
 							var index=row_container.children[i].children[j].children[k].href.indexOf("p[]=");
 							if(index<0) continue;
@@ -357,7 +359,7 @@ function runComparison3(ranPrimaryComparison ){
 				}
 			}
 			if(relative_in_common_name==null) continue;
-			
+
 			if(!ranPrimaryComparison){
 				qQueue.enqueue( {part:1, id1: ids[1], id2: ids[0], pn1: matchName, pn2:profileName} );
 				if( debug_q > 2 )
@@ -381,10 +383,10 @@ function runComparison3(ranPrimaryComparison ){
 		launch_next_IBD_query();
 		return;
 	}
-	
+
 	document.getElementById("c529r").innerHTML="Submitting Comparisons...";
 	launch_next_IBD_query();
-	return;   
+	return;
 
 }
 
@@ -416,15 +418,15 @@ function getMatchId(){
 	var url_components = window.location.pathname.split('/');
 	if(url_components == null) return null;
 	if(url_components.length == 0) return null;
-	if(url_components.length==6 && url_components[0].length==0 
-	  && url_components[1]=="p" && url_components[2].length==16 
-	  && url_components[3]=="profile" 
-	  && url_components[4].length==16 
+	if(url_components.length==6 && url_components[0].length==0
+	  && url_components[1]=="p" && url_components[2].length==16
+	  && url_components[3]=="profile"
+	  && url_components[4].length==16
 	  && url_components[5].length==0 ){
 	  	return url_components[4];
 	}
 	if(url_components.length==4 && url_components[0].length==0
-	  && url_components[1]=="profile" 
+	  && url_components[1]=="profile"
 	  && url_components[2].length==16
 	  && url_components[3].length==0){
 	  	return url_components[2];
@@ -435,7 +437,7 @@ function getMatchId(){
 
 function getMyName(){
 	try{
-	
+
 		var container = document.getElementsByClassName("profile-in-dropdown")[0];
 		container=peelContainerByClassSoft(container, "name");
 
@@ -448,7 +450,7 @@ function getMyName(){
 	catch(err){
 		// what is the point? ignore errors?
 		return null;
-		
+
 	}
 }
 
@@ -481,15 +483,15 @@ tr_el.onclick=function(evt){
 		alert("Please wait for Relatives in Common to finish loading");
 		return;
 	}
-	
+
 	if(tr_el.innerHTML=="Triangulation into 529Renew Completed") return;
-	
+
 	var personaName=getMatchName3();
 	if(personaName==null){
 		alert("Unable to find match name on page");
 		return;
 	}
-	
+
 	var localName=getMyName();
 	if(localName==null || localName.length==0){
 		alert("Unable to find your name on page");
@@ -497,14 +499,22 @@ tr_el.onclick=function(evt){
 	}
 	tr_el.innerHTML="Submitting Comparisons...";
 	pendingPages=true;
-	
+
 	profileName = localName;
 	matchName = personaName;
 	loadAllRequested = evt.shiftKey;
 
+	// after we get the currently set delay then we start the data collection
+	chrome.runtime.sendMessage({mode: "get_qDelay" });
+
+}
+	/*
+	** message request returns here with value in floating pt seconds
+	*/
+function process_qDelay( response ) {
+	if ( Object.keys( response ).includes('qDelay') )
+		increment_ms = response.qDelay * 1000.0;
 	runComparison3(false);
-	
-	
 };
 
 /*
@@ -534,7 +544,7 @@ img.style.verticalAlign='middle';
 b529r.appendChild(img);
 
 div.appendChild(b529r);
-	
+
 let ric_parent=document.getElementsByClassName("js-profile-relatives-in-common")[0];
 let modules=document.getElementsByClassName("module-content");
 if(ric_parent!=null && modules!=null){

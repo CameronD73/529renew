@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name" : "529renew",
-  "version" : "3.3.4.1",
+  "version" : "0.0.4",
   "description" : "Tracks 23andMe Matches using a local SQL database",
   "background": {
   	"service_worker": "service.js"
@@ -13,7 +13,6 @@
       ],
       "js" : [
         "basicQueue.js",
-        "rounding.js",
         "save_segments.js"
       ],
       "run_at" : "document_idle",
@@ -22,6 +21,7 @@
   ],
   "permissions": [
     "tabs",
+    "storage",
     "unlimitedStorage"
   ],
   "icons" : {
@@ -39,7 +39,7 @@
 		"<all_urls>"
 	  ]
 	}
-  ], 
+  ],
   "action":
   {
   	"default_icon" : "529Renew-19.png",

@@ -4,6 +4,21 @@ V3SRC	= 529renew/src
 LOGODIR	= 529renew/logos
 ZIPTARGET	= 529renew.zip
 
+MANIFEST= ${BUILDDIR}/manifest.json
+CSSFILES= ${BUILDDIR}/results_tab.css 
+HTMLFILES= ${BUILDDIR}/results_tab.html 
+
+JSFILES= \
+	${BUILDDIR}/basicQueue.js \
+	${BUILDDIR}/database_actions.js \
+	${BUILDDIR}/database_init.js \
+	${BUILDDIR}/database_IO.js \
+	${BUILDDIR}/results_options.js \
+	${BUILDDIR}/results_tab.js \
+	${BUILDDIR}/rounding.js \
+	${BUILDDIR}/save_segments.js \
+	${BUILDDIR}/service.js
+
 LOGOFILES= \
 	${BUILDDIR}/529renew-128.png \
 	${BUILDDIR}/529renew-16.png \
@@ -15,17 +30,53 @@ LOGOFILES= \
 
 CP	= cp -uv
 
-master:	${BUILDDIR} ${LOGOFILES} ${BUILDDIR}/FileSaver.js
-	${CP} ${V3SRC}/*.js ${BUILDDIR}
-	${CP} ${V3SRC}/*.json ${BUILDDIR}
-	${CP} ${V3SRC}/*.html ${BUILDDIR}
-	${CP} ${V3SRC}/*.css ${BUILDDIR}
+master:	${BUILDDIR} ${LOGOFILES} ${BUILDDIR}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
 
 ${BUILDDIR}:
 	mkdir ${BUILDDIR}
 
 zip:	master
 	zip -r ${ZIPTARGET} ${BUILDDIR}
+
+${BUILDDIR}/manifest.json: ${V3SRC}/manifest.json
+	${CP} $< $@
+
+${BUILDDIR}/results_tab.css: ${V3SRC}/results_tab.css 
+	${CP} $< $@
+
+${BUILDDIR}/results_tab.html: ${V3SRC}/results_tab.html 
+	${CP} $< $@
+
+${BUILDDIR}/basicQueue.js:	${V3SRC}/basicQueue.js 
+	${CP} $< $@
+
+${BUILDDIR}/database_actions.js:	${V3SRC}/database_actions.js 
+	${CP} $< $@
+
+${BUILDDIR}/database_init.js:	${V3SRC}/database_init.js 
+	${CP} $< $@
+
+${BUILDDIR}/database_IO.js:	${V3SRC}/database_IO.js 
+	${CP} $< $@
+
+${BUILDDIR}/database_results.js:	${V3SRC}/database_results.js 
+	${CP} $< $@
+
+${BUILDDIR}/results_options.js:	${V3SRC}/results_options.js 
+	${CP} $< $@
+
+${BUILDDIR}/results_tab.js:	${V3SRC}/results_tab.js 
+	${CP} $< $@
+
+${BUILDDIR}/rounding.js:	${V3SRC}/rounding.js 
+	${CP} $< $@
+
+${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js 
+	${CP} $< $@
+
+${BUILDDIR}/service.js:	${V3SRC}/service.js
+	${CP} $< $@
+
 
 ${BUILDDIR}/FileSaver.js: ${FSDIR}/FileSaver.js
 	${CP} $< $@

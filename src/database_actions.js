@@ -65,12 +65,13 @@ chrome.runtime.onMessage.addListener(
 	else if(request.mode == "storeSegments"){
 		storeSegments(request);
 	}
-	/*
-	//else if(request.mode == "fixYouAreComparingWithBug"){
-	//	fixYouAreComparingWithBug();
-	} */
+	else if(request.mode == "get_qDelay"){
+		db_conlog( 2, `   DBactions returning Q delay ${settings529.delay}` );
+		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnQDelay", qDelay: settings529.delay } );
+
+	}
 	else {
-		errmsg = `dbactions_listen: unhandled message mode${request.mode}`;
+		errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
 		db_conlog( 0, errmsg);
 		alert ( errmsg);
 		return false;		// not handled here
@@ -78,7 +79,7 @@ chrome.runtime.onMessage.addListener(
   });
 
 
-/* 
+/*
 ** store a matching segment.
 ** This code works both for message passing and for local use, as it sends no messages back.
 ** The request is an object, with:
@@ -103,13 +104,13 @@ function storeSegments(request) {
 			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
 		};
 	}
-	
+
 	for(let i=0; i<request.ids.length; i++){
 		// Attempt to insert these two number, name combos
 		db_conlog( 2, `storeSeg: alias ${i} for ${request.ids[i].name}`)
 		db23.transaction(makeIdAliasTransaction(request.ids[i]),  insertRowFail, insert_OK);
 	}
-	
+
 	// Store the matching segments
 	function makeMatchingSegmentTransaction(id1, id2, val){
 
@@ -120,11 +121,14 @@ function storeSegments(request) {
 			firstid = id2;
 			secondid = id1;
 		}
+		let segstart = roundBaseAddress(val.start);
+		let segend = roundBaseAddress(val.end);
+		let segcM = round_cM(val.cM);
 
 		return function(transaction){
 			// Normally code will skip any matches we have already.
 			// if we have forced a reread then presumably we intend it to replace older value
-			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?,  date(),?);', 	[firstid, secondid, val.chromosome, val.start, val.end, val.cM, val.snps, current23andMeBuild]);
+			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?,  date(),?);', 	[firstid, secondid, val.chromosome, segstart, segend, segcM, val.snps, current23andMeBuild]);
 		};
 	}
 	for(let i=0; i<request.matchingSegments.length; i++){
@@ -142,12 +146,12 @@ function storeSegments(request) {
 		}
 		if(j==request.ids.length) alert("failed to find match for " + request.matchingSegments[i].name1);
 	}
-	
+
 	// Create bogus 'chromosome 100' match to signify that comparison has been performed
 	for(let j=1; j<request.ids.length; j++){
 		db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
 	}
-			
+
 }
 
 

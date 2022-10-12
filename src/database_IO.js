@@ -19,7 +19,7 @@ db_conlog( 1, "loading DB_results script");
 // id1 and id2 are the text representation of the 23 and me UID
 // It requests count of segment hits that are saved between ID1 and ID2.
 //     This includes the fake "chromosome 100" record.
-// function formerly known as "upgradeToCurrentBuild"
+
 function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 
 	function makeTransaction(id1, id2, callBackSuccess, callBackFailed){
@@ -32,7 +32,7 @@ function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 			secondid = id1;
 		}
 		return function(transaction, firstid, secondid){
-			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=?  AND build=?',[firstid, secondid, current23andMeBuild], callBackSuccess, callBackFailed);
+			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=? ',[firstid, secondid], callBackSuccess, callBackFailed);
 		};
 	}
 	db_conlog( 2, `   dbREAD ${id1} vs ${id2}` );
@@ -59,9 +59,8 @@ const sellist2 = "	ibdsegs.phase1 AS phase1,\
 const joinlist = "ibdsegs \
 	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
 	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
-	JOIN ibdsegs t3 ON 	(ibdsegs.build=?  \
-		AND t3.build=? \
-		AND t3.ROWID=? \
+	JOIN ibdsegs t3 ON 	( \
+		t3.ROWID=? \
 		AND (  	( \
 			t3.chromosome=ibdsegs.chromosome \
 			AND (  (ibdsegs.start>=t3.start AND ibdsegs.end<=t3.end) \
@@ -78,13 +77,14 @@ const joinlist = "ibdsegs \
 			OR (t3.id2=ibdsegs.id2 ) \
 			) \
 		)";
-
+// 	the following line was removed when build36 support was removed.
+// - part of join t3 on...	ibdsegs.build=?  AND t3.build=? AND \
 const orderlist = "chromosome, \
-ibdsegs.start, \
-ibdsegs.end DESC, \
-ibdsegs.ROWID, \
-julianday(t1.date)+julianday(t2.date), \
-t1.ROWID+t2.ROWID";
+	ibdsegs.start, \
+	ibdsegs.end DESC, \
+	ibdsegs.ROWID, \
+	julianday(t1.date)+julianday(t2.date), \
+	t1.ROWID+t2.ROWID";
 
 /*
 ** returns a table of all segment matches that overlap the one specified by
@@ -95,7 +95,7 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	db_conlog( 32, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
 	function makeTransaction(callback){
 		return function(transaction){
-			transaction.executeSql( sel_short, [build, build, segmentId], callback, callback);
+			transaction.executeSql( sel_short, [segmentId], callback, callback);
 		};
 	}
 	db23.readTransaction(makeTransaction(callbackSuccess));
@@ -125,28 +125,21 @@ function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
 	db23.readTransaction(makeTransaction(callbackSuccess));
 }
 
-// function getLabelList - no longer used
-/*
-** 
-//function getLabelList(callbackSuccess){
-	
-	function makeTransaction(callback){
-		return function(transaction){
-			transaction.executeSql('SELECT DISTINCT relationship1 AS relationship from ibdsegs WHERE relationship1 IS NOT NULL UNION SELECT DISTINCT relationship2 AS relationship from ibdsegs WHERE relationship2 IS NOT NULL',[],callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-*/
 
+
+function getSegsFailed( trans, error ) {
+	db_conlog(1, `selectFromDB failed: ${error.message}`);
+	alert( `DB get seg FAILED: ${error.message}`);
+}
 /*
 ** Queries for matches
 ** this returns the rows of segment data suitable for subsequent processing
 ** either as display on page or save to csv files.
 ** - in: id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
+** if limitDates it true then we only select those newer than previous save.
 */
-function selectFromDatabase(callbackSuccess, id, chromosome, includeChr100){
+function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, includeChr100){
 
 	var lowerBound=0;
 	var upperBound=24;
@@ -155,7 +148,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, includeChr100){
 		lowerBound=chrNum-1;
 		upperBound=chrNum+1;
 	}
-	function makeTransaction(callback, includeChr100){
+	function makeTransaction(callback, limitDates, includeChr100){
 		// create export table for entire DB
 		const qry_sel = 'SELECT \
 				ibdsegs.ROWID as ROWID, \
@@ -166,23 +159,30 @@ function selectFromDatabase(callbackSuccess, id, chromosome, includeChr100){
 				chromosome, start, end, cM, snps \
 			FROM ibdsegs \
 			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
-			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
-			WHERE build=?  AND ';
+			JOIN idalias t2 ON (t2.idText=ibdsegs.id2)  WHERE ';
+		//const qry_build = ' build=?  AND ';
 		const qry_cond = '(chromosome>? AND chromosome<?) ';
 		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+		// convert to julianday to do a floating point comparison rather than string
+		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
 		var query;
 		if ( includeChr100 )
-			query = qry_sel + qry_cond100 + qry_order;
+			query = qry_sel + qry_cond100;
 		else
-			query = qry_sel + qry_cond + qry_order;
-
+			query = qry_sel + qry_cond;
+		if( limitDates )
+			query += qry_date;
+			
+		query += qry_order;
+		db_conlog(`query = ${query} with params ${lowerBound} and ${upperBound}`);
 		return function(transaction){
-			transaction.executeSql( query, [build, lowerBound, upperBound], callback, callback);
+			//transaction.executeSql( query, [build, lowerBound, upperBound], callback, getSegsFailed);
+			transaction.executeSql( query, [lowerBound, upperBound], callback, getSegsFailed);
 		};
 	}
 
-	function makeTransactionWithId(callback, id, includeChr100){
+	function makeTransactionWithId(callback, id, limitDates, includeChr100){
 
 		const qry_sel = 'SELECT \
 				ibdsegs.ROWID as ROWID, \
@@ -194,24 +194,33 @@ function selectFromDatabase(callbackSuccess, id, chromosome, includeChr100){
 			FROM ibdsegs \
 			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
 			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
-			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) AND build=? AND ';
-		const qry_cond = 'chromosome>? AND chromosome<? ';
-		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
+			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) ';
+		// const qyr_build = 'AND build=? ';
+		const qry_cond = 'AND chromosome>? AND chromosome<? ';
+		const qry_cond100 = 'AND ((chromosome>? AND chromosome<?) OR chromosome = 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
 		var query;
-		if ( includeChr100 )
-			query = qry_sel + qry_cond100 + qry_order;
-		else
-				query = qry_sel + qry_cond + qry_order;
 
+		if ( includeChr100 )
+			query = qry_sel + qry_cond100;
+		else
+			query = qry_sel + qry_cond;
+		if( limitDates )
+			query += qry_date;
+			
+		query += qry_order;
+
+		db_conlog(`query = ${query} with params ${id}, ${lowerBound} and ${upperBound}`);
 		return function(transaction){
-			transaction.executeSql(query, [id, id, build, lowerBound, upperBound], callback, callback);
+			transaction.executeSql(query, [id, id, lowerBound, upperBound], callback, getSegsFailed);
 		};
 	}
 	if(id.length<16){
-		db23.readTransaction(makeTransaction(callbackSuccess, includeChr100));
+		// assume this is the "ALL" option
+		db23.readTransaction(makeTransaction(callbackSuccess, limitDates, includeChr100));
 	}
-	else db23.readTransaction(makeTransactionWithId(callbackSuccess, id, includeChr100));
+	else db23.readTransaction(makeTransactionWithId(callbackSuccess, id, limitDates, includeChr100));
 }
 
 
@@ -303,7 +312,7 @@ function import529CSV(lineList, nFields, callback){
 			aliasmap.set(firstID, {name:firstName, id: 0, comment: cmnt });
 		}
 		else {
-			// previous version had commnt on each segment, but not on tester.
+			// previous version had comment on each segment, but not on tester.
 			// this version reverses that, so just append them all (unless they are duplicates)
 			if ( cmnt !== "" && aliasmap.get(firstID).comment !== cmnt ) {
 				aliasmap.get(firstID).comment += cmnt;
@@ -341,7 +350,7 @@ function import529CSV(lineList, nFields, callback){
 		db_conlog( 2, `    inserting ${obj.name} (ID: ${key})`)
 		db23.transaction(makeIdAliasTransaction(key, obj.name, today, obj.comment), importRowFail, importRowSuccess);
 	}
-	db_conlog( 21, `adding ${lineList.length} segment rows`);
+	db_conlog( 1, `adding ${lineList.length} segment rows. This will take a while...`);
 	// Now reprocess the list and save the matched segments
 	for(let i=1; i< lineList.length; i++){
 		var entry=lineList[i].split(',');
@@ -367,7 +376,7 @@ function import529CSV(lineList, nFields, callback){
 			db23.transaction(makeMatchingSegmentTransaction(firstID, secondID, entryChromosome, entryStart, entryEnd, entrycM, entrySNPs, today), importRowFail, importRowSuccess);
 		}
 	}
-	db_conlog( 21, `adding ${matchesmap.size} chr 100 rows`);
+	db_conlog( 1, `adding ${matchesmap.size} chr 100 rows`);
 	for( const[key, obj] of matchesmap ) {
 		pendingTransactionCount++;
 		db23.transaction(makeMatchingSegmentTransaction(obj.id1, obj.id2, 100, -1, -1, obj.cMtotal, 0, today), importRowFail, importRowSuccess);
@@ -384,6 +393,7 @@ function onRequest(request, sender, sendResponse) {
 // replaced by storeSegments
 	alert("we've called onRequest! oops");
 	return false;
+	/*
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(val){
 		// Transaction factory to allow looping
@@ -415,7 +425,7 @@ function onRequest(request, sender, sendResponse) {
 			number2=id1;
 		}
 		return function(transaction){
-			transaction.executeSql("INSERT INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, date, build) VALUES(?, ?, ?, ?, ?, ?, ?, date('now'),?);",[number1,  number2, val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
+			transaction.executeSql( 'INSERT INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?, date(),?);',[number1,  number2, val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
 		}
 	}
 	for(let i=0; i<request.matchingSegments.length; i++){
@@ -441,8 +451,10 @@ function onRequest(request, sender, sendResponse) {
 			
 	// Return nothing to let the connection be cleaned up.
 	sendResponse({});
+*/
 }
 
+/*
 //CJD FIX - needs adjusting for ? ID
 // CURRENTLY not called but probably old message passing not updated.
 // replaced by storeSegments
@@ -506,6 +518,7 @@ function idsRequest(request, sender, sendResponse) {
 	// Return nothing to let the connection be cleaned up.
 	sendResponse({});
 }
+*/
 
 
 function deleteAllData(callbackSuccess){
@@ -517,4 +530,14 @@ function deleteAllData(callbackSuccess){
 			}, function(){alert("Failed to delete data stored in 529Renew local database");}, callbackSuccess
 		);
 	}
+}
+
+function updateDBSettings( key, value ) {
+	
+	const update_qry = `UPDATE settings  SET  value = ? WHERE setting = ?  ;`;
+	db23.transaction(
+		function(transaction) {
+			transaction.executeSql( update_qry, [value, key] );
+		}, function(){alert(`Failed to update setting ${key} to ${value} in 529Renew database`);} 
+	);
 }

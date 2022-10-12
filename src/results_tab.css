@@ -8,9 +8,10 @@ div.fileupload {
 	overflow:hidden;
 }
 button.special {
-	height: 8px;
+	height: 10px;
 	font: 8px Arial, Helvetica, sans-serif;
-	color:#ffff00;
+	padding:0px 6px 0px 6px;
+	color:#000000;
 }
 input.special {
 	height: 8px;

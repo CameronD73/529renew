@@ -21,7 +21,6 @@ conlog( 0, "loading service worker from " + location);
 /*
 ** create the new tab for results presentation.
 ** It has to be done here because the content scripts do not have permission.
-** I can't find evidence that it is not used for anything now other than "results.html"
 */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 

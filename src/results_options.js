@@ -2,66 +2,116 @@
 ** options for handling results presentation.
 */
 
-/*  eslint-disable no-unused-vars */
 "use strict";
 
+// functions to set and get a settings item
+// local storage may get wiped by accident such as when clearing cookies
+// so we keep a separate copy in the DB. This makes the startup sequence
+// a bit trickier.  Local storage values takes priority.
+// These get loaded first, so they are available if we need to create the DB.
 
-var displayMode=0;
-function setDisplayMode(val){
-	displayMode=val;
-}
-function getDisplayMode(){
-	return displayMode;
+// default values for first time.
+const settings529default = {
+	"version": 0,		// version of this structure
+	"displayMode": "2",
+	"textSize": "small",	// never set in old code
+	"build": 37,
+	"omitAliases": false,
+	"hideCloseMatches": false,
+	"baseAddressRounding": 0,
+	"cMRounding": 2,
+	"delay": 2, // units of seconds
+	"minimumOverlap": 0, //units of bp
+	"lastCSVExportDate": "1900-01-01",
+	"lastGEFXExportDate": "1900-01-01"
+};
+
+// in-page cache of settings
+var settings529 = {};
+var settings_from_storage;
+
+// this ugly bit of promise wrapping is because the code (DOMload listener) often requires the data before chrome bothers to return any values.
+function retrieveSettingsP() {
+	return  new Promise( ( resolve, reject) => {
+		try {
+			if(settings_from_storage !== undefined ) {
+				console.log( `settings_status already ${settings_from_storage}`)
+				resolve( "already");		// everything is already loaded.
+			}
+			chrome.storage.local.get('set529',
+				(data) => {
+					if(typeof data.set529 == 'undefined'){
+					// no stored values so load default values
+						Object.assign(settings529, settings529default);
+						chrome.storage.local.set( {'set529':settings529 });
+						settings_from_storage = false;
+						console.log("No settings found in storage. Default values loaded and stored.");
+						resolve( "new" );
+					} else {
+					// saved values exist so we use them
+						Object.assign(settings529, data.set529);
+						settings_from_storage = true;
+						console.log("Stored settings retrieved:", settings529);
+						resolve( "loaded" );
+					}
+					//console.log('Settings are: ');
+			});
+		} catch( error ) {
+			reject( error );
+		}
+	});
 }
 
-var textSize="small";
-function setTextSize(val){
-	textSize=val;
-}
-function getTextSize(val){
-	return textSize;
+async function wait4Settings() {
+	console.log( "===> waiting for settings load");
+	const settingStatus = await retrieveSettingsP();
+	console.log( `<=== done settings load, with ${settingStatus}`);
 }
 
-var omitAliases=false;
-function setOmitAliases(val){
-	omitAliases=val;
+/*
+function retrieveSettings(){
+	//chrome.storage.local.getBytesInUse( null, (retn) => { console.log( `retrieve local storage ${retn} bytes in total`);} );
+	chrome.storage.local.getBytesInUse( 'set529', (retn) => { console.log( `retrieve local storage ${retn} bytes for settings`);} );
+// retrieve stored values if they exist
+	chrome.storage.local.get('set529',
+		(data) => {
+			if(typeof data.set529 == 'undefined'){
+			// no stored values so load default values
+				Object.assign(settings529, settings529default);
+				settings_from_storage = false;
+				chrome.storage.local.set( {'set529':settings529 });
+				console.log("No settings found in storage. Default values loaded and stored.");
+			} else {
+			// saved values exist so we use them
+				Object.assign(settings529, data.set529);
+				settings_from_storage = true;
+				console.log("Stored settings retrieved.");
+			}
+			console.log('Settings are: ', settings529);
+	});
 }
-function getOmitAliases(){
-	return omitAliases;
-}
+*/
 
-var alwaysShowPhase=false;
-function setAlwaysShowPhase(val){
-	alwaysShowPhase=val;
-}
-function getAlwaysShowPhase(){
-	return alwaysShowPhase;
-}
+function setSetting(item,value){
+	//check that item is in settings
+	if(!Object.keys(settings529).includes(item)){
+		console.log("Error in setSettings: item ",item," not in settings");
+		return false;
+	};
+	settings529[item] = value;
+	chrome.storage.local.set( {'set529':settings529 });
+	console.log("Settings updated: ",item," ", value);
+	updateDBSettings( item, value );
+	return true;
+};
 
-var alwaysShowLabels=false;
-function setAlwaysShowLabels(val){
-	alwaysShowLabels=val;
-}
-function getAlwaysShowLabels(){
-	return alwaysShowLabels;
-}
+function getSetting(item){
+	//check that item is in settings
+	if(!Object.keys(settings529).includes(item)){
+		console.log("Error in getSettings: item ",item," not in settings");
+		return null;
+	};
+	return settings529[item];
+};
 
-var alwaysShowCommonAncestors=false;
-function setAlwaysShowCommonAncestors(val){
-	alwaysShowCommonAncestors=val;
-}
-function getAlwaysShowCommonAncestors(){
-	return alwaysShowCommonAncestors;
-}
-
-var hideCloseMatches=false;
-function setHideCloseMatches(val){
-	hideCloseMatches=val;
-}
-function getHideCloseMatches(){
-	return hideCloseMatches;
-}
-
-function echo(command){
-	command();
-}
+wait4Settings();
