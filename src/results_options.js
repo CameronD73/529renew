@@ -94,8 +94,12 @@ function retrieveSettings(){
 function setSetting(item,value){
 	//check that item is in settings
 	if(!Object.keys(settings529).includes(item)){
-		console.log("Error in setSettings: item ",item," not in settings");
-		return false;
+		if(!Object.keys(settings529default).includes(item)){
+			console.log("Error in setSettings: item ",item," not in settings");	
+			return false;	// clearly a bug
+		}
+		console.log("WEIRD! Error in setSettings: lost item ",item );	
+		// otherwise fall trhrough and apply new value (a different bug)
 	};
 	settings529[item] = value;
 	chrome.storage.local.set( {'set529':settings529 });
@@ -106,9 +110,14 @@ function setSetting(item,value){
 
 function getSetting(item){
 	//check that item is in settings
-	if(!Object.keys(settings529).includes(item)){
-		console.log("Error in getSettings: item ",item," not in settings");
-		return null;
+	if(!Object.keys(settings529).includes(item)){	
+		if(!Object.keys(settings529default).includes(item)){
+			console.log("Error in getSettings: item ",item," not in settings");	
+			return null;	// clearly a bug
+		}
+		// otherwise reinstate "lost" setting (a different bug)
+		console.log("WEIRD! reinstating lost item ",item );	
+		settings529[item] = settings529default[item];
 	};
 	return settings529[item];
 };

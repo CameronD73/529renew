@@ -6,10 +6,10 @@
 
 
 /* round the chromosome base-pair address
-** in: addr - the base address - units (not Mega-basepairs)
+** in: addr - the base-pair address - integer units (not Mega-basepairs)
 ** returns - the number rounded as required (or not)
 */
-function roundBaseAddress(  addr ) {
+function roundBaseAddress( addr ) {
 	let baseAddressRounding = settings529.baseAddressRounding;	// the order of magnitude - must be a power of 10
 	if ( baseAddressRounding == 0 )
 		return addr;
@@ -23,6 +23,8 @@ function round_cM(  cMvalue ) {
 			return Math.round(cMvalue * 100) / 100;
 		case 1:
 			return Math.round(cMvalue * 10) / 10;
+		case 0:
+			return Math.round(cMvalue);
 	}
 	return cMvalue;
 }
