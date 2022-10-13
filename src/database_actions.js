@@ -70,9 +70,15 @@ chrome.runtime.onMessage.addListener(
 		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnQDelay", qDelay: settings529.delay } );
 
 	}
-	else {
-		errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
-		db_conlog( 0, errmsg);
+	else if(request.mode == "selectUser"){
+		db_conlog( 2, `   DBactions changing user to  ${request.userID}` );
+		// eventually...
+	}
+	else if ( request.mode == "displayPage" || Object.keys(request).includes("url")) {
+		return false;		// leave for service script
+	} else {
+		let errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
+		console.log( errmsg, request);
 		alert ( errmsg);
 		return false;		// not handled here
 	}

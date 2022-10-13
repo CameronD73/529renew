@@ -16,6 +16,7 @@ JSFILES= \
 	${BUILDDIR}/results_options.js \
 	${BUILDDIR}/results_tab.js \
 	${BUILDDIR}/rounding.js \
+	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
 	${BUILDDIR}/service.js
 
@@ -28,7 +29,7 @@ LOGOFILES= \
 	${BUILDDIR}/529renew.png
 
 
-CP	= cp -uv
+CP	= cp -u
 
 master:	${BUILDDIR} ${LOGOFILES} ${BUILDDIR}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
 
@@ -69,6 +70,9 @@ ${BUILDDIR}/results_tab.js:	${V3SRC}/results_tab.js
 	${CP} $< $@
 
 ${BUILDDIR}/rounding.js:	${V3SRC}/rounding.js 
+	${CP} $< $@
+
+${BUILDDIR}/start_db_tab.js:	${V3SRC}/start_db_tab.js 
 	${CP} $< $@
 
 ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js 

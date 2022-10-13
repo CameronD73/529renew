@@ -58,12 +58,20 @@ function open_results_tab( url ) {
 			}
 		}
 		if ( tabFound >= 0 ) {
-			// if the new url has a query, then kill the current window and start a new one
+			// if the new url has a query, it should be  ?id=xxxxxxxxxx
 			if (url.indexOf( "?") > 0 ) {
-				conlog ( 1, "replacing results tab...");
-				chrome.tabs.remove( tabarr[tabFound].id, function() {
-					chrome.tabs.create( { active:true, url:url });
-				} )
+				let urlpos = url.indexOf( "?id=");
+				if ( urlpos > 0 ){
+					let IDstr = url.substring( urlpos+4 )
+					conlog ( 1, `sending results tab id ${IDstr}...`);
+					chrome.tabs.sendMessage( tabarr[tabFound].id, {mode:"selectUser", userID:IDstr});
+				} else {
+					//  otherwise kill the current window and start a new one
+					conlog ( 1, "replacing results tab...");
+					chrome.tabs.remove( tabarr[tabFound].id, function() {
+						chrome.tabs.create( { active:true, url:url });
+					} );
+				}
 			}
 		} else {
 			conlog ( 1, "no results tab, creating one...")
@@ -74,7 +82,7 @@ function open_results_tab( url ) {
 }
 
 // fire up the db create/update  code...
-
+/*
 chrome.runtime.onStartup.addListener( function() {
 	conlog( 0, "service worker startup event");
 	open_results_tab("results_tab.html");
@@ -86,4 +94,4 @@ self.addEventListener( 'activate', function() {
 	open_results_tab("results_tab.html");
   }
 );
-
+*/

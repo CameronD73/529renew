@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name" : "529renew",
-  "version" : "0.0.4",
+  "version" : "0.1.4",
   "description" : "Tracks 23andMe Matches using a local SQL database",
   "background": {
   	"service_worker": "service.js"
@@ -14,6 +14,17 @@
       "js" : [
         "basicQueue.js",
         "save_segments.js"
+      ],
+      "run_at" : "document_idle",
+      "all_frames" : false
+    },
+    {
+      "matches" : [
+      	"https://you.23andme.com/family/relatives/*",
+      	"https://you.23andme.com/p/*/family/relatives/*"
+      ],
+      "js" : [
+        "start_db_tab.js"
       ],
       "run_at" : "document_idle",
       "all_frames" : false
