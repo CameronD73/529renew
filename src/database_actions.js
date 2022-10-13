@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener(
 	}
 	else if(request.mode == "selectUser"){
 		db_conlog( 2, `   DBactions changing user to  ${request.userID}` );
-		// eventually...
+		updateSelectedName( request.userID );
 	}
 	else if ( request.mode == "displayPage" || Object.keys(request).includes("url")) {
 		return false;		// leave for service script

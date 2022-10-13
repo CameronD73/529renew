@@ -20,7 +20,7 @@ const settings529default = {
 	"hideCloseMatches": false,
 	"baseAddressRounding": 0,
 	"cMRounding": 2,
-	"delay": 2, // units of seconds
+	"delay": "2", // units of seconds
 	"minimumOverlap": 0, //units of bp
 	"lastCSVExportDate": "1900-01-01",
 	"lastGEFXExportDate": "1900-01-01"
@@ -54,7 +54,6 @@ function retrieveSettingsP() {
 						console.log("Stored settings retrieved:", settings529);
 						resolve( "loaded" );
 					}
-					//console.log('Settings are: ');
 			});
 		} catch( error ) {
 			reject( error );
@@ -62,10 +61,10 @@ function retrieveSettingsP() {
 	});
 }
 
-async function wait4Settings() {
-	console.log( "===> waiting for settings load");
+async function wait4Settings( idnum ) {
+	console.log( `===> waiting for settings load ${idnum}.`);
 	const settingStatus = await retrieveSettingsP();
-	console.log( `<=== done settings load, with ${settingStatus}`);
+	console.log( `<=== done settings load ${idnum}, with ${settingStatus}`);
 }
 
 /*
@@ -114,4 +113,5 @@ function getSetting(item){
 	return settings529[item];
 };
 
-wait4Settings();
+// this is rather pointless, but I need to start off the get storage somehow.
+wait4Settings(0);

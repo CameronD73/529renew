@@ -451,10 +451,10 @@ var phaseColors=["#FFFFFF", "#FFDDDD", "#DDDDFF", "#FFFFDD", "#DDDDDD"];
 function createButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Create Match Table";
-	newButton.title="Shift-click to color code buttons (red=unchecked matches, blue=all matches checked)";
+	newButton.title="Shift-click to color code buttons (red=unchecked matches, blue=all matches checked, Alt-click to show matches since last csv save)";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabase(evt.shiftKey, evt.altKey);});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 }
 
 function createCSVButton( ){
@@ -463,28 +463,28 @@ function createCSVButton( ){
 	newButton.title="Always includes 23andMe ID's; Shift-click to include all previously exported; Alt-click to also include non-match info";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseForCSV(evt.shiftKey, evt.altKey);});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 }
 function createGEXFButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Download GEXF";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){requestSelectFromDatabaseForGEXF();});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 }
 function createSVGButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Download SVG";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){downloadSVG();});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 }
 function createImportButton(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Import CSV";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){document.getElementById("upfile").click();});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 	document.getElementById("upfile").addEventListener('change', requestImportToDatabase);
 }
 
@@ -508,7 +508,7 @@ function createDeleteButton(){
 	newButton.innerHTML="Delete All 529andYou Data";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){requestDeletionFromDatabase();});
-	document.getElementById("test").appendChild(newButton);
+	document.getElementById("buttonrow").appendChild(newButton);
 }
 
 function resetAfterDeletion(){
@@ -549,7 +549,31 @@ function setTextSizeSelector(){
 	};
 	setTextSizeLocal();
 }
+
+function setBPRoundingSelector(){
+	var widget=document.getElementById("roundingBP");
+	widget.value=getSetting( "baseAddressRounding" ).toString();
+	widget.onchange=function(){
+		setSetting( "baseAddressRounding", parseInt(widget.value));
+	};
+}
+function setcMRoundingSelector(){
+	var widget=document.getElementById("roundingcM");
+	widget.value=getSetting( "cMRounding" ).toString();
+	widget.onchange=function(){
+		setSetting( "cMRounding", parseInt(widget.value));
+	};
+}
+function setDelaySelector(){
+	var widget=document.getElementById("delay");
+	widget.value=getSetting( "delay" );
+	widget.onchange=function(){
+		setSetting( "delay", widget.value);
+	};
+}
 function setBuildSelector(){
+	return;		// ignore this atm.
+	/*
 	var widget=document.getElementById("build");
 	widget.value=getSetting( "build");
 	widget.onchange=function(){
@@ -558,6 +582,7 @@ function setBuildSelector(){
 			requestSelectFromDatabase(false, false);
 		}
 	};
+	*/
 }
 
 function setOmitAliasesCheckBox(){
@@ -575,6 +600,19 @@ function setHideCloseMatchesCheckBox(){
 	};
 }
 
+function updateSelectedName(idstr) {
+	var el=document.getElementById("selectName");
+	if ( idstr.length == 16 ) {
+		// used the ID passed in the call
+		el.value = idstr;
+	} else if(window.location.search.length==20) {
+		// otherwise check for any parameter in the url (deprecated, but left in just in case)
+		el.value=window.location.search.substring(4);
+	}
+}
+
+// This is the callback from the DB search of names (possibly filtered)
+// each row of the results gives the "name" and the "id" as a string
 function createNameSelector(transaction, results){
 	// Remove existing nodes
 	if(results.message){
@@ -603,9 +641,7 @@ function createNameSelector(transaction, results){
 		op.value=row.idText;
 		el.appendChild(op);
 	}
-	if(window.location.search.length==20){
-		el.value=window.location.search.substring(4);
-	}
+	updateSelectedName( "" );
 }
 
 function colorizeButton(button, cid1,  cid2){
@@ -727,7 +763,6 @@ function createTable12(transaction, results, colorize){
 		return;
 	}
 
-	//var build=getSetting( "build" );
 	var omitAliases=getSetting( "omitAliases");
 	var hideCloseMatches=getSetting( "hideCloseMatches" );
 
@@ -1035,9 +1070,13 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529renew" + theName+ "_" + formattedDate()+ ".csv");
-	if ( expectedIdStr == 0 ) // only save date when we save all testers 
+
+	// only record the date exported when we save all testers and all chromosomes
+	let chromosome = parseInt( document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value );
+	if ( expectedIdStr == 0 && chromosome > 0 )
 		setSetting( "lastCSVExportDate", formattedDate2() );
 }
+
 function formattedDate(){
 	var thisDay=new Date();
 	var year=thisDay.getFullYear();
@@ -1160,7 +1199,6 @@ function createGEXF(transaction, results){
 
 function createSegmentTable(transaction, results){
 
-	//let build=getSetting( "build" );
 	let omitAliases=getSetting( "omitAliases");
 	let hideCloseMatches=getSetting( "hideCloseMatches" );
 
@@ -1750,10 +1788,11 @@ function requestDeletionFromDatabase(){
 	deleteAllData(resetAfterDeletion);
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
 	//if( settings_from_storage === undefined )
-	wait4Settings();
-	db_conlog( 1, "domload");
+	// wait4Settings(1);
+	const settingStatus = await retrieveSettingsP();
+	db_conlog( 1, "DOMContentLoaded - and settingsP has returned.");
 	getMatchesFromDatabase(createNameSelector);
 	//getLabelList(createLabelList);
 	createButton();
@@ -1763,6 +1802,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	createImportButton();
 	createClearFilterButton();
 	createDeleteButton();
+
+	setBPRoundingSelector();
+	setcMRoundingSelector();
+	setDelaySelector();
 	setDisplayModeSelector();
 	setTextSizeSelector();
 	setBuildSelector();
