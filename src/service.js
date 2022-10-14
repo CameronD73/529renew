@@ -52,7 +52,7 @@ function open_results_tab( url ) {
 		for( let i = 0; i < tabarr.length; i++ ) {
 			let ttl = tabarr[i].title;
 			conlog( 2, `checking tab ${i} ${ttl} at index ${ttl.indexOf("529Renew")}`);
-			if ( ttl.indexOf("529Renew Database Actions" ) >= 0 ) {
+			if ( ttl.indexOf("529Renew Results" ) >= 0 ) {
 				conlog( 1, `found result tab in ${ttl}`);
 				tabFound = i;
 			}
