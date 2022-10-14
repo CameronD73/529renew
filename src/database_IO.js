@@ -232,6 +232,8 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 
 function importRowSuccess( ) {
 	decrementPendingTransactionCount( );
+	if ( (pendingTransactionCount % 100) == 1 )
+		db_conlog(2, `       ${pendingTransactionCount} segments remaining`);
 }
 
 function importRowFail( error ) {
@@ -369,7 +371,7 @@ function import529CSV(lineList, nFields, callback){
 			// the chromosome 100 fakes will be handled later...
 			var entryStart=entry[3];
 			var entryEnd=entry[4];
-			var entrycM=entry[5];
+			var entrycM = round_cM( entry[5] );
 			var entrySNPs=entry[6];
 
 			pendingTransactionCount++;
@@ -385,141 +387,6 @@ function import529CSV(lineList, nFields, callback){
 	decrementPendingTransactionCount();
 
 }
-
-function onRequest(request, sender, sendResponse) {
-	
-//CJD FIX - needs adjusting for ? ID.  BUT  this  duplicates idsRequest - do we need both?
-// At the moment, NEITHER routine is called!.
-// replaced by storeSegments
-	alert("we've called onRequest! oops");
-	return false;
-	/*
-	// Store the names and ids of the matches
-	function makeIdAliasTransaction(val){
-		// Transaction factory to allow looping
-		//var numbers=id2numbers(val[0]);
-		var name=val[1];
-		return function(transaction){
-			transaction.executeSql("INSERT INTO idalias (id, id_2, name, date, company_id) VALUES(?, ?, ?, date('now'), 1);", [numbers[0], numbers[1], name]);
-		};
-	}
-	
-	for(let i=0; i<request.ids.length; i++){
-		// Attempt to insert this number, name combo
-		db23.transaction(makeIdAliasTransaction(request.ids[i]));
-	}
-	
-	// Store the matching segments
-	function makeMatchingSegmentTransaction(id1, id2, val){
-		// Transaction factory to allow looping
-		if ( id1 == id2 ) return; // Don't enter matches with self
-		var number1;
-		var number2;
-		// Order matches consistently so first ID < 2nd ID
-		if(id1 < id2){
-			number1=id1;
-			number2=id2;
-		}
-		else{
-			number1=id2;
-			number2=id1;
-		}
-		return function(transaction){
-			transaction.executeSql( 'INSERT INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?, date(),?);',[number1,  number2, val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
-		}
-	}
-	for(let i=0; i<request.matchingSegments.length; i++){
-		//if(request.matchingSegments[i][0]===request.matchingSegments[i][1]) continue; // Ignore matches to self
-		if(request.matchingSegments[i][0]!==request.ids[0][1]){
-			alert("unexpected name mismatch: " + request.matchingSegments[i][0] + " " + request.ids[0][1]);
-			continue;
-		}
-		let j=1;
-		for( ; j<request.ids.length; j++){
-			if(request.matchingSegments[i][1]===request.ids[j][1]){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], request.matchingSegments[i]));
-				break;
-			}
-		}
-		if(j==request.ids.length) alert("failed to find match for " + request.matchingSegments[i][1]);
-	}
-	
-	// Create bogus 'chromosome 100' match to signify that comparison has been performed
-	for(let j=1; j<request.ids.length; j++){
-		db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], [ "filler", "filler", 100, -1, -1, 0, 0]));
-	}
-			
-	// Return nothing to let the connection be cleaned up.
-	sendResponse({});
-*/
-}
-
-/*
-//CJD FIX - needs adjusting for ? ID
-// CURRENTLY not called but probably old message passing not updated.
-// replaced by storeSegments
-function idsRequest(request, sender, sendResponse) {
-
-	// Store the names and ids of the matches
-	function makeIdAliasTransaction(val){
-		// Transaction factory to allow looping
-		var idtext=val[0];
-		var name=val[1];
-		return function(transaction){
-			transaction.executeSql('INSERT INTO idalias (idText, name, "date" ) VALUES(?, ?, date() );', [idtext, name]);
-		};
-	}
-	
-	for(let i=0; i<request.ids.length; i++){
-		// Attempt to insert this number, name combo
-		db23.transaction(makeIdAliasTransaction(request.ids[i]));
-	}
-	
-	// Store the matching segments
-	function makeMatchingSegmentTransaction(id1, id2, val){
-		// Transaction factory to allow looping
-		if ( id1 == id2 ) return; // Don't enter matches with self
-		var number1;
-		var number2;
-		// Order matches consistently so first ID < 2nd ID
-		if(id1 < id2){
-			number1=id1;
-			number2=id2;
-		}
-		else{
-			number1=id2;
-			number2=id1;
-		}
-		return function(transaction){
-			transaction.executeSql('INSERT INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?, date(), ?);',[number1,  number2, val[2], val[3], val[4], val[5], val[6], current23andMeBuild]);
-		};
-	}
-	for(let i=0; i<request.matchingSegments.length; i++){
-		//if(request.matchingSegments[i][0]===request.matchingSegments[i][1]) continue; // Ignore matches to self
-		if(request.matchingSegments[i][0]!==request.ids[0][1]){
-			alert("unexpected name mismatch: " + request.matchingSegments[i][0] + " " + request.ids[0][1]);
-			continue;
-		}
-		let j=1;
-		for( ; j<request.ids.length; j++){
-			if(request.matchingSegments[i][1]===request.ids[j][1]){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], request.matchingSegments[i]));
-				break;
-			}
-		}
-		if(j==request.ids.length) alert("failed to find match for " + request.matchingSegments[i][1]);
-	}
-	
-	// Create bogus 'chromosome 100' match to signify that comparison has been performed
-	for(let j=1; j<request.ids.length; j++){
-		db23.transaction(makeMatchingSegmentTransaction(request.ids[0][0], request.ids[j][0], [ "filler", "filler", 100, -1, -1, 0, 0]));
-	}
-			
-	// Return nothing to let the connection be cleaned up.
-	sendResponse({});
-}
-*/
-
 
 function deleteAllData(callbackSuccess){
 	if(confirm("Delete all data stored in your 529Renew local database?")){

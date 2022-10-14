@@ -82,13 +82,13 @@ function open_results_tab( url ) {
 }
 
 // fire up the db create/update  code...
-/*
-chrome.runtime.onStartup.addListener( function() {
-	conlog( 0, "service worker startup event");
+
+chrome.runtime.onInstalled.addListener( function() {
+	conlog( 0, "service worker - install/update event");
 	open_results_tab("results_tab.html");
   }
 );
-
+/*
 self.addEventListener( 'activate', function() {
 	conlog( 0, "service worker activate event");
 	open_results_tab("results_tab.html");

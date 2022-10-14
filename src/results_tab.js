@@ -505,7 +505,7 @@ function createClearFilterButton(){
 
 function createDeleteButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete All 529andYou Data";
+	newButton.innerHTML="Delete All 529renew Data";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){requestDeletionFromDatabase();});
 	document.getElementById("buttonrow").appendChild(newButton);
@@ -514,7 +514,7 @@ function createDeleteButton(){
 function resetAfterDeletion(){
 	getMatchesFromDatabase(createNameSelector);
 	requestSelectFromDatabase(false, false);
-	alert("All data stored in your 529andYou local database has been deleted");
+	alert("All data stored in your 529renew local database has been deleted");
 }
 function setDisplayModeSelector(){
 	let widget=document.getElementById("displayMode");
@@ -1110,7 +1110,7 @@ function downloadSVG(){
 	svgArray.push('xmlns="http://www.w3.org/2000/svg" version="1.1" ');
 	svgArray.push(svgText.slice(18));
 	var blob = new Blob(svgArray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529andYou.svg");
+	saveAs(blob, "529renew.svg");
 }
 function createGEXF(transaction, results){
 
@@ -1124,7 +1124,7 @@ function createGEXF(transaction, results){
 	// Was 1.2 draft, but this code is compatible with 1.3...
 	gexfarray.push('<gexf xmlns="http://www.gexf.net/1.3" version="1.3" xmlns:viz="http://www.gexf.net/1.3/viz" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.3 http://www.gexf.net/1.3/gexf.xsd">\n');
 	gexfarray.push('  <meta lastmodifieddate="' + formattedDate2() + '">\n');
-	gexfarray.push('    <creator>529andYou</creator>\n');
+	gexfarray.push('    <creator>529renew</creator>\n');
 	gexfarray.push('    <description></description>\n');
 	gexfarray.push('  </meta>\n');
 	gexfarray.push('  <graph defaultedgetype="undirected" mode="static">\n');
@@ -1746,7 +1746,7 @@ function requestSelectFromDatabaseForGEXF(){
 
 function reloadSoon(){
 	document.getElementById("docBody").style.cursor="pointer";
-	alert("CSV file parsing complete; 529andYou page will reload");
+	alert("CSV file parsing complete, database updated");
 	location.reload(true);
 }
 function requestImportToDatabase(evt){
