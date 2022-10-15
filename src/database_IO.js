@@ -279,16 +279,17 @@ function import529CSV(lineList, nFields, callback){
 		let firstID = id1;
 		let secondID = id2;
 		if( id1 > id2 ) {
+			// always store lowest first (necessary to allow uniqueness constraints to work)
 			db_conlog( 23, `    Segments: swapping order: ${id2} then  ${id1}`);
 			firstID = id2;
 			secondID = id1;
 		}
 		else
-			db_conlog( 23, `    Segments:  order: ${id1} then  ${id2}`);
+			db_conlog( 23, `    Segments:  order: ${firstID} then  ${secondID}`);
 		const qry1 = 'INSERT or IGNORE INTO ibdsegs ( id1, id2, chromosome, start, end, cM, snps, "date", build )VALUES(?,?,?,?,?,?,?,?,?);';
 		
 		return function(transaction){
-			transaction.executeSql( qry1, [id1, id2, chromosome, start, end, centimorgans, snps, today, current23andMeBuild]);
+			transaction.executeSql( qry1, [firstID, secondID, chromosome, start, end, centimorgans, snps, today, current23andMeBuild]);
 		};
 	}
 	/* first process every line, getting all testers, and sets of matching pairs
@@ -329,13 +330,13 @@ function import529CSV(lineList, nFields, callback){
 				aliasmap.get(secondID).comment += cmnt;
 			}
 		}
-		// always store lowest first (makes checks faster)
-		/*
+		/*  WHY did I comment this block out? Am I relying on them always being in same order in any one file?
+		** that should be true, but why take the risk?*/
 		if ( firstID > secondID ) {
 			let temp = secondID;
 			secondID = firstID;
 			firstID = temp;
-		}*/
+		}
 		let matchkey = firstID + secondID;
 		if( !matchesmap.has( matchkey ) ) {
 			matchesmap.set( matchkey, {id1: firstID, id2: secondID, cMtotal : 0.0} );
@@ -381,7 +382,8 @@ function import529CSV(lineList, nFields, callback){
 	db_conlog( 1, `adding ${matchesmap.size} chr 100 rows`);
 	for( const[key, obj] of matchesmap ) {
 		pendingTransactionCount++;
-		db23.transaction(makeMatchingSegmentTransaction(obj.id1, obj.id2, 100, -1, -1, obj.cMtotal, 0, today), importRowFail, importRowSuccess);
+		let cM = round_cM(obj.cMtotal);
+		db23.transaction(makeMatchingSegmentTransaction(obj.id1, obj.id2, 100, -1, -1, cM, 0, today), importRowFail, importRowSuccess);
 	}
 	// now account for the initial value and eventually trigger callback..
 	decrementPendingTransactionCount();
