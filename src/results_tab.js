@@ -781,7 +781,7 @@ function createTable12(transaction, results, colorize){
 	if(results.rows.length>5000){
 		if(!confirm("Display " + results.rows.length + " matching segments? That could take a while.")) return;
 	}
-	db_conlog( 1, `query returned ${results.rows.length} rows.`)
+	db_conlog( 1, `CreateTable12-query returned ${results.rows.length} rows.`)
 	var table=document.createElement("table");
 
 	document.getElementById("table_div").appendChild(table);
@@ -1792,7 +1792,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 	//if( settings_from_storage === undefined )
 	// wait4Settings(1);
 	const settingStatus = await retrieveSettingsP();
-	db_conlog( 1, "DOMContentLoaded - and settingsP has returned.");
+	db_conlog( 2, "DOMContentLoaded - and settingsP has returned.");
 	getMatchesFromDatabase(createNameSelector);
 	//getLabelList(createLabelList);
 	createButton();

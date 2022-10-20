@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 		if ( request.mode == "displayPage" ) {
 			if(request.url.indexOf( "results_tab.html") > 0){
-				open_results_tab(request.url)	
+				open_results_tab(request.url, false)	
 			} else if(request.url!=null){
 				chrome.tabs.create({ url: request.url, active: true}, null);
 			}
@@ -43,7 +43,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 ** but only if one does not exist already.
 ** The URL might simply be the html file name in the extension, or a full path with a query parameter.
 */
-function open_results_tab( url ) {
+function open_results_tab( url, atFront ) {
 	// we cannot ask for a partial title match, so we need to get all and check each one...
 	// Note - cannot use arrow function as url becomes out of scope.
 	chrome.tabs.query( {}, function(tabarr) {
@@ -69,13 +69,13 @@ function open_results_tab( url ) {
 					//  otherwise kill the current window and start a new one
 					conlog ( 1, "replacing results tab...");
 					chrome.tabs.remove( tabarr[tabFound].id, function() {
-						chrome.tabs.create( { active:true, url:url });
+						chrome.tabs.create( { active:atFront, url:url });
 					} );
 				}
 			}
 		} else {
 			conlog ( 1, "no results tab, creating one...")
-			chrome.tabs.create( { active:true, url:url });
+			chrome.tabs.create( { active:atFront, url:url });
 		}
 	  }
 	);
@@ -85,13 +85,6 @@ function open_results_tab( url ) {
 
 chrome.runtime.onInstalled.addListener( function() {
 	conlog( 0, "service worker - install/update event");
-	open_results_tab("results_tab.html");
+	open_results_tab("results_tab.html", true );
   }
 );
-/*
-self.addEventListener( 'activate', function() {
-	conlog( 0, "service worker activate event");
-	open_results_tab("results_tab.html");
-  }
-);
-*/

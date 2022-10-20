@@ -9,7 +9,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-var debug_db = 2;
+var debug_db = 1;
 
 function db_conlog( level, msg ) {
 	if ( debug_db >= level ) {

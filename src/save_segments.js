@@ -20,7 +20,7 @@ var pendingComparisons=0;	// not needed - proxy for queue length
 var pendingPages=false;		// not used - I think redundant with new code organisation.
 var failedInSomeWay=false;
 
-let debug_q = 3;			// if nonzero, add debugging console output
+let debug_q = 1;			// if nonzero, add debugging console output
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 //let queued_requests = 0;	// no longer used
 
@@ -158,7 +158,7 @@ chrome.runtime.onMessage.addListener(
 			setTimeout( () => oReq.send(), increment_ms );
 		}
 		else{
-			if( debug_q > 2 )
+			if( debug_q > 0 )
 				console.log("No need to recompare " + request.indexName + " " + request.matchName);
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
@@ -497,7 +497,7 @@ tr_el.onclick=function(evt){
 		alert("Unable to find your name on page");
 		return;
 	}
-	tr_el.innerHTML="Submitting Comparisons...";
+	tr_el.innerHTML="Collecting DNA segments...";
 	pendingPages=true;
 
 	profileName = localName;

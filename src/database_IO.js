@@ -7,7 +7,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 1, "loading DB_results script");
+db_conlog( 2, "loading DB_results script");
 
 
 /*
@@ -175,7 +175,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 			query += qry_date;
 			
 		query += qry_order;
-		db_conlog(`query = ${query} with params ${lowerBound} and ${upperBound}`);
+		db_conlog(3, `query = ${query} with params ${lowerBound} and ${upperBound}`);
 		return function(transaction){
 			//transaction.executeSql( query, [build, lowerBound, upperBound], callback, getSegsFailed);
 			transaction.executeSql( query, [lowerBound, upperBound], callback, getSegsFailed);
@@ -211,7 +211,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 			
 		query += qry_order;
 
-		db_conlog(`query = ${query} with params ${id}, ${lowerBound} and ${upperBound}`);
+		db_conlog( 3, `query = ${query} with params ${id}, ${lowerBound} and ${upperBound}`);
 		return function(transaction){
 			transaction.executeSql(query, [id, id, lowerBound, upperBound], callback, getSegsFailed);
 		};
@@ -233,7 +233,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 function importRowSuccess( ) {
 	decrementPendingTransactionCount( );
 	if ( (pendingTransactionCount % 100) == 1 )
-		db_conlog(2, `       ${pendingTransactionCount} segments remaining`);
+		db_conlog( 1, `       ${pendingTransactionCount} segments remaining`);
 }
 
 function importRowFail( error ) {

@@ -67,29 +67,6 @@ async function wait4Settings( idnum ) {
 	console.log( `<=== done settings load ${idnum}, with ${settingStatus}`);
 }
 
-/*
-function retrieveSettings(){
-	//chrome.storage.local.getBytesInUse( null, (retn) => { console.log( `retrieve local storage ${retn} bytes in total`);} );
-	chrome.storage.local.getBytesInUse( 'set529', (retn) => { console.log( `retrieve local storage ${retn} bytes for settings`);} );
-// retrieve stored values if they exist
-	chrome.storage.local.get('set529',
-		(data) => {
-			if(typeof data.set529 == 'undefined'){
-			// no stored values so load default values
-				Object.assign(settings529, settings529default);
-				settings_from_storage = false;
-				chrome.storage.local.set( {'set529':settings529 });
-				console.log("No settings found in storage. Default values loaded and stored.");
-			} else {
-			// saved values exist so we use them
-				Object.assign(settings529, data.set529);
-				settings_from_storage = true;
-				console.log("Stored settings retrieved.");
-			}
-			console.log('Settings are: ', settings529);
-	});
-}
-*/
 
 function setSetting(item,value){
 	//check that item is in settings
