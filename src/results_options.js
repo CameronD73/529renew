@@ -11,7 +11,7 @@
 // These get loaded first, so they are available if we need to create the DB.
 
 
-let debug_db = 3;
+let debug_db = 1;
 
 function db_conlog( level, msg ) {
 	if ( debug_db >= level ) {

@@ -8,7 +8,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-var debug_msg = 2;		// only used in the service worker
+var debug_msg = 1;		// only used in the service worker
 
 function conlog( level, msg ) {
 	if ( debug_msg >= level ) {

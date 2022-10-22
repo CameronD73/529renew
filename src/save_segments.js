@@ -20,7 +20,7 @@ var pendingComparisons=0;	// not needed - proxy for queue length - currently ret
 var pendingPages=false;
 var failedInSomeWay=false;
 
-let debug_q = 3;			// if nonzero, add debugging console output
+let debug_q = 1;			// if nonzero, add debugging console output
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 //let queued_requests = 0;	// no longer used
 
