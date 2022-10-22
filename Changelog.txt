@@ -12,3 +12,5 @@ changes between v1.0.0 and v1.1.0
     Improve alerts on "expired context" errors.
     Changed text on triangulating button
 V 1.1.0  submitted to  Chrome store - 2022-10-22
+changes between v1.1.0 and v1.2
+    fixed recording of "lastCSVExport" date - program was ignoring "all chromosome" requests but incorrectly recording when data for a single chromosome was exported.
