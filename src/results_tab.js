@@ -980,15 +980,15 @@ function createTable12(transaction, results, colorize){
 	createMatchSVG(table);
 }
 function createCSV(transaction, results){
-	createCSV12(transaction, results, true, false);
+	createCSV12( results, false);
 }
 function createCSV2(transaction, results){
-	createCSV12(transaction, results, true, false);
+	createCSV12( results, false);
 }
 function createCSV3(transaction, results){
-	createCSV12(transaction, results, true, true);
+	createCSV12( results, true);
 }
-function createCSV12(transaction, results, includeIds, includeNonMatch){
+function createCSV12( results,  includeNonMatch){
 
 	if(results.message){
 		alert("createCSV12: Failed to retrieve 12 match data: "+ results.message);
@@ -997,12 +997,8 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 	var omitAliases=getSetting( "omitAliases");
 
 	var csvarray=new Array();
-	if(includeIds){
-		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID\n");
-	}
-	else{
-		csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs\n");
-	}
+	csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID\n");
+
 	var theName=null;
 
 	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
@@ -1054,12 +1050,9 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 		else{
 			if(name!=theName) theName=null;
 		}
-		if(includeIds){
-			csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+","+id+","+matchId+"\n");
-		}
-		else{
-			csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+"\n");
-		}
+
+		csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+","+id+","+matchId+"\n");
+
 	}
 	if(theName){
 		theName=theName.replace(/ /g,"_");
@@ -1073,7 +1066,7 @@ function createCSV12(transaction, results, includeIds, includeNonMatch){
 
 	// only record the date exported when we save all testers and all chromosomes
 	let chromosome = parseInt( document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value );
-	if ( expectedIdStr == 0 && chromosome > 0 )
+	if ( expectedIdStr == 0 && chromosome == 0 )
 		setSetting( "lastCSVExportDate", formattedDate2() );
 }
 
