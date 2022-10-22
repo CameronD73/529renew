@@ -20,24 +20,26 @@ db_conlog( 1, "loading DB actions");
 
 function checkIfInDatabase( request, sender ) {
 	db_conlog( 1, "InDB checking " + request.mode );
-	if(request.shiftIsDown){
+	if(request.forceSegmentUpdate){
 		// Skip database query
+		db_conlog( 2, `CheckIfInDB - forcing reread ${request.indexName} vs ${request.matchName}`);
 		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
+		return;
 	}
 	function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
 		return function(transaction, resultSet){
 			var myrow=null;
+			var needToCompare=true;
 			if(resultSet.rows.length==1) {
 				myrow=resultSet.rows.item(0);
-				db_conlog( 2, `   DBquery returned ${myrow.hits} hits`);
+				db_conlog( 2, `   DBquery returned ${myrow.hits} hits, full return:`);
 			}
 			else
 				db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
-		if(myrow!=null){
-				var needToCompare=false;
-				if(myrow.hits==0) needToCompare=true;
-				chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
+			if(myrow!=null){
+				if(myrow.hits>0) needToCompare=false;
 			}
+			chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
 		};
 	}
 	function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){

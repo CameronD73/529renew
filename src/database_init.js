@@ -9,14 +9,6 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-var debug_db = 1;
-
-function db_conlog( level, msg ) {
-	if ( debug_db >= level ) {
-		console.log( msg );
-	}
-}
-
 db_conlog( 1, "loading DB init code");
 
 

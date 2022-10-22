@@ -10,6 +10,15 @@
 // a bit trickier.  Local storage values takes priority.
 // These get loaded first, so they are available if we need to create the DB.
 
+
+let debug_db = 3;
+
+function db_conlog( level, msg ) {
+	if ( debug_db >= level ) {
+		console.log( msg );
+	}
+}
+
 // default values for first time.
 const settings529default = {
 	"version": 0,		// version of this structure

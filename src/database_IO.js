@@ -21,9 +21,10 @@ db_conlog( 2, "loading DB_results script");
 //     This includes the fake "chromosome 100" record.
 
 function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
+	
 
 	function makeTransaction(id1, id2, callBackSuccess, callBackFailed){
-		// Don't query matches with self. Not sure I understand this because neither callback is fired off.
+		// Don't query matches with self. Not sure I understand this because then neither callback is fired off.
 		if(id1 == id2) return; 
 		var firstid = id1;
 		var secondid = id2;
@@ -31,7 +32,8 @@ function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 			firstid = id2;
 			secondid = id1;
 		}
-		return function(transaction, firstid, secondid){
+		db_conlog( 2, `requesting select on id1= ${firstid} and id2= ${secondid}`);
+		return function(transaction){
 			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=? ',[firstid, secondid], callBackSuccess, callBackFailed);
 		};
 	}
@@ -77,8 +79,7 @@ const joinlist = "ibdsegs \
 			OR (t3.id2=ibdsegs.id2 ) \
 			) \
 		)";
-// 	the following line was removed when build36 support was removed.
-// - part of join t3 on...	ibdsegs.build=?  AND t3.build=? AND \
+
 const orderlist = "chromosome, \
 	ibdsegs.start, \
 	ibdsegs.end DESC, \

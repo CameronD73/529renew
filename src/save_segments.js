@@ -14,13 +14,13 @@ div.id="div529r";
 let tr_el=document.createElement('button');
 tr_el.innerHTML="Triangulate into 529Renew";
 tr_el.id="c529r";
-tr_el.title="Shift-click to also include those not sharing a common segment";
+tr_el.title="Shift-click to also include those not sharing a common segment; Alt-click to force rereads even if matches are already in local DB";
 
-var pendingComparisons=0;	// not needed - proxy for queue length
-var pendingPages=false;		// not used - I think redundant with new code organisation.
+var pendingComparisons=0;	// not needed - proxy for queue length - currently retained as sanity check
+var pendingPages=false;
 var failedInSomeWay=false;
 
-let debug_q = 1;			// if nonzero, add debugging console output
+let debug_q = 3;			// if nonzero, add debugging console output
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 //let queued_requests = 0;	// no longer used
 
@@ -29,6 +29,7 @@ const qQueue = new Queue();
 let profileName = null;		// name of primary DNA tester (you?)
 let matchName = null;		// name of the dna match for whom we are generating this list of ICW
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
+let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -37,11 +38,26 @@ var dispatchMouseEvent = function(target, var_args) {
 };
 
 /*
+** extension updates will invalidate the extension context and not clean up.
+** Use this to handle catch() from sendmessage
+*/
+
+function handleMessageCatches( location, err ) {
+	let msg =  ` failed to send message ${location}\n Message was "${err.message}"`;
+	console.error( msg );
+	alert( msg + "\nTry closing all tabs or restarting" );
+	return;
+}
+/*launch_next_IBD_query
 ** Start the process to run the query to get DNA segments between pair of matches
 ** Start by checking if the pair is already in the DB,
 */
 function run_query(personaId, personbId, personaName, personbName){
-	chrome.runtime.sendMessage({mode: "checkIfInDatabase", checkIfInDatabase: true, indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, shiftIsDown: false});
+	try {
+		chrome.runtime.sendMessage({mode: "checkIfInDatabase", indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, forceSegmentUpdate: rereadSegsRequested});
+	} catch( e ) {
+		handleMessageCatches( "in run_query", e );
+	}
 }
 
 /* this listener handles the return from run_query()
@@ -64,9 +80,11 @@ chrome.runtime.onMessage.addListener(
 		if( debug_q > 1 )
 			console.log( `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
 		// sanity check...
-		if ( request.indexId != tset.id1  || request.matchId != tset.id2 )
-			alert( `  ==== URK... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2}` );
-
+		if ( request.indexId != tset.id1  || request.matchId != tset.id2 ) {
+			alert( `  ==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2}` );
+			console.log(  ` ==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2}` );
+			console.log(  ` ==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}` );
+		}
   		if(request.needToCompare==true){
 			function makeSegmentSaver(indexName, indexId, matchName, matchId){
 				/* This gets called when the ibd_segments xml request is returned.
@@ -128,7 +146,11 @@ chrome.runtime.onMessage.addListener(
 						return;
 					}
 					// Submit for storage in local database
-					chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments} );
+					try {
+						chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments} );
+					} catch( e ) {
+						handleMessageCatches( "in storeSegment", e );
+					}
 					if(pendingComparisons>0) pendingComparisons--;
 
 					launch_next_IBD_query();
@@ -457,6 +479,8 @@ function getMyName(){
 /*
 ** this function handles the "get triangulation data" button.
 ** It scrapes the page for names
+** shift-click will include segments of non-overlapping matches
+** Alt-click will reload existing values (default is to skip existing ones)
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
@@ -503,10 +527,14 @@ tr_el.onclick=function(evt){
 	profileName = localName;
 	matchName = personaName;
 	loadAllRequested = evt.shiftKey;
+	rereadSegsRequested = evt.altKey;
 
 	// after we get the currently set delay then we start the data collection
-	chrome.runtime.sendMessage({mode: "get_qDelay" });
-
+	try {
+		chrome.runtime.sendMessage({mode: "get_qDelay" });
+	} catch( e ) {
+		handleMessageCatches( "getting options", e );
+	}
 }
 	/*
 	** message request returns here with value in floating pt seconds
@@ -521,7 +549,7 @@ function process_qDelay( response ) {
 ** this creates the button and action to open the tab to display results.
 The process is:
 **	 1 send a message to the service worker script
-**   2. it decides to create new tab or switch to existing one.
+**   2. it decides whether to create new tab or load ID into existing one.
 */
 div.appendChild(tr_el);
 
@@ -536,7 +564,11 @@ b529r.onclick=function(){
 	}
 	else query="";
 
-	chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query} );
+	try {
+		chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query} );
+	} catch( e ) {
+		handleMessageCatches( "opening results tab", e );
+	}
 };
 let img=document.createElement('img');
 img.src=chrome.runtime.getURL("529Renew-48.png");
