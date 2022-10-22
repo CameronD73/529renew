@@ -1,7 +1,14 @@
 V 0.1.8   (beta)  - submitted to Chrome store as initial version
 changes between v0.1.8 and 1.0.0:
-    create DB in extension installation
+    create DB upon extension installation
     rename some "529 and You" buttons, files, etc to reduce chance of clash.
     round cM values on import from CSV file.
     fix problem where segments might get duplicated after import.
 V 1.0.0  submitted to  Chrome store - 2022-10-17
+changes between v1.0.0 and v1.1.0
+    change when results tab is automatically brought to the front
+    Fix logic error causing program to unconditionally reread segments whether or not it had them already.
+    Add option to optionally force segment reread if alt-click is used.
+    Improve alerts on "expired context" errors.
+    Changed text on triangulating button
+V 1.1.0  submitted to  Chrome store - 2022-10-22
