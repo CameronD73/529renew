@@ -1,0 +1,43 @@
+This is the text from documentation describing use of 529Renew with GDAT:  https://www.getgdat.com/import-data-menu/23andme  
+
+via 529Renew Browser Extension
+
+529Renew is an extension for the Chrome web browser created to facilitate a targeted collection of triangulation data from 23andme.  Be sure you have loaded the Aggregate file containing your targeted match before attempting to load the 529 data for that match.
+
+    Go to Family & Friends, and View all DNA Relatives.
+    With 23andMe you can view all of the individuals in the closest 1500 or 2000 DNA matches who have some type of sharing set in 23andMe. Be aware that some relatives may not have any kind of sharing available. This method ONLY returns DNA segments that are shared with at least two other individuals with a normal click. However, if you shift-click, it will return DNA segments that are not shared.
+
+    In the left column under “Filters” click on “Profile features and activity” to expand this filter. Check the box for “Showing ancestry results.” This will limit the display to people who you can actually get triangulation results from.
+
+    Choose a sorting method that matches your situation. 
+    For the first time through, it is reasonable to sort by Percent Related so you do your closer relatives first because you might get frustrated and quit before you get through 1,000 relatives!
+    Note: If you have been lucky enough to test both of your parents, doing a full triangulation (not just overlapping segments) between each of your parents and yourself, will include everyone. No need to do the rest of your matches because they are related to either your father or your mother and any segments shared with you will also be shared with one or the other parent. If you have tested just one parent, triangulate with them, and then proceed with the next steps for anyone who does not have a side allocated to them.
+
+    Right click on a match name and select “Open in new Tab”. Work one match at a time, 23andMe servers will boot you out if you attempt to do this on more than one match at a time.
+
+    Make sure the 529Renew tab is open in the background. Ensure that this tab remains open in your browser window, or the process will not complete.
+
+    Scroll to the bottom of the page. If the relative table is not visible, click “View Relatives in Common”.
+    If the relative table has black “Not available” for Shared DNA, skip that person—it’s not going to triangulate (if the filter is working correctly, you shouldn’t run into this problem).
+
+    Click the button to “Triangulate into 529Renew.”
+    The button will change to say, “Submitting Comparisons...” and depending on the number of shared matches can take between 5 seconds and several minutes to process before returning to its original state.  Running a comparison with a parent may take an hour or more due to the sheer number of matches shared. You will be able to see how far through the match it is by watching the active page number at the bottom of the list (active page number is dark grey in colour).
+
+    Once your first match is complete, you can either repeat from step 4, or continue to step 8.
+
+    Press the button to “Open 529Renew” so you can examine/export your database. (You may decide to do this after your first comparison to make sure your database is being populated correctly.
+
+If you have done triangulations for all of your matches, suggest you change the sort to Newest Relatives and note who the newest person is for future reference. Then at a later date if you want to come and update new matches, sort by Newest Relatives and proceed until you get to the person who was newest the last time you did triangulations.
+
+
+Exporting Your Data for Import
+
+    On 529Renew tab of your Chrome browser select ALL from ‘Show matches of’
+
+    Click Download CSV, save this file where you can find it easily.
+
+    In GDAT, select “Load FIA Matches with Profile ID as key” from the 529Renew Import menu and load this file
+
+    Wait for the import to complete, monitoring the progress message at the bottom of the GDAT window.
+
+    When complete, review the import message and log file and click “Close” when done.
