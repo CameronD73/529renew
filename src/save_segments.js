@@ -387,7 +387,7 @@ function runComparison3(ranPrimaryComparison ){
 				if( debug_q > 2 )
 					console.log( `Added to Q0: ${matchName} and ${profileName}`);
 				pendingComparisons++;
-				document.getElementById("c529r").innerHTML="Submitting Comparisons...";
+				document.getElementById("c529r").innerHTML="Collecting DNA segments....";
 				ranPrimaryComparison=true;
 			}
 			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name} );
@@ -406,7 +406,7 @@ function runComparison3(ranPrimaryComparison ){
 		return;
 	}
 
-	document.getElementById("c529r").innerHTML="Submitting Comparisons...";
+	document.getElementById("c529r").innerHTML="Collecting DNA segments...";
 	launch_next_IBD_query();
 	return;
 
@@ -521,7 +521,7 @@ tr_el.onclick=function(evt){
 		alert("Unable to find your name on page");
 		return;
 	}
-	tr_el.innerHTML="Collecting DNA segments...";
+	tr_el.innerHTML="Collecting DNA segments..";
 	pendingPages=true;
 
 	profileName = localName;
