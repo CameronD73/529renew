@@ -1646,18 +1646,20 @@ function createSegmentTable(transaction, results){
 
 					}
 					else{
-							let buttonCompare = document.createElement("button");
-							function makeComparison(indexId, matchId, indexName, matchName){
-								return function(evt){
-									evt.srcElement.disabled=true;
-									chrome.runtime.sendMessage({mode: "checkIfInDatabase",  indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, forceSegmentUpdate: evt.shiftKey});
-								};
-							}
-							buttonCompare.className="special";
-							buttonCompare.onclick=makeComparison(matchingSegmentsArray[k][i].id1, matchingSegmentsArray[k][i].id2, matchingSegmentsArray[k][i].name1, matchingSegmentsArray[k][i].name2);
-							buttonCompare.innerHTML="get 23andMe comparison";
-							// Previously provided link to compare
-							(tablerow.insertCell(curColumnId++)).append(buttonCompare);
+						/*  This does nothing - presumably can't send message in this context
+						let buttonCompare = document.createElement("button");
+						function makeComparison(indexId, matchId, indexName, matchName){
+							return function(evt){
+								evt.srcElement.disabled=true;
+								chrome.runtime.sendMessage({mode: "checkIfInDatabase",  indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, forceSegmentUpdate: evt.shiftKey});
+							};
+						}
+						buttonCompare.className="special";
+						buttonCompare.onclick=makeComparison(matchingSegmentsArray[k][i].id1, matchingSegmentsArray[k][i].id2, matchingSegmentsArray[k][i].name1, matchingSegmentsArray[k][i].name2);
+						buttonCompare.innerHTML="get 23andMe comparison";
+						// Previously provided link to compare
+						(tablerow.insertCell(curColumnId++)).append(buttonCompare);  */
+						(tablerow.insertCell(curColumnId++)).innerHTML="no data";
 					}
 				}
 
