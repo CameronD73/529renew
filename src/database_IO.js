@@ -64,12 +64,8 @@ const joinlist = "ibdsegs \
 	JOIN ibdsegs t3 ON 	( \
 		t3.ROWID=? \
 		AND (  	( \
-			t3.chromosome=ibdsegs.chromosome \
-			AND (  (ibdsegs.start>=t3.start AND ibdsegs.end<=t3.end) \
-				OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.end) \
-				OR (ibdsegs.start<=t3.start AND ibdsegs.end>=t3.start) \
-				OR (ibdsegs.start<=t3.end AND ibdsegs.end>=t3.end) \
-				) \
+				t3.chromosome=ibdsegs.chromosome \
+				AND (ibdsegs.start<=(t3.end-?) AND ibdsegs.end>=(t3.start+?)) \
 			) \
 			OR ibdsegs.chromosome=100 \
 		) AND (  \
@@ -93,10 +89,12 @@ const orderlist = "chromosome, \
 */
 function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	const sel_short=`SELECT ${sellist1} FROM ${joinlist} ORDER BY ${orderlist}`;
-	db_conlog( 32, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
+	// convert base addr to MBase address.
+	const overlapParam = 1000000 * getSetting( "minimumOverlap" );
+	db_conlog( 2, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
 	function makeTransaction(callback){
 		return function(transaction){
-			transaction.executeSql( sel_short, [segmentId], callback, callback);
+			transaction.executeSql( sel_short, [segmentId,overlapParam,overlapParam], callback, callback);
 		};
 	}
 	db23.readTransaction(makeTransaction(callbackSuccess));

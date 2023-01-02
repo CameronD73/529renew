@@ -13,6 +13,7 @@ changes between v1.0.0 and v1.1.0
     Changed text on triangulating button
 V 1.1.0  submitted to  Chrome store - 2022-10-22
 changes between v1.1.0 and v1.2
-    fixed recording of "lastCSVExport" date - program was ignoring "all chromosome" requests but incorrectly recording when data for a single chromosome was exported.
-    transferred general settings to popup page
-    added debug settings to popup UI. (created Ver 1 of settings storage object)
+    Fixed recording of "lastCSVExport" date - program was ignoring "all chromosome" requests but incorrectly recording when data for a single chromosome was exported.
+    Transferred general settings to popup page
+    Added debug settings to popup UI. (created Ver 1 of settings storage object)
+    Removed the "get 23andMe comparison" button from overlapping segments table (results tab) because it never seemed to do anything.
