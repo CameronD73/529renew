@@ -549,7 +549,9 @@ function setTextSizeSelector(){
 	};
 	setTextSizeLocal();
 }
-
+/*
+** MOVED TO popup - left here for debugging but not normally visible
+*/
 function setBPRoundingSelector(){
 	var widget=document.getElementById("roundingBP");
 	widget.value=getSetting( "baseAddressRounding" ).toString();
@@ -571,9 +573,11 @@ function setDelaySelector(){
 		setSetting( "delay", widget.value);
 	};
 }
+
+/* 
 function setBuildSelector(){
 	return;		// ignore this atm.
-	/*
+	
 	var widget=document.getElementById("build");
 	widget.value=getSetting( "build");
 	widget.onchange=function(){
@@ -582,8 +586,9 @@ function setBuildSelector(){
 			requestSelectFromDatabase(false, false);
 		}
 	};
-	*/
+	
 }
+*/
 
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
@@ -1783,6 +1788,19 @@ function requestDeletionFromDatabase(){
 	deleteAllData(resetAfterDeletion);
 }
 
+// these options are visible only in debug modes, as they are
+// duplicates of settings on popup page
+function set_option_visibility( level ) {
+	if ( debug_db > 1 ) {
+		document.getElementById("hiddenOptions")?.classList.remove( "invisible");
+	} else if (level > 0 ){
+		document.getElementById("hiddenOptions")?.classList.add( "invisible");
+	}
+	setBPRoundingSelector();
+	setcMRoundingSelector();
+	setDelaySelector();
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
 	//if( settings_from_storage === undefined )
 	// wait4Settings(1);
@@ -1798,12 +1816,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 	createClearFilterButton();
 	createDeleteButton();
 
-	setBPRoundingSelector();
-	setcMRoundingSelector();
-	setDelaySelector();
+	set_option_visibility();
+
 	setDisplayModeSelector();
 	setTextSizeSelector();
-	setBuildSelector();
+	// setBuildSelector();
 	setOmitAliasesCheckBox();
 	setHideCloseMatchesCheckBox();
 

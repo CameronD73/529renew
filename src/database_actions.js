@@ -60,7 +60,7 @@ function checkIfInDatabase( request, sender ) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-	db_conlog( `dbactions listener, mode: ${request.mode}`);
+	msg_conlog( 2, `dbactions listener, mode: ${request.mode}`);
 	if(request.mode == "checkIfInDatabase"){
 		checkIfInDatabase( request, sender );
 	}
@@ -68,16 +68,37 @@ chrome.runtime.onMessage.addListener(
 		storeSegments(request);
 	}
 	else if(request.mode == "get_qDelay"){
-		db_conlog( 2, `   DBactions returning Q delay ${settings529.delay}` );
-		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnQDelay", qDelay: settings529.delay } );
+		msg_conlog( 2, `   DBactions returning Q delay ${settings529.delay}` );
+		sendResponse( {mode: "returnQDelay", qDelay: settings529.delay } );
+		// chrome.tabs.sendMessage(sender.tab.id, {mode: "returnQDelay", qDelay: settings529.delay } );
 
 	}
+	else if(request.mode == "updateSetting"){
+		msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
+		setSetting(request.item, request.value);
+		return true;
+
+	}
+	else if(request.mode == "getSettingObj"){
+		msg_conlog( 2, `   DBactions returning all settings ` );
+		wait4Settings( 2 );
+		sendResponse( settings529 );
+		return true;
+		// chrome.tabs.sendMessage(sender.tab.id, {mode: "returnSettingObj", allsettings: settings529 } );
+
+	}
+	else if(request.mode == "getDebugSettings"){
+		msg_conlog( 2, `   DBactions returning debug settings ` );
+		sendResponse( {	debug_q: settings529["debug_q"],
+						debug_db: settings529["debug_db"],
+						debug_msg: settings529["debug_msg"] }  );
+	}
 	else if(request.mode == "selectUser"){
-		db_conlog( 2, `   DBactions changing user to  ${request.userID}` );
+		msg_conlog( 2, `   DBactions changing user to  ${request.userID}` );
 		updateSelectedName( request.userID );
 	}
 	else if ( request.mode == "displayPage" || Object.keys(request).includes("url")) {
-		return false;		// leave for service script
+		return false;		// leave this for service script to handle
 	} else {
 		let errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
 		console.log( errmsg, request);

@@ -10,8 +10,10 @@
 // a bit trickier.  Local storage values takes priority.
 // These get loaded first, so they are available if we need to create the DB.
 
-
-let debug_db = 1;
+// We can't just use the debug values in the settings as we might need a value before the
+// settings get initialised.
+let debug_db = 0;
+let debug_msg = 2;
 
 function db_conlog( level, msg ) {
 	if ( debug_db >= level ) {
@@ -19,9 +21,15 @@ function db_conlog( level, msg ) {
 	}
 }
 
+function msg_conlog( level, msg ) {
+	if ( debug_msg >= level ) {
+		console.log( msg );
+	}
+}
+
 // default values for first time.
 const settings529default = {
-	"version": 0,		// version of this structure
+	"version": 1,		// version of this structure
 	"displayMode": "2",
 	"textSize": "small",	// never set in old code
 	"build": 37,
@@ -30,9 +38,17 @@ const settings529default = {
 	"baseAddressRounding": 0,
 	"cMRounding": 2,
 	"delay": "2", // units of seconds
-	"minimumOverlap": 0, //units of bp
+	"minimumOverlap": 0, //units of Mbp
 	"lastCSVExportDate": "1900-01-01",
-	"lastGEFXExportDate": "1900-01-01"
+	"lastGEFXExportDate": "1900-01-01",
+	"debug_db": 2,
+	"debug_q": 1,
+	"debug_msg": 0
+};
+const settings_upgrade_0to1 = {
+	"debug_db": 2,
+	"debug_q": 1,
+	"debug_msg": 0
 };
 
 // in-page cache of settings
@@ -59,8 +75,18 @@ function retrieveSettingsP() {
 					} else {
 					// saved values exist so we use them
 						Object.assign(settings529, data.set529);
+						if(settings529["version"] != 1 ) {
+							// merge in new values...
+							Object.assign(settings529, settings_upgrade_0to1);
+							settings529["version"] = 1;
+							// update storage with extra new values...
+							chrome.storage.local.set( {'set529':settings529 });
+						}
 						settings_from_storage = true;
-						console.log("Stored settings retrieved:", settings529);
+						console.log("Stored settings retrieved:", settings529); 
+						// update local copies...
+						debug_db = settings529["debug_db"];
+						debug_msg = settings529["debug_msg"];
 						resolve( "loaded" );
 					}
 			});
@@ -88,6 +114,13 @@ function setSetting(item,value){
 		// otherwise fall trhrough and apply new value (a different bug)
 	};
 	settings529[item] = value;
+	if ( item == "debug_db" ) {
+		debug_db = value;
+		set_option_visibility( 1 );
+	}
+	else if ( item == "debug_msg" )  {
+		debug_msg = value;
+	};
 	chrome.storage.local.set( {'set529':settings529 });
 	console.log("Settings updated: ",item," ", value);
 	updateDBSettings( item, value );
@@ -108,5 +141,6 @@ function getSetting(item){
 	return settings529[item];
 };
 
-// this is rather pointless, but I need to start off the get storage somehow.
+// this is rather excessive, but I need to start off the get storage somehow.
+// It does NOT await because it is in the main thread.
 wait4Settings(0);

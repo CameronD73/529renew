@@ -5,8 +5,13 @@ LOGODIR	= 529renew/logos
 ZIPTARGET	= 529renew.zip
 
 MANIFEST= ${BUILDDIR}/manifest.json
-CSSFILES= ${BUILDDIR}/results_tab.css 
-HTMLFILES= ${BUILDDIR}/results_tab.html 
+CSSFILES= \
+	  ${BUILDDIR}/results_tab.css \
+	  ${BUILDDIR}/popup529.css 
+
+HTMLFILES= \
+	   ${BUILDDIR}/results_tab.html  \
+	   ${BUILDDIR}/popup529.html 
 
 JSFILES= \
 	${BUILDDIR}/basicQueue.js \
@@ -15,6 +20,7 @@ JSFILES= \
 	${BUILDDIR}/database_IO.js \
 	${BUILDDIR}/results_options.js \
 	${BUILDDIR}/results_tab.js \
+	${BUILDDIR}/popup529.js \
 	${BUILDDIR}/rounding.js \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
@@ -48,6 +54,12 @@ ${BUILDDIR}/results_tab.css: ${V3SRC}/results_tab.css
 ${BUILDDIR}/results_tab.html: ${V3SRC}/results_tab.html 
 	${CP} $< $@
 
+${BUILDDIR}/popup529.css: ${V3SRC}/popup529.css 
+	${CP} $< $@
+
+${BUILDDIR}/popup529.html: ${V3SRC}/popup529.html 
+	${CP} $< $@
+
 ${BUILDDIR}/basicQueue.js:	${V3SRC}/basicQueue.js 
 	${CP} $< $@
 
@@ -67,6 +79,9 @@ ${BUILDDIR}/results_options.js:	${V3SRC}/results_options.js
 	${CP} $< $@
 
 ${BUILDDIR}/results_tab.js:	${V3SRC}/results_tab.js 
+	${CP} $< $@
+
+${BUILDDIR}/popup529.js:	${V3SRC}/popup529.js 
 	${CP} $< $@
 
 ${BUILDDIR}/rounding.js:	${V3SRC}/rounding.js 

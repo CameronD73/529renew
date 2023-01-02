@@ -1,0 +1,11 @@
+body{
+    width: 800px;
+}
+
+H1 {
+	text-align: center;
+}
+
+.invisible {
+    visibility: hidden;
+}

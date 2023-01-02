@@ -70,6 +70,7 @@ chrome.runtime.onMessage.addListener(
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
 	if(request.mode == "returnQDelay"){
+		console.log( `Q delay returned via message: ${request}`)
 		process_qDelay( request );
 		return;
 	}
@@ -81,9 +82,10 @@ chrome.runtime.onMessage.addListener(
 			console.log( `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
 		// sanity check...
 		if ( request.indexId != tset.id1  || request.matchId != tset.id2 ) {
-			alert( `  ==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2}` );
-			console.log(  ` ==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2}` );
-			console.log(  ` ==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}` );
+			let errmsg = `==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2} \n ` + 
+				`==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
+			alert( errmsg );
+			console.log(  errmsg );
 		}
   		if(request.needToCompare==true){
 			function makeSegmentSaver(indexName, indexId, matchName, matchId){
@@ -531,7 +533,11 @@ tr_el.onclick=function(evt){
 
 	// after we get the currently set delay then we start the data collection
 	try {
-		chrome.runtime.sendMessage({mode: "get_qDelay" });
+		chrome.runtime.sendMessage({mode: "get_qDelay" }, ( resp ) => {
+				console.log( `q del callback with ${resp}`);
+				process_qDelay( resp );
+			}
+		);
 	} catch( e ) {
 		handleMessageCatches( "getting options", e );
 	}

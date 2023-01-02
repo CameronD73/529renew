@@ -41,3 +41,7 @@ td.bottom_center {
 	text-align: center;
 	border-bottom: 1px solid #666666;
 }
+
+.invisible {
+    display: none;
+}
