@@ -17,3 +17,5 @@ changes between v1.1.0 and v1.2
     Transferred general settings to popup page
     Added debug settings to popup UI. (created Ver 1 of settings storage object)
     Removed the "get 23andMe comparison" button from overlapping segments table (results tab) because it never seemed to do anything.
+    Implemented the minimum segment overlap operation, to remove segments that only just touch each other.  Improved efficiency of segment match code
+    
