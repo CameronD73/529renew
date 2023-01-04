@@ -35,6 +35,25 @@ function setOverlapSelector(){
 	};
 }
 
+function setMinSharedInput() {
+	var widget=document.getElementById("minSharedNonOverlap");
+	widget.value=getSetting( "minSharedNonOverlap" );
+	widget.onchange=function(){
+		setSetting( "minSharedNonOverlap", widget.value);
+	};
+}
+
+function setCSVSaveDate() {
+	var widget = document.getElementById("exportDate");
+	widget.value=getSetting( "lastCSVExportDate" );
+	widget.onchange=function(){
+		let val = document.getElementById("exportDate").value;
+		// using the date type should always result in a valid date, in yyyy-mm-dd format,
+		// so we don't need to test anything.
+		setSetting(  "lastCSVExportDate", val) ;
+	}
+}
+
 function setDebugDBSelector(){
 	var widget=document.getElementById("debug_db");
 	widget.value=getSetting( "debug_db" );
@@ -116,7 +135,9 @@ function installSettings( settingsObj ) {
 	setcMRoundingSelector();
 	setDelaySelector();
     setOverlapSelector();
+	setMinSharedInput();
 
+	setCSVSaveDate();
     setDebugDBSelector();
     setDebugMSGSelector();
     setDebugQSelector();

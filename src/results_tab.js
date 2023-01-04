@@ -730,7 +730,7 @@ function colorizeButton(button, cid1,  cid2){
 		{
 			for(let ci=0; ci<cmatchIds1.length; ci++){
 				if(cmatchIds2.indexOf(cmatchIds1[ci])==-1 && cnonmatchIds2.indexOf(cmatchIds1[ci])==-1){
-					button.style.color='red';
+					button.style.background='darkorange';
 					return;
 				}
 			}
@@ -738,12 +738,12 @@ function colorizeButton(button, cid1,  cid2){
 		{
 			for(let ci=0; ci<cmatchIds2.length; ci++){
 				if(cmatchIds1.indexOf(cmatchIds2[ci])==-1 && cnonmatchIds1.indexOf(cmatchIds2[ci])==-1){
-					button.style.color='red';
+					button.style.background='darkorange';
 					return;
 				}
 			}
 		}
-		button.style.color='blue';
+		button.style.background='darkgreen';
 	};
 }
 
@@ -1805,7 +1805,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 	//if( settings_from_storage === undefined )
 	// wait4Settings(1);
 	const settingStatus = await retrieveSettingsP();
-	db_conlog( 2, "DOMContentLoaded - and settingsP has returned.");
+	db_conlog( 1, `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
 	getMatchesFromDatabase(createNameSelector);
 	//getLabelList(createLabelList);
 	createButton();

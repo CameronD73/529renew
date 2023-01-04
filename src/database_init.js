@@ -119,7 +119,7 @@ function init529Database() {
 
 	try {
 	    if (!window.openDatabase) {
-	        alert('Databases are not supported in this browser.');
+	        alert('SQL Databases are not supported in this browser.');
 	    } else {
 	        dbobj = openDatabase(shortName, version, displayName, maxSize, (db23new) => {createTables(db23new)} );
 	        if(dbobj==null) alert(`Failed to open a local 529Renew database, version ${version}`);

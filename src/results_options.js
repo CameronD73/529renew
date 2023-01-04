@@ -12,7 +12,8 @@
 
 // We can't just use the debug values in the settings as we might need a value before the
 // settings get initialised.
-let debug_db = 0;
+// These will get defaulted to zero (or user choice) as soon as retrieveSettingsP is called
+let debug_db = 2;
 let debug_msg = 2;
 
 function db_conlog( level, msg ) {
@@ -40,15 +41,17 @@ const settings529default = {
 	"delay": "2", // units of seconds
 	"minimumOverlap": 0, //units of Mbp
 	"lastCSVExportDate": "1900-01-01",
-	"lastGEFXExportDate": "1900-01-01",
-	"debug_db": 2,
-	"debug_q": 1,
-	"debug_msg": 0
+	"lastGEFXExportDate": "1900-01-01",		// yes, it's a typo
+	"debug_db": 0,
+	"debug_q": 0,
+	"debug_msg": 0,
+	"minSharedNonOverlap": 0.3
 };
 const settings_upgrade_0to1 = {
-	"debug_db": 2,
-	"debug_q": 1,
-	"debug_msg": 0
+	"debug_db": 0,
+	"debug_q": 0,
+	"debug_msg": 0,
+	"minSharedNonOverlap": 0.3
 };
 
 // in-page cache of settings

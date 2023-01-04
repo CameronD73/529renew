@@ -2,6 +2,11 @@ div.special {
 	font: 10px Arial, Helvetica, sans-serif;
 	color:#666666;
 }
+
+div.displaySettings {
+	padding-top: 1px;
+}
+
 div.fileupload {
 	height: 0px;
 	width:0px; 
@@ -11,7 +16,10 @@ button.special {
 	height: 10px;
 	font: 8px Arial, Helvetica, sans-serif;
 	padding:0px 6px 0px 6px;
-	color:#000000;
+	color:white;
+	background-color:mediumblue;
+	border-radius: 3px;
+	border:none
 }
 input.special {
 	height: 8px;

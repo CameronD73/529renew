@@ -133,7 +133,7 @@ function getSegsFailed( trans, error ) {
 /*
 ** Queries for matches
 ** this returns the rows of segment data suitable for subsequent processing
-** either as display on page or save to csv files.
+** either as display on page or save to csv or gexf files.
 ** - in: id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
 ** if limitDates it true then we only select those newer than previous save.

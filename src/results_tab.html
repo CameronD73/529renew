@@ -40,7 +40,7 @@
 		</select>
 	</div>
 
-	<div>Display mode:
+	<div class="displaySettings">Display mode:
 	  <select id="displayMode">
   		<option value="0">Basic</option>
   		<option value="1">Match Links</option>
@@ -57,10 +57,10 @@
   	  <input id="omitAliasesCheckBox" type="checkbox">
   	  <label for="omitAliasesCheckBox">Omit Aliases</label>
 	</div>
-	<div id="filterDiv">
+	<div  class="displaySettings" id="filterDiv">
 		Optional match filter: <input type="text" id="selectNameFilter" title="Use '%' as wildcard, e.g. John% or %Smith">
 	</div>
-  	<div>Show matches of
+  	<div class="displaySettings">Show matches of
 		<select id="selectName" title="Use a match filter to create a shorter list"></select>
 		on chromosome
 		<select id="chromosome">
@@ -90,7 +90,7 @@
 			<option value="23">X</option>
 		</select>
 	</div>
-	<div>
+	<div class="displaySettings">
 		<input id="hideCloseMatchesCheckBox" type="checkbox">
 		<label for="hideCloseMatchesCheckBox">Don't display close relatives with more than 21 such segments</label>
 	</div>

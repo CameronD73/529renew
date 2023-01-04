@@ -1,8 +1,12 @@
 body{
     width: 800px;
+    max-width:fit-content;
 }
 
 H1 {
+	text-align: center;
+}
+H2 {
 	text-align: center;
 }
 

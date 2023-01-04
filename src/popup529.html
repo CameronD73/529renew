@@ -19,7 +19,7 @@
                 <option value="2.5">2.5</option>
                 <option value="3">3</option>
             </select></h3>
-            <p>Seconds between each segment request to the <i>23 and me</i> server.
+            <p>The number of seconds to delay between each segment request to the <i>23 and me</i> server.
                 If we slow it here then it should reduce blocking from them.
             If you see Error 429, that is the most common indicator that this value needs increasing.</p>
 
@@ -49,52 +49,71 @@
             <select id="minimumOverlap" >
                 <option value="0">0</option>
                 <option value="1">1</option>
-                <option value="1.5">1.5</option>
                 <option value="2">2</option>
-                <option value="2.5">2.5</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
                 <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
             </select></h3>
             <p>Number that indicates the minimum required overlap before 529Renew will display two overlapping segments. Units are in Mega-base pair address.
                 This applies only to the display in the Browser results page - it does not have any affect on data stored or exported, for example to GDAT.
             </p>
             <p>The value in <i>529 and You</i> was zero.</p>
             
-        </div>
+            <h3>Minimum shared DNA when not triangulated:
+                <input type="number", min="0" max="100" step="0.05" id="minSharedNonOverlap" >
+                </h3>
+                <p>Say your profile person <strong>A</strong> is in common with <strong>X</strong>
+                    and <strong>Y</strong> but the matching segments do not overlap.
+                    Normal recording of "triangulation"  only accepts matches with 3-way overlaps.
+                    You can also shift-select to save segment details between  <strong>X</strong> and <strong>Y</strong> when they do not overlap.
+                    This parameter sets a lower limit - only matches having at least this <i>percentage</i> in common will be recorded.
+                </p>
+    </div>
         <hr>
         <div id="debugOptions"> 
-            <h2>Debug level adjustment</h2>
+            <H2>Debugging options</H2>
+            <H3> Date of last CSV export: <input type="date" id="exportDate" >
+            </H3> 
+            <p>You can adjust this date back if you think something went wrong with an export or GDAT import.
+                Each segment match has a date that is either "when read from 23 and me" or "when imported from CSV".
+                Segments are normally only exported when their date is equal to or newer than the "Date of last CSV export" on the assumption that GDAT will already have older data.
+            </p>
+            <h3>Debug level adjustment</h3>
             <p>Set all these to zero unless you need to report some debugging information.
                 The settings adjust the amount of information displayed in the JavaScript console window.
+                Higher numbers give more detail.
             </p>
-            <h3>Debug database access:
+            <h4>Debug database access:
             <select id="debug_db" >
                 <option value="0">none</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
-            </select> </h3>
+            </select> </h4>
 
-            <h3>Debug queueing process for segment requests:
+            <h4>Debug queueing process for segment requests:
             <select id="debug_q" >
                 <option value="0">none</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
-            </select> </h3>
+            </select> </h4>
 
             
-            <h3>Debug message passing:
+            <h4>Debug message passing:
             <select id="debug_msg" >
                 <option value="0">none</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
-            </select> </h3>
+            </select> </h4>
         </div>
     </section>
    <script src="popup529.js"></script>
