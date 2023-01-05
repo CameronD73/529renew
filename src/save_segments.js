@@ -20,8 +20,10 @@ var pendingComparisons=0;	// not needed - proxy for queue length - currently ret
 var pendingPages=false;
 var failedInSomeWay=false;
 
-let debug_q = 1;			// if nonzero, add debugging console output
+let debug_q = 1;			// if nonzero, add debugging console output relating to Q processing
+let debug_msg = 1;			// if nonzero, add debugging console output re message passing
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
+let minSharedNonOverlap = 0.3;
 //let queued_requests = 0;	// no longer used
 
 const qQueue = new Queue();
@@ -36,6 +38,11 @@ var dispatchMouseEvent = function(target, var_args) {
   e.initEvent.apply(e, Array.prototype.slice.call(arguments, 1));
   target.dispatchEvent(e);
 };
+
+function q_debug_log( level, msg ) {
+	if ( debug_q > level )
+		console.log( msg );
+}
 
 /*
 ** extension updates will invalidate the extension context and not clean up.
@@ -69,23 +76,18 @@ chrome.runtime.onMessage.addListener(
 	/* this callback is made when the query made via run_query() returns with the required details
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
-	if(request.mode == "returnQDelay"){
-		console.log( `Q delay returned via message: ${request}`)
-		process_qDelay( request );
-		return;
-	}
-  	else if(request.mode == "returnNeedCompare"){
+
+	if(request.mode == "returnNeedCompare"){
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
-		if( debug_q > 1 )
-			console.log( `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
+		q_debug_log( 1, `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
 		// sanity check...
 		if ( request.indexId != tset.id1  || request.matchId != tset.id2 ) {
 			let errmsg = `==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2} \n ` + 
 				`==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
 			alert( errmsg );
-			console.log(  errmsg );
+			console.error( errmsg );
 		}
   		if(request.needToCompare==true){
 			function makeSegmentSaver(indexName, indexId, matchName, matchId){
@@ -96,7 +98,7 @@ chrome.runtime.onMessage.addListener(
 
 					if(this.status!=200){
 						if( this.status == 429 ){
-							console.log("Oops = makesegsaver saw err429 with " + indexName+ " and " + matchName );
+							console.error("Oops = makesegsaver saw err429 with " + indexName+ " and " + matchName );
 						}
 						alert("Failed to retrieve comparison of " + indexName+ " and " + matchName +" from 23andMe\nServer returned status of " + this.status);
 						if(pendingComparisons>0) pendingComparisons--;
@@ -113,12 +115,8 @@ chrome.runtime.onMessage.addListener(
 					var ids=new Array();
 					ids[0] = {id: indexId, name: indexName };
 					ids[1] = {id: matchId, name: matchName };
-					/*  CJD use object now rather than array of arrays, so I understand what's happening
-					** when it arrives the other end...
-					*/
 
-					if( debug_q > 0 )
-						console.log( "    saving segments at " + new Date().toISOString() + " for " + ids[0].name + " and " + ids[1].name );
+					q_debug_log( 0, "    saving segments at " + new Date().toISOString() + " for " + ids[0].name + " and " + ids[1].name );
 					if(data!=null){
 						for(let j=0; j<data.length; j++){
 							var matchingSegment= {
@@ -177,13 +175,11 @@ chrome.runtime.onMessage.addListener(
 			oReq.onerror=makeErrorHandler(request.indexName, request.matchName);
 			oReq.open("get", compareURL, true);
 
-			if( debug_q > 2 )
-				console.log( "    requesting segs after delay at " + new Date().toISOString() + " for " + request.indexName + " and " + request.matchName );
+			q_debug_log( 2, "    requesting segs after delay at " + new Date().toISOString() + " for " + request.indexName + " and " + request.matchName );
 			setTimeout( () => oReq.send(), increment_ms );
 		}
 		else{
-			if( debug_q > 0 )
-				console.log("No need to recompare " + request.indexName + " " + request.matchName);
+			q_debug_log( 0,"No need to recompare " + request.indexName + " " + request.matchName);
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
 		}
@@ -200,13 +196,12 @@ function launch_next_IBD_query() {
 		return;
 	}
 	let tset = qQueue.peek();
-	if( debug_q > 2 )
-		console.log( `     sending query for ${tset.pn1} and ${tset.pn2}` );
+	q_debug_log( 2, `     sending query for ${tset.pn1} and ${tset.pn2}` );
 	run_query( tset.id1, tset.id2, tset.pn1, tset.pn2 );
 	return;
 }
 /*
-** this function cleans up at the end of runComparison3
+** this function cleans up at the end of runComparison
 ** It should only get called when the segment request queue is empty
 ** and all people on the page have been processed.
 */
@@ -236,25 +231,17 @@ function finishComparisons() {
 	var paginator = document.getElementsByClassName("js-paginator");
 	if( paginator != null && paginator[0].getAttribute("class").indexOf("hide")>-1  ) {
 		pendingPages=false;
-		if( debug_q > 2 )
-			console.log( "    runComp3: hidden pag page at PG= " + paginator[0].getAttribute("class")   );
+		q_debug_log( 2, "    runCompare: hidden pag page at PG= " + paginator[0].getAttribute("class")   );
 	}
 	else {
 		var nextButtons=document.getElementsByClassName("js-next");
 		if(nextButtons.length>0){
-			if( debug_q > 2 )
-				console.log( "    runComp3: looking for next btn next page at " + new Date().toISOString()  );
+			q_debug_log( 2, "    runCompare: looking for next btn next page at " + new Date().toISOString()  );
 			var container=document.getElementsByClassName("js-relatives-table")[0];
 			for(let i=0; i<nextButtons.length; i++){
 				if(container.contains(nextButtons[i])) nextButton=nextButtons[i];
 			}
 		}
-		/*
-		if ( nextButton == null )
-			console.log( "next btn null" );
-		else
-			console.log( "next btn class " + nextButton.getAttribute("class") + "; PG= " + paginator );
-		*/
 		if(nextButton==null || nextButton.getAttribute("class").indexOf("hide")>-1){
 			pendingPages=false;
 		}
@@ -270,18 +257,85 @@ function finishComparisons() {
 	}
 	else{
 		// Go to the next page and process it...
-		if( debug_q > 0 )
-			console.log( "    runComp3: to next page at " + new Date().toISOString()  );
+		q_debug_log( 0, "    runCompare: to next page at " + new Date().toISOString()  );
 		dispatchMouseEvent(nextButton, 'click', true, true);
 		// give it a bit of time to populate the next 10 matches
-		setTimeout(function(){runComparison3(true);}, 2000);
+		setTimeout(function(){runComparison(true);}, 2000);
 		return;
 	}
 
-	if( debug_q > 0 )
-		console.log( "    comparisons finished at " + new Date().toISOString()  );
+	q_debug_log( 0, "    comparisons finished at " + new Date().toISOString()  );
 }
 
+/*
+** function to extract the percent DNA shared shown in a cell of 
+** the "relatives  in common" table.
+** in:
+** 		row_n is the document object for one row
+**		classtext is either "remote-profile" or "local-profile", specifying which cell to examine
+** return:
+**		a Number representing the percent DNA shared, or -1.0 if none found (error?)
+*/
+function get_pct_shared( row_n, classtext ) {
+	let percentShared = -1.0;
+	for(let j=0; j<row_n.children.length; j++){
+		if(row_n.children[j].hasAttribute("class")){
+			if(row_n.children[j].getAttribute("class").indexOf(classtext)<0)
+				continue;		// not the one we want
+			let match_cell = row_n.children[j];
+			for(let k=0; k<match_cell.children.length; k++){
+				// two lines, but not identified by class.
+				// first is relationship: typically "nth Cousin", but could be father, mother, aunt, etc
+				// 2nd is percent shared, e.g. "(0.18)"
+				let itext = match_cell.children[k].innerText;
+				let oparen = itext.indexOf( '(' );
+				if ( oparen < 0 )
+					continue;
+				let cparen = itext.indexOf( ')' );
+				if ( cparen < 0 )
+					continue;
+				percentShared = Number( itext.substring( oparen+1, cparen ));
+
+			}
+		}
+	}
+	return percentShared;
+}
+/* and the same for the comparison between profile person and DNA relative.
+*/
+function get_pct_shared_primary() {
+	let shared_pct = 0.0;
+	let shared_cM = 0.0;
+	let  sharedBlock=document.getElementsByClassName("js-shared-dna-percentage");
+	for(let i=0; i<sharedBlock.length; i++){
+		let sb = sharedBlock[i];
+		q_debug_log(1, `Primary shared DNA full text is ${sb.innerText}`);
+		for( let j=0; j < sb.children.length; j++) {
+			if(sb.children[j].hasAttribute("class")){
+				if(sb.children[j].getAttribute("class").indexOf("js-label-content") >= 0) {
+					let itext = sb.children[j].innerText;
+					// content will be a number followed by percent sign.
+					let pctloc = itext.indexOf( '%' );
+					if ( pctloc > 0) {
+						shared_pct = Number( itext.substring( 0, pctloc ));
+					} else  {
+						shared_pct = Number( itext );
+					} 
+				}
+				else if(sb.children[j].getAttribute("class").indexOf("js-centimorgan") >= 0) {
+					let itext = sb.children[j].innerText;
+					let cloc = itext.indexOf( "cM" );
+					if ( cloc > 0) {
+						shared_cM = Number( itext.substring( 0, cloc ));
+					} else  {
+						shared_cM = Number( itext );
+					} 
+				}
+			}
+		}
+	}
+	return( {pct:shared_pct, cM:shared_cM});
+}
 /*
 ** this function is run to process a page of (up to 10) shared matches.
 ** The "primaryComparison" is that between the profile person and personA
@@ -289,12 +343,27 @@ function finishComparisons() {
 ** This code reads the page and loads all required matches into teh processing queue
 */
 
-function runComparison3(ranPrimaryComparison ){
+function runComparison(ranPrimaryComparison ){
 	var row_container=null;
+	// match data is array of objects, one per each ICW relative in the table
+	var match_data = [];
 
-	if( debug_q > 0 )
-		console.log( "runComp3: entry: for " + matchName + " and " + profileName  );
+	q_debug_log( 0, "runComp: entry: for " + matchName + " and " + profileName  );
+	let sharedDNAPrimary = {pct:-1.0, cM:0};
+	if ( !ranPrimaryComparison ) {
+		sharedDNAPrimary = get_pct_shared_primary();
+	}
 	try{
+		// js-relatives-table is the DIV showing relatives in common between you and person A, normally shows:
+		// headers - table header line
+		// js-rows -  2 DIVs with block of rows of relatives (one for mobile, one for desktop)
+		// js-paginator - the navigation row at the bottom with page numbers, next, prev
+		// each row of table is a DIV, class "row"
+		// each row is 4 elements, each has class "cell", plus identifying class:
+			// A - ICW relative - this is person B
+			// DIV - "local-profile" relation and shared DNA between person B and profile person ("You")
+			// DIV - "remote-profile" relation and shared DNA  between person A and person B
+			// DIV - "shared-dna" - whether there is overlap: yes/no/connect
 		let rows=document.getElementsByClassName("js-rows");
 		if(rows.length<1) throw "Wrong row length";
 		let container=document.getElementsByClassName("js-relatives-table");
@@ -318,88 +387,125 @@ function runComparison3(ranPrimaryComparison ){
 		alert("Failed to extract list of matches from page\n"+e.message);
 		return;
 	}
-	if(row_container.getAttribute("class").indexOf("sd-loadingstate")>-1){
-		setTimeout(function(){runComparison3(ranPrimaryComparison);}, 1000);
+	if(row_container.getAttribute("class").indexOf("sd-loadingstate") >= 0){
+		setTimeout(function(){runComparison(ranPrimaryComparison);}, 1000);
 		return;
 	}
 	var foundData=false;
-	if( debug_q > 1 )
-		console.log( " checking " + row_container.children.length + " rows" );
+	q_debug_log( 1, " checking " + row_container.children.length + " rows" );
+	// typically here the row_container has up to 10 rows of ICWs
 	for(let i=0; i<row_container.children.length; i++){
-		if(row_container.children[i].hasAttribute("class")){
-			if(row_container.children[i].getAttribute("class").indexOf("row")<0) continue;
-			var ids=null;
-			var relative_in_common_name=null;
-			for(let j=0; j<row_container.children[i].children.length; j++){
-				if(row_container.children[i].children[j].hasAttribute("class")){
-					if(row_container.children[i].children[j].getAttribute("class").indexOf("shared-dna")<0) continue;
-					for(let k=0; k<row_container.children[i].children[j].children.length; k++){
+		let row_n = row_container.children[i]
+		match_data[i] = new Map();
 
-						if(row_container.children[i].children[j].children[k].href!=null){
+		if( !row_n.hasAttribute("class"))
+			continue;
+		if(row_n.getAttribute("class").indexOf("row")<0)
+			continue;
+		let remote_shared_pct = get_pct_shared( row_n, "remote-profile" );
+		let local_shared_pct = get_pct_shared( row_n, "local-profile" );
+		match_data[i].set( "shared_pct_A2B",remote_shared_pct );
+		match_data[i].set( "shared_pct_P2B",local_shared_pct );
+		match_data[i].set( "name_profile", profileName );
+		match_data[i].set( "name_match", matchName );
 
-							var yes_no_text=row_container.children[i].children[j].children[k].innerText;
-							if(yes_no_text==null) continue;
+		var ids=null;
+		var relative_in_common_name=null;
+		let overlap_status = "unknown";
+		let get_segments = false;
+		for(let j=0; j<row_n.children.length; j++){
+			if(row_n.children[j].hasAttribute("class")){
+				if(row_n.children[j].getAttribute("class").indexOf("shared-dna")<0) continue;
+				let dna_cell = row_n.children[j];
+				for(let k=0; k<dna_cell.children.length; k++){
 
-							if(yes_no_text=="Yes" || yes_no_text=="No" || yes_no_text=="Share to see") foundData=true;
-							if(yes_no_text=="Share to see") continue;
-							if(yes_no_text=="No" && !loadAllRequested) continue;
+					if(dna_cell.children[k].href!=null){
 
-							// parse the url to get the 3 profile IDs
-							var index=row_container.children[i].children[j].children[k].href.indexOf("p[]=");
-							if(index<0) continue;
+						var yes_no_text=dna_cell.children[k].innerText.toLowerCase();
+						if(yes_no_text==null) continue;
+						overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
+						match_data[i].set( "overlaps", overlap_status );
+						// I think the "share to see" was replaced by "connect to view"
+						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text=="share to see" || yes_no_text=="connect to view") foundData=true;
+						if(yes_no_text=="share to see" || yes_no_text=="connect to view") continue;
+						if( yes_no_text=="yes" )
+							get_segments = true;
+						else {
+							if ( loadAllRequested ) 
+								get_segments = true;
+							// else if ( remote_shared_pct < minSharedNonOverlap)  continue;
+						}
 
-							index+=4;
-							ids=row_container.children[i].children[j].children[k].href.substring(index).split("&p[]=");
-							if(ids.length!=3){
+						// parse the url to get the 3 profile IDs
+						var index=dna_cell.children[k].href.indexOf("p[]=");
+						if(index<0) continue;
+
+						index+=4;
+						ids=dna_cell.children[k].href.substring(index).split("&p[]=");
+						if(ids.length!=3){
+							ids=null;
+							continue;
+						}
+						for(let m=0; m<3; m++){
+							if(ids[m].length!=16){
 								ids=null;
-								continue;
+								break;
 							}
-							for(let m=0; m<3; m++){
-								if(ids[m].length!=16){
-									ids=null;
-									break;
-								}
-							}
-							if(ids==null) continue;
+						}
+						match_data[i].set( "ID_profile", ids[0] );
+						match_data[i].set( "ID_match", ids[1] );
+						match_data[i].set( "ID_icw_relative", ids[2] );
+						if(ids==null) continue;
+					}
+				}
+			}
+		}
+		for(let j=0; j<row_n.children.length; j++){
+			if(row_n.children[j].hasAttribute("class")){
+				if(row_n.children[j].getAttribute("class").indexOf("relative-in-common")<0) continue;
+				let name_cell = row_n.children[j];
+				for(let k=0; k<name_cell.children.length; k++){
+					if(name_cell.children[k].hasAttribute("class")){
+						if(name_cell.children[k].getAttribute("class").indexOf("name")<0) continue;
+						relative_in_common_name=name_cell.children[k].innerText;
+						if(relative_in_common_name==null) continue;
+						if(relative_in_common_name.length==0){
+							relative_in_common_name=null;
+							continue;
 						}
 					}
 				}
 			}
-			if(ids==null) continue;
-			for(let j=0; j<row_container.children[i].children.length; j++){
-				if(row_container.children[i].children[j].hasAttribute("class")){
-					if(row_container.children[i].children[j].getAttribute("class").indexOf("relative-in-common")<0) continue;
-					for(let k=0; k<row_container.children[i].children[j].children.length; k++){
-						if(row_container.children[i].children[j].children[k].hasAttribute("class")){
-							if(row_container.children[i].children[j].children[k].getAttribute("class").indexOf("name")<0) continue;
-							relative_in_common_name=row_container.children[i].children[j].children[k].innerText;
-							if(relative_in_common_name==null) continue;
-							if(relative_in_common_name.length==0){
-								relative_in_common_name=null;
-								continue;
-							}
-						}
-					}
-				}
-			}
-			if(relative_in_common_name==null) continue;
+		}
+		match_data[i].set( "name_icw_relative", relative_in_common_name );
+		if(relative_in_common_name==null) continue;
+		if(ids==null) continue;
+		
 
-			if(!ranPrimaryComparison){
-				qQueue.enqueue( {part:1, id1: ids[1], id2: ids[0], pn1: matchName, pn2:profileName} );
-				if( debug_q > 2 )
-					console.log( `Added to Q0: ${matchName} and ${profileName}`);
-				pendingComparisons++;
-				document.getElementById("c529r").innerHTML="Collecting DNA segments....";
-				ranPrimaryComparison=true;
-			}
-			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name} );
-			if( debug_q > 2 )
-				console.log( `Added to Q1: ${matchName} and ${relative_in_common_name}`);
+		if(!ranPrimaryComparison){
+			qQueue.enqueue( {part:1, id1: ids[1], id2: ids[0], pn1: matchName, pn2:profileName, pct_shared:sharedDNAPrimary.pct} );
+			q_debug_log( 2, `Added to Q0: ${matchName} and ${profileName} (sharing ${sharedDNAPrimary.pct}%)`);
 			pendingComparisons++;
-			qQueue.enqueue( {part:3, id1: ids[2], id2: ids[0], pn1: relative_in_common_name, pn2: profileName} );
-			if( debug_q > 2 )
-				console.log( `Added to Q2: ${relative_in_common_name} and ${profileName}`);
+			document.getElementById("c529r").innerHTML="Collecting DNA segments....";
+			ranPrimaryComparison=true;
+		}
+		if( !get_segments )  continue;
+		if( overlap_status == "yes" ||  remote_shared_pct >= minSharedNonOverlap ) {
+			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name, pct_shared:remote_shared_pct} );
+			q_debug_log( 2, `Added to Q1: ${matchName} and ${relative_in_common_name} (sharing ${remote_shared_pct}%)`);
 			pendingComparisons++;
+		}
+		if( overlap_status == "yes" || local_shared_pct >= minSharedNonOverlap ) {
+			qQueue.enqueue( {part:3, id1: ids[2], id2: ids[0], pn1: relative_in_common_name, pn2: profileName, pct_shared:local_shared_pct} );
+			q_debug_log( 2, `Added to Q2: ${relative_in_common_name} and ${profileName} (sharing ${local_shared_pct}%)`);
+			pendingComparisons++;
+		}
+	}
+	if ( debug_q > 0 ) {
+		console.log( `comparing ${profileName} and ${matchName} (sharing ${sharedDNAPrimary.pct}%) with min ${minSharedNonOverlap}%:`);
+		for( let i = 0 ; i < match_data.length ; i++ ) {
+			let md = match_data[i];
+			console.log( `   Row ${i}: ${md.get("name_icw_relative")} overlap: ${md.get("overlaps")}; sharing ${md.get("shared_pct_P2B")} to profile & ${md.get("shared_pct_A2B")} to match`);
 		}
 	}
 	if(!foundData){
@@ -531,24 +637,31 @@ tr_el.onclick=function(evt){
 	loadAllRequested = evt.shiftKey;
 	rereadSegsRequested = evt.altKey;
 
-	// after we get the currently set delay then we start the data collection
+	// after we get the current settings (especially the delay) then we start the data collection
 	try {
-		chrome.runtime.sendMessage({mode: "get_qDelay" }, ( resp ) => {
-				console.log( `q del callback with ${resp}`);
-				process_qDelay( resp );
+		chrome.runtime.sendMessage({mode: "getSettingObj" }, ( resp ) => {
+				if ( debug_msg > 0 ) {
+					console.log( `getSettings callback with ${resp}`);
+				}
+				process_settings( resp );
 			}
 		);
 	} catch( e ) {
 		handleMessageCatches( "getting options", e );
 	}
 }
-	/*
-	** message request returns here with value in floating pt seconds
-	*/
-function process_qDelay( response ) {
+
+
+function process_settings( response ) {
 	if ( Object.keys( response ).includes('qDelay') )
 		increment_ms = response.qDelay * 1000.0;
-	runComparison3(false);
+	if ( Object.keys( response ).includes('minSharedNonOverlap') )
+		minSharedNonOverlap = response.minSharedNonOverlap;
+	if ( Object.keys( response ).includes('debug_q') )
+		debug_q = response.debug_q;
+	if ( Object.keys( response ).includes('debug_msg') )
+		debug_msg = response.debug_msg;
+	runComparison(false);
 };
 
 /*

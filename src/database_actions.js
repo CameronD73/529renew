@@ -67,24 +67,14 @@ chrome.runtime.onMessage.addListener(
 	else if(request.mode == "storeSegments"){
 		storeSegments(request);
 	}
-	else if(request.mode == "get_qDelay"){
-		msg_conlog( 2, `   DBactions returning Q delay ${settings529.delay}` );
-		sendResponse( {mode: "returnQDelay", qDelay: settings529.delay } );
-		// chrome.tabs.sendMessage(sender.tab.id, {mode: "returnQDelay", qDelay: settings529.delay } );
-
-	}
 	else if(request.mode == "updateSetting"){
 		msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
 		setSetting(request.item, request.value);
-		return true;
-
 	}
 	else if(request.mode == "getSettingObj"){
 		msg_conlog( 2, `   DBactions returning all settings ` );
 		wait4Settings( 2 );
 		sendResponse( settings529 );
-		return true;
-		// chrome.tabs.sendMessage(sender.tab.id, {mode: "returnSettingObj", allsettings: settings529 } );
 
 	}
 	else if(request.mode == "getDebugSettings"){
