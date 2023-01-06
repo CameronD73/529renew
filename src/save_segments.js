@@ -27,9 +27,12 @@ let minSharedNonOverlap = 0.3;
 //let queued_requests = 0;	// no longer used
 
 const qQueue = new Queue();
+
 // a few more semiglobals relating to this set of triangulation requests
 let profileName = null;		// name of primary DNA tester (you?)
 let matchName = null;		// name of the dna match for whom we are generating this list of ICW
+let matchID = null;			// the UUID string for this dna relative (scraped from url)
+let profileID = null;		// UUID string of the profile person ("You")
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
 let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
 
@@ -485,6 +488,9 @@ function runComparison(ranPrimaryComparison ){
 		if(!ranPrimaryComparison){
 			qQueue.enqueue( {part:1, id1: ids[1], id2: ids[0], pn1: matchName, pn2:profileName, pct_shared:sharedDNAPrimary.pct} );
 			q_debug_log( 2, `Added to Q0: ${matchName} and ${profileName} (sharing ${sharedDNAPrimary.pct}%)`);
+			if ( profileID === null ) {
+				profileID = ids[0];
+			} else 
 			pendingComparisons++;
 			document.getElementById("c529r").innerHTML="Collecting DNA segments....";
 			ranPrimaryComparison=true;
@@ -493,11 +499,21 @@ function runComparison(ranPrimaryComparison ){
 		if( overlap_status == "yes" ||  remote_shared_pct >= minSharedNonOverlap ) {
 			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name, pct_shared:remote_shared_pct} );
 			q_debug_log( 2, `Added to Q1: ${matchName} and ${relative_in_common_name} (sharing ${remote_shared_pct}%)`);
+			if( matchID != ids[1] ) {
+				msg=`ID of match person swapped: was ${matchID}, became ${ids[1]} at  ${relative_in_common_name}.`;
+				console.error( msg );
+				alert( msg );
+			}
 			pendingComparisons++;
 		}
 		if( overlap_status == "yes" || local_shared_pct >= minSharedNonOverlap ) {
 			qQueue.enqueue( {part:3, id1: ids[2], id2: ids[0], pn1: relative_in_common_name, pn2: profileName, pct_shared:local_shared_pct} );
 			q_debug_log( 2, `Added to Q2: ${relative_in_common_name} and ${profileName} (sharing ${local_shared_pct}%)`);
+			if( profileID != ids[0] ) {
+				msg=`ID of profile person swapped: was ${profileID}, became ${ids[0]} at  ${relative_in_common_name}.`;
+				console.error( msg );
+				alert( msg );
+			}
 			pendingComparisons++;
 		}
 	}
@@ -508,6 +524,8 @@ function runComparison(ranPrimaryComparison ){
 			console.log( `   Row ${i}: ${md.get("name_icw_relative")} overlap: ${md.get("overlaps")}; sharing ${md.get("shared_pct_P2B")} to profile & ${md.get("shared_pct_A2B")} to match`);
 		}
 	}
+	save_chr200_records( { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct}, match_data );
+	
 	if(!foundData){
 		alert("Failed to parse Relatives in Common table QL " + qQueue.length);
 		launch_next_IBD_query();
@@ -629,11 +647,15 @@ tr_el.onclick=function(evt){
 		alert("Unable to find your name on page");
 		return;
 	}
+	var personAID=getMatchId();
+
 	tr_el.innerHTML="Collecting DNA segments..";
 	pendingPages=true;
 
 	profileName = localName;
 	matchName = personaName;
+	matchID = personAID;
+
 	loadAllRequested = evt.shiftKey;
 	rereadSegsRequested = evt.altKey;
 

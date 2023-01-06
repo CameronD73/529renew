@@ -111,7 +111,7 @@ function insert_OK( ){
 	return;
 }
 function insertRowFail( error ) {
-	db_conlog( 1, `Insert transact failed: ${error.message}`);
+	console.error( `Insert transaction failed: ${error.message}`);
 	alert( `INSERT FAILED: ${error.message}`);
 }
 function storeSegments(request) {
@@ -168,9 +168,81 @@ function storeSegments(request) {
 
 	// Create bogus 'chromosome 100' match to signify that comparison has been performed
 	for(let j=1; j<request.ids.length; j++){
-		db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
+		db23.transaction( makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
 	}
 
 }
 
+/*
+** the bogus chromosome 200 values are to record percent shared between two people.
+** This is getting extra klutzy - should have done proper separate tables.
+** Note, uniqueness constraint is set to (IDs, chromosome, start, end & build).
+** chr: always 200 (means this is a shared % record)
+** SNPs : percent shared * 1000
+** 		The only floating pt column is cM, but we might want to use that later for a calculated value, so need to store the 
+** 		percentage in an integer (converted from thousandths of a percent.) - use SNPs column.
+** 		also record possible two separate records if user segment data was hidden or visible.
+** end : 0 for shown, or 1 for hidden. - doing this, we can save both values if the user changes their mind, or if they "connect".
+** start: always -1 (for now)
+**
+** in:
+**  primary_pair : object with IDs and Names of profile person and DNA relative being viewed.
+**  page_rows : is array of maps detailing useful contents of ICW table.
+*/
 
+function save_chr200_records( primary_pair, page_rows ) {
+		// Store the names and ids of the matches - this will be 90% redundant, but the insert or ignore is the fastest way to 
+		// test whether or not it needs doing.
+	function makeIdAliasTransaction(id, name){
+		return function(transaction){
+			// you could REPLACE if duplicated - I suppose that should be a user option.
+			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [id, name]);
+		};
+	}
+
+	db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail, insert_OK);
+	db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail, insert_OK);
+	for(let i=0; i<page_rows.length; i++){
+		// Attempt to insert these two number, name combos
+		let pr=page_rows[i];		// is a Map of the i'th row
+		db_conlog( 2, `save_chr200_records: alias ${i} for ${pr.get("name_icw_relative")}}`)
+		db23.transaction( makeIdAliasTransaction( pr.get("ID_icw_relative"), pr.get("name_icw_relative") ),  insertRowFail, insert_OK);
+	}
+
+	// Store the percent shared value.
+	function makeChr200Transaction(id1, id2, pct_shared, is_hidden){
+
+		if(id1 == id2) return; // Don't enter matches with self
+		let firstid = id1;
+		let secondid = id2;
+		if(id1 > id2){
+			firstid = id2;
+			secondid = id1;
+		}
+		let segend = (is_hidden ? 1 : 0 );
+		let segSNPs = 1000 * pct_shared;
+
+		return function(transaction){
+			// we cannot tell here if repeat readings are normal or from a forced reread.
+			// We just unconditionally update values in case they have been "improved"
+			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, 200, -1, ?, 0, ?,  date(),?);', 	[firstid, secondid, segend, segSNPs, current23andMeBuild]);
+		};
+	}
+
+	db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail, insert_OK);
+
+	for(let i=0; i<page_rows.length; i++){
+		let pr=page_rows[i];		// is a Map of the i'th row
+
+		if(request.matchingSegments[i].uid2===request.ids[j].id){
+			db23.transaction( makeChr200Transaction( 
+					primary_pair.profileID, pr.get("ID_icw_relative"), pr.get("shared_pct_P2B"), (pr.get("overlaps") === "hidden" )),
+					insertRowFail, insert_OK);
+			db23.transaction( makeChr200Transaction( 
+					primary_pair.matchID, pr.get("ID_icw_relative"), pr.get("shared_pct_A2B"), (pr.get("overlaps") === "hidden" )),
+					insertRowFail, insert_OK);
+			break;
+		}
+	}
+
+}
