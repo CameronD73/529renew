@@ -7,7 +7,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 2, "loading DB_results script");
+db_conlog( 2, "loading DB_IO script");
 
 
 /*
@@ -402,10 +402,11 @@ function deleteAllData(callbackSuccess){
 
 function updateDBSettings( key, value ) {
 	
-	const update_qry = `UPDATE settings  SET  value = ? WHERE setting = ?  ;`;
+	//const update_qry = `UPDATE settings  SET  value = ? WHERE setting = ?  ;`;
+	const update_qry =  `INSERT OR REPLACE INTO settings (setting, value) VALUES (?,?);`;
 	db23.transaction(
 		function(transaction) {
-			transaction.executeSql( update_qry, [value, key] );
+			transaction.executeSql( update_qry, [key, value] );
 		}, function(){alert(`Failed to update setting ${key} to ${value} in 529Renew database`);} 
 	);
 }

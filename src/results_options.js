@@ -29,11 +29,12 @@ function msg_conlog( level, msg ) {
 }
 
 // default values for first time.
+// Use string for integers to stop conversion to float in DB.
 const settings529default = {
 	"version": 1,		// version of this structure
 	"displayMode": "2",
 	"textSize": "small",	// never set in old code
-	"build": 37,
+	"build": "37",
 	"omitAliases": false,
 	"hideCloseMatches": false,
 	"baseAddressRounding": 0,
@@ -45,7 +46,7 @@ const settings529default = {
 	"debug_db": 0,
 	"debug_q": 0,
 	"debug_msg": 0,
-	"minSharedNonOverlap": 0.3
+	"minSharedNonOverlap": 0.3		// percentage
 };
 const settings_upgrade_0to1 = {
 	"debug_db": 0,
@@ -74,6 +75,7 @@ function retrieveSettingsP() {
 						chrome.storage.local.set( {'set529':settings529 });
 						settings_from_storage = false;
 						console.log("No settings found in storage. Default values loaded and stored.");
+						populate_settings(settings529);
 						resolve( "new" );
 					} else {
 					// saved values exist so we use them
@@ -81,9 +83,16 @@ function retrieveSettingsP() {
 						if(settings529["version"] != 1 ) {
 							// merge in new values...
 							Object.assign(settings529, settings_upgrade_0to1);
+							setSetting( "version", 1 );
+							// there's a bit of redundancy here, but this catches some rare problems.
+							// (not actually problems, since the settings in DB are never used.)
+							populate_settings(settings529);
+							/*
 							settings529["version"] = 1;
 							// update storage with extra new values...
 							chrome.storage.local.set( {'set529':settings529 });
+							updateDBSettings( "version", settings529["version"] );
+							*/
 						}
 						settings_from_storage = true;
 						console.log("Stored settings retrieved:", settings529); 
@@ -92,7 +101,8 @@ function retrieveSettingsP() {
 						debug_msg = settings529["debug_msg"];
 						resolve( "loaded" );
 					}
-			});
+				}
+			);
 		} catch( error ) {
 			reject( error );
 		}
@@ -146,4 +156,4 @@ function getSetting(item){
 
 // this is rather excessive, but I need to start off the get storage somehow.
 // It does NOT await because it is in the main thread.
-wait4Settings(0);
+//wait4Settings(0);

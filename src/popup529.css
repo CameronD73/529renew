@@ -13,3 +13,7 @@ H2 {
 .invisible {
     visibility: hidden;
 }
+
+.warning {
+    color:red;
+}

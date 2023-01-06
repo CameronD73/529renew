@@ -1802,12 +1802,11 @@ function set_option_visibility( level ) {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-	//if( settings_from_storage === undefined )
-	// wait4Settings(1);
+	console.log( `DomContent event - getting settings`);
 	const settingStatus = await retrieveSettingsP();
-	db_conlog( 1, `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
+	console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
 	getMatchesFromDatabase(createNameSelector);
-	//getLabelList(createLabelList);
+
 	createButton();
 	createCSVButton();
 	createGEXFButton();
@@ -1820,7 +1819,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 	setDisplayModeSelector();
 	setTextSizeSelector();
-	// setBuildSelector();
+
 	setOmitAliasesCheckBox();
 	setHideCloseMatchesCheckBox();
 

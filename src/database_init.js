@@ -29,12 +29,6 @@ function decrementPendingTransactionCount(){
 const current23andMeBuild=37;
 
 
-const setting_values = '("lastCSVExportDate", ?), ("lastGEFXExportDate", ?), ("displayMode", ?), ("textSize", ?),\
-	("build", ?), ("omitAliases", ?), ("hideCloseMatches", ?), ("baseAddressRounding", ?), ("cMRounding", ?),\
-	("delay", ?), ("minimumOverlap", ?) ';
-const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setting_values} ;`;
-
-
 function createTables( db23new ){
 	// Called only when database is created
 	//alert(`Creating 529Renew local database from v"${db23new.version}"`);
@@ -47,7 +41,7 @@ function createTables( db23new ){
     	},
 		function(error){alert(`Failed to create alias table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
-    )
+    );
 	db23new.transaction(
         function (transaction) {
        	// ============ the IBDSEGS table - each row has a single segment match between two testers.
@@ -59,19 +53,14 @@ function createTables( db23new ){
     	},
 		function(error){alert(`Failed to create segments table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
-    )
-	const setting_params = [settings529.lastCSVExportDate, settings529.lastGEFXExportDate, settings529.displayMode, settings529.textSize,
-		settings529.build, settings529.omitAliases, settings529.hideCloseMatches,
-		settings529.baseAddressRounding, settings529.cMRounding, settings529.delay,  settings529.minimumOverlap];
-
+    );
 	db23new.transaction(
         function (transaction) {
 			transaction.executeSql('CREATE TABLE  IF NOT EXISTS settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting));', [] );
-			transaction.executeSql( set_defaults_sql, setting_params );
     	},
 		function(error){alert(`Failed to create settings table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
-    )
+    );
 	/* Rats! cannot use Pragma in webSQL!
 	db23new.transaction(
         function (transaction) {
@@ -82,9 +71,31 @@ function createTables( db23new ){
     )
 	*/
 
-	;
-	
+	db_conlog( 1, `Submitted transactions to create 529Renew local database v${dbLatestVersion}`);
 	alert(`Created 529Renew local database`);
+}
+
+/*  use none of this...
+const setting_values = '("lastCSVExportDate", ?), ("lastGEFXExportDate", ?), ("displayMode", ?), ("textSize", ?),\
+	("build", ?), ("omitAliases", ?), ("hideCloseMatches", ?), ("baseAddressRounding", ?), ("cMRounding", ?),\
+	("delay", ?), ("minimumOverlap", ?),\
+	("version", ?), ("debug_db", ?), ("debug_q", ?), ("debug_msg", ?), ("minSharedNonOverlap", ?) ';
+const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setting_values} ;`;
+
+const setting_params = [settings529.lastCSVExportDate, settings529.lastGEFXExportDate, settings529.displayMode, settings529.textSize,
+	settings529.build, settings529.omitAliases, settings529.hideCloseMatches,
+	settings529.baseAddressRounding, settings529.cMRounding, settings529.delay,  settings529.minimumOverlap,
+	settings529.version, settings529.debug_db, settings529.debug_q, settings529.debug_msg, settings529.minSharedNonOverlap
+];
+*/
+
+/*
+** dump all settings into DB list (at the moment, just as a diagnostic tool)
+*/
+function populate_settings( settingList ){
+	for( const [key, value] of  Object.entries(settingList) ) {
+		updateDBSettings( key, value );
+	}
 }
 
 /* I don't use this any more... but leave it around as a template for a new db version.
@@ -117,10 +128,12 @@ function init529Database() {
 	let maxSize = 5*1024*1024; //  bytes
 	let dbobj = null;
 
+	db_conlog( 1, `initialising ${displayName}`);
 	try {
 	    if (!window.openDatabase) {
 	        alert('SQL Databases are not supported in this browser.');
 	    } else {
+			console.log( "opening DB" );
 	        dbobj = openDatabase(shortName, version, displayName, maxSize, (db23new) => {createTables(db23new)} );
 	        if(dbobj==null) alert(`Failed to open a local 529Renew database, version ${version}`);
 	    }

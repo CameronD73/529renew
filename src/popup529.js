@@ -76,6 +76,13 @@ function setDebugQSelector(){
 		setSetting( "debug_q", widget.value);
 	};
 }
+function setVersionSelector(){
+	var widget=document.getElementById("versioning");
+	widget.value=getSetting( "version" );
+	widget.onchange=function(){
+		setSetting( "version", widget.value);
+	};
+}
 
 /* ignore this for now...
 function setBuildSelector(){
@@ -141,6 +148,7 @@ function installSettings( settingsObj ) {
     setDebugDBSelector();
     setDebugMSGSelector();
     setDebugQSelector();
+	setVersionSelector();
 
 };
 
@@ -150,21 +158,6 @@ function handleMessageCatches( location, err ) {
 	alert( msg + "\nTry closing all tabs or restarting" );
 	return;
 }
-/*
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-      //this callback is made when the query made via run_query() returns with the required details
-      // and decision as to whether ibd data needs to be requested from the 23 and me server.
-      //
-      if(request.mode == "returnSettingObj"){
-        console.log("settings via return message...", request.allsetting)
-        installSettings( request.allsettings );
-          return;
-      }
-      return false;     // handle this elsewhere.
-    }
-);
-*/
 
 
 function load_settings() {
