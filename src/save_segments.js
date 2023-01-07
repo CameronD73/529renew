@@ -339,6 +339,55 @@ function get_pct_shared_primary() {
 	}
 	return( {pct:shared_pct, cM:shared_cM});
 }
+
+/*
+** function to extract the ICW relative's ID a cell of 
+** the "relatives  in common" table.
+** in:
+** 		match_cell - the html_collection object with the structure:
+**			A - url
+**				DIV class avatar (etc) - has image
+**				DIV class name - the text of the name
+**			/A
+** return:
+**		an array of two strings: [UUID, name]
+*/
+function get_icw_details( name_cell ) {
+	let ID = null;
+	let icw_name = null;
+
+		// extract profile ID from url...
+		// href text is ="/profile/xxxxxxxxxxxx/" (but the href request will prefix with root)
+	let urltext = name_cell.href;
+	let profindex = urltext.indexOf( "profile");
+	let parts = urltext.substring( profindex + 4 ).split( "/" );
+	if ( parts[1].length == 16 ) {
+		ID = parts[1];
+	} 
+	// extract name from inside...
+	for(let k=0; k<name_cell.children.length; k++){
+		if(name_cell.children[k].hasAttribute("class")){
+			if(name_cell.children[k].getAttribute("class").indexOf("name")<0) continue;
+			let nametemp = name_cell.children[k].innerText;
+			if( nametemp!==null && nametemp.length > 0){
+				icw_name=nametemp;
+				break;
+			}
+		}
+	}
+	if ( ID === null ) {
+		let msg = `ICW: Failed to find ID for ${icw_name} in ${urltext}, index ${profindex}, parts are ${parts.length} long`;
+		console.error( msg );
+		alert( msg );
+	}
+	if ( icw_name === null ) {
+		let msg = `ICW: Failed to find name for ID ${ID}`;
+		console.error( msg );
+		alert( msg );
+	}
+	return [ ID, icw_name];
+}
+
 /*
 ** this function is run to process a page of (up to 10) shared matches.
 ** The "primaryComparison" is that between the profile person and personA
@@ -399,7 +448,7 @@ function runComparison(ranPrimaryComparison ){
 	// typically here the row_container has up to 10 rows of ICWs
 	for(let i=0; i<row_container.children.length; i++){
 		let row_n = row_container.children[i]
-		match_data[i] = new Map();
+		match_data[i] = {};
 
 		if( !row_n.hasAttribute("class"))
 			continue;
@@ -407,10 +456,10 @@ function runComparison(ranPrimaryComparison ){
 			continue;
 		let remote_shared_pct = get_pct_shared( row_n, "remote-profile" );
 		let local_shared_pct = get_pct_shared( row_n, "local-profile" );
-		match_data[i].set( "shared_pct_A2B",remote_shared_pct );
-		match_data[i].set( "shared_pct_P2B",local_shared_pct );
-		match_data[i].set( "name_profile", profileName );
-		match_data[i].set( "name_match", matchName );
+		match_data[i].shared_pct_A2B = remote_shared_pct;
+		match_data[i].shared_pct_P2B = local_shared_pct;
+		match_data[i].name_profile = profileName;
+		match_data[i].name_match = matchName;
 
 		var ids=null;
 		var relative_in_common_name=null;
@@ -418,8 +467,16 @@ function runComparison(ranPrimaryComparison ){
 		let get_segments = false;
 		for(let j=0; j<row_n.children.length; j++){
 			if(row_n.children[j].hasAttribute("class")){
-				if(row_n.children[j].getAttribute("class").indexOf("shared-dna")<0) continue;
-				let dna_cell = row_n.children[j];
+				if(row_n.children[j].getAttribute("class").indexOf("relative-in-common")>=0) {
+					let name_cell = row_n.children[j];
+					let ID_ICW = null;
+					[ ID_ICW , relative_in_common_name ] = get_icw_details( name_cell );
+					match_data[i].ID_icw_relative = ID_ICW;
+					continue;
+				}
+				if(row_n.children[j].getAttribute("class").indexOf("shared-dna")<0)
+					continue;
+				let dna_cell = row_n.children[j]; // actually the DNA overlap cell - 3-way shared, not 2-way percentage
 				for(let k=0; k<dna_cell.children.length; k++){
 
 					if(dna_cell.children[k].href!=null){
@@ -427,10 +484,13 @@ function runComparison(ranPrimaryComparison ){
 						var yes_no_text=dna_cell.children[k].innerText.toLowerCase();
 						if(yes_no_text==null) continue;
 						overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
-						match_data[i].set( "overlaps", overlap_status );
+						match_data[i].overlaps = overlap_status;
 						// I think the "share to see" was replaced by "connect to view"
 						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text=="share to see" || yes_no_text=="connect to view") foundData=true;
-						if(yes_no_text=="share to see" || yes_no_text=="connect to view") continue;
+						if(yes_no_text=="share to see" || yes_no_text=="connect to view") {
+							// parse 
+							continue;
+						}
 						if( yes_no_text=="yes" )
 							get_segments = true;
 						else {
@@ -455,18 +515,20 @@ function runComparison(ranPrimaryComparison ){
 								break;
 							}
 						}
-						match_data[i].set( "ID_profile", ids[0] );
-						match_data[i].set( "ID_match", ids[1] );
-						match_data[i].set( "ID_icw_relative", ids[2] );
-						if(ids==null) continue;
+						match_data[i].ID_profile = ids[0];
+						match_data[i].ID_match = ids[1];
+						match_data[i].ID_icw_relative = ids[2];
 					}
 				}
 			}
 		}
+		/*
 		for(let j=0; j<row_n.children.length; j++){
 			if(row_n.children[j].hasAttribute("class")){
 				if(row_n.children[j].getAttribute("class").indexOf("relative-in-common")<0) continue;
+
 				let name_cell = row_n.children[j];
+
 				for(let k=0; k<name_cell.children.length; k++){
 					if(name_cell.children[k].hasAttribute("class")){
 						if(name_cell.children[k].getAttribute("class").indexOf("name")<0) continue;
@@ -477,10 +539,10 @@ function runComparison(ranPrimaryComparison ){
 							continue;
 						}
 					}
-				}
+				} 
 			}
-		}
-		match_data[i].set( "name_icw_relative", relative_in_common_name );
+		}*/
+		match_data[i].name_icw_relative = relative_in_common_name;
 		if(relative_in_common_name==null) continue;
 		if(ids==null) continue;
 		
@@ -500,7 +562,7 @@ function runComparison(ranPrimaryComparison ){
 			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name, pct_shared:remote_shared_pct} );
 			q_debug_log( 2, `Added to Q1: ${matchName} and ${relative_in_common_name} (sharing ${remote_shared_pct}%)`);
 			if( matchID != ids[1] ) {
-				msg=`ID of match person swapped: was ${matchID}, became ${ids[1]} at  ${relative_in_common_name}.`;
+				let msg=`ID of match person swapped: was ${matchID}, became ${ids[1]} at  ${relative_in_common_name}.`;
 				console.error( msg );
 				alert( msg );
 			}
@@ -510,7 +572,7 @@ function runComparison(ranPrimaryComparison ){
 			qQueue.enqueue( {part:3, id1: ids[2], id2: ids[0], pn1: relative_in_common_name, pn2: profileName, pct_shared:local_shared_pct} );
 			q_debug_log( 2, `Added to Q2: ${relative_in_common_name} and ${profileName} (sharing ${local_shared_pct}%)`);
 			if( profileID != ids[0] ) {
-				msg=`ID of profile person swapped: was ${profileID}, became ${ids[0]} at  ${relative_in_common_name}.`;
+				let msg=`ID of profile person swapped: was ${profileID}, became ${ids[0]} at  ${relative_in_common_name}.`;
 				console.error( msg );
 				alert( msg );
 			}
@@ -521,13 +583,18 @@ function runComparison(ranPrimaryComparison ){
 		console.log( `comparing ${profileName} and ${matchName} (sharing ${sharedDNAPrimary.pct}%) with min ${minSharedNonOverlap}%:`);
 		for( let i = 0 ; i < match_data.length ; i++ ) {
 			let md = match_data[i];
-			console.log( `   Row ${i}: ${md.get("name_icw_relative")} overlap: ${md.get("overlaps")}; sharing ${md.get("shared_pct_P2B")} to profile & ${md.get("shared_pct_A2B")} to match`);
+			console.log( `   Row ${i}: ${md.name_icw_relative} (ID:${md.ID_icw_relative}) overlap: ${md.overlaps}; sharing ${md.shared_pct_P2B} to profile & ${md.shared_pct_A2B} to match`);
 		}
 	}
-	save_chr200_records( { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct}, match_data );
-	
+	// save the chr 200 records...
+	let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
+	try {
+		chrome.runtime.sendMessage({mode: "store_chr_200", primary:primary_match, matchData:match_data } );
+	} catch( e ) {
+		handleMessageCatches( "saving chr 200", e );
+	}	
 	if(!foundData){
-		alert("Failed to parse Relatives in Common table QL " + qQueue.length);
+		alert("Failed to parse Relatives in Common table, Q len: " + qQueue.length);
 		launch_next_IBD_query();
 		return;
 	}

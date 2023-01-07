@@ -67,6 +67,9 @@ chrome.runtime.onMessage.addListener(
 	else if(request.mode == "storeSegments"){
 		storeSegments(request);
 	}
+	else if(request.mode == "store_chr_200"){
+		save_chr200_records( request.primary, request.matchData );
+	}
 	else if(request.mode == "updateSetting"){
 		msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
 		setSetting(request.item, request.value);
@@ -187,7 +190,8 @@ function storeSegments(request) {
 **
 ** in:
 **  primary_pair : object with IDs and Names of profile person and DNA relative being viewed.
-**  page_rows : is array of maps detailing useful contents of ICW table.
+**  page_rows : is array of objects detailing useful contents of ICW table.
+** 				 (it starts as a Maps array, but gets converted to objects in the message passing - I don't know why I bothered)
 */
 
 function save_chr200_records( primary_pair, page_rows ) {
@@ -199,14 +203,16 @@ function save_chr200_records( primary_pair, page_rows ) {
 			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [id, name]);
 		};
 	}
-
-	db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail, insert_OK);
-	db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail, insert_OK);
+	if ( primary_pair.pct_shared > 0.0 ) {
+		// only available on first page so don't waste time later.
+		db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail, insert_OK);
+		db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail, insert_OK);
+	}
 	for(let i=0; i<page_rows.length; i++){
 		// Attempt to insert these two number, name combos
-		let pr=page_rows[i];		// is a Map of the i'th row
-		db_conlog( 2, `save_chr200_records: alias ${i} for ${pr.get("name_icw_relative")}}`)
-		db23.transaction( makeIdAliasTransaction( pr.get("ID_icw_relative"), pr.get("name_icw_relative") ),  insertRowFail, insert_OK);
+		let pr=page_rows[i];		// is an object of the i'th row
+		db_conlog( 2, `save_chr200_records: alias ${i} for ${pr.name_icw_relative}}`)
+		db23.transaction( makeIdAliasTransaction( pr.ID_icw_relative, pr.name_icw_relative ),  insertRowFail, insert_OK);
 	}
 
 	// Store the percent shared value.
@@ -228,21 +234,18 @@ function save_chr200_records( primary_pair, page_rows ) {
 			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, 200, -1, ?, 0, ?,  date(),?);', 	[firstid, secondid, segend, segSNPs, current23andMeBuild]);
 		};
 	}
-
-	db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail, insert_OK);
+	// after the first page we don't determine primary pair data.
+	if ( primary_pair.pct_shared > 0.0 )
+		db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail, insert_OK);
 
 	for(let i=0; i<page_rows.length; i++){
-		let pr=page_rows[i];		// is a Map of the i'th row
+		let pr=page_rows[i];
+		db23.transaction( makeChr200Transaction( 
+				primary_pair.profileID, pr.ID_icw_relative, pr.shared_pct_P2B, (pr.overlaps === "hidden" )),
+				insertRowFail, insert_OK);
+		db23.transaction( makeChr200Transaction( 
+				primary_pair.matchID, pr.ID_icw_relative, pr.shared_pct_A2B, (pr.overlaps === "hidden" )),
+				insertRowFail, insert_OK);
 
-		if(request.matchingSegments[i].uid2===request.ids[j].id){
-			db23.transaction( makeChr200Transaction( 
-					primary_pair.profileID, pr.get("ID_icw_relative"), pr.get("shared_pct_P2B"), (pr.get("overlaps") === "hidden" )),
-					insertRowFail, insert_OK);
-			db23.transaction( makeChr200Transaction( 
-					primary_pair.matchID, pr.get("ID_icw_relative"), pr.get("shared_pct_A2B"), (pr.get("overlaps") === "hidden" )),
-					insertRowFail, insert_OK);
-			break;
-		}
 	}
-
 }
