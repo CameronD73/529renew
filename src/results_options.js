@@ -46,13 +46,17 @@ const settings529default = {
 	"debug_db": 0,
 	"debug_q": 0,
 	"debug_msg": 0,
-	"minSharedNonOverlap": 0.3		// percentage
+	"minSharedNonOverlap": 0.3,		// percentage
+	"closeTabImmediate": 0,
+	"alwaysIncludeNonOverlap": 0
 };
 const settings_upgrade_0to1 = {
 	"debug_db": 0,
 	"debug_q": 0,
 	"debug_msg": 0,
-	"minSharedNonOverlap": 0.3
+	"minSharedNonOverlap": 0.3,
+	"closeTabImmediate": 0,
+	"alwaysIncludeNonOverlap": 0
 };
 
 // in-page cache of settings
@@ -153,7 +157,3 @@ function getSetting(item){
 	};
 	return settings529[item];
 };
-
-// this is rather excessive, but I need to start off the get storage somehow.
-// It does NOT await because it is in the main thread.
-//wait4Settings(0);

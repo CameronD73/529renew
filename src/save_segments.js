@@ -24,7 +24,9 @@ let debug_q = 1;			// if nonzero, add debugging console output relating to Q pro
 let debug_msg = 1;			// if nonzero, add debugging console output re message passing
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 let minSharedNonOverlap = 0.3;
-//let queued_requests = 0;	// no longer used
+let closeTabImmediate = false;		// default safe
+let alwaysIncludeNonOverlap = true; // default safe
+
 
 const qQueue = new Queue();
 
@@ -252,7 +254,7 @@ function finishComparisons() {
 	if( !pendingPages ) {
 		if(failedInSomeWay){
 			document.getElementById("c529r").innerHTML="Triangulate into 529Renew (failed)";
-			failedInSomeWay=false;
+			// failedInSomeWay=false;
 		}
 		else{
 			document.getElementById("c529r").innerHTML="Triangulation into 529Renew Completed";
@@ -268,6 +270,13 @@ function finishComparisons() {
 	}
 
 	q_debug_log( 0, "    comparisons finished at " + new Date().toISOString()  );
+	if ( (!failedInSomeWay) && closeTabImmediate) {
+		try {
+			chrome.runtime.sendMessage({mode: "killMeNow"} );
+		} catch( e ) {
+			console.error( `failed to kill completed tab for ${profileName} cf $${matchName}: err ${e.message}`);
+		}
+	}
 }
 
 /*
@@ -488,7 +497,6 @@ function runComparison(ranPrimaryComparison ){
 						// I think the "share to see" was replaced by "connect to view"
 						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text=="share to see" || yes_no_text=="connect to view") foundData=true;
 						if(yes_no_text=="share to see" || yes_no_text=="connect to view") {
-							// parse 
 							continue;
 						}
 						if( yes_no_text=="yes" )
@@ -522,26 +530,7 @@ function runComparison(ranPrimaryComparison ){
 				}
 			}
 		}
-		/*
-		for(let j=0; j<row_n.children.length; j++){
-			if(row_n.children[j].hasAttribute("class")){
-				if(row_n.children[j].getAttribute("class").indexOf("relative-in-common")<0) continue;
 
-				let name_cell = row_n.children[j];
-
-				for(let k=0; k<name_cell.children.length; k++){
-					if(name_cell.children[k].hasAttribute("class")){
-						if(name_cell.children[k].getAttribute("class").indexOf("name")<0) continue;
-						relative_in_common_name=name_cell.children[k].innerText;
-						if(relative_in_common_name==null) continue;
-						if(relative_in_common_name.length==0){
-							relative_in_common_name=null;
-							continue;
-						}
-					}
-				} 
-			}
-		}*/
 		match_data[i].name_icw_relative = relative_in_common_name;
 		if(relative_in_common_name==null) continue;
 		if(ids==null) continue;
@@ -723,7 +712,7 @@ tr_el.onclick=function(evt){
 	matchName = personaName;
 	matchID = personAID;
 
-	loadAllRequested = evt.shiftKey;
+	loadAllRequested = ( evt.shiftKey || alwaysIncludeNonOverlap );
 	rereadSegsRequested = evt.altKey;
 
 	// after we get the current settings (especially the delay) then we start the data collection
@@ -742,14 +731,25 @@ tr_el.onclick=function(evt){
 
 
 function process_settings( response ) {
-	if ( Object.keys( response ).includes('qDelay') )
+	if ( Object.keys( response ).includes('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
-	if ( Object.keys( response ).includes('minSharedNonOverlap') )
+	}
+	if ( Object.keys( response ).includes('minSharedNonOverlap') ) {
 		minSharedNonOverlap = response.minSharedNonOverlap;
-	if ( Object.keys( response ).includes('debug_q') )
+	}
+	if ( Object.keys( response ).includes('alwaysIncludeNonOverlap') ) {
+		alwaysIncludeNonOverlap = (response.alwaysIncludeNonOverlap == 0 ? false : true);
+	}
+	if ( Object.keys( response ).includes('closeTabImmediate') ) {
+		closeTabImmediate = (response.closeTabImmediate == 0 ? false : true);
+	}
+	if ( Object.keys( response ).includes('debug_q') ) {
 		debug_q = response.debug_q;
-	if ( Object.keys( response ).includes('debug_msg') )
+	}
+	if ( Object.keys( response ).includes('debug_msg') ) {
 		debug_msg = response.debug_msg;
+	}
+	failedInSomeWay = false;		// reset just in case.
 	runComparison(false);
 };
 

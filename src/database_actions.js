@@ -90,7 +90,7 @@ chrome.runtime.onMessage.addListener(
 		msg_conlog( 2, `   DBactions changing user to  ${request.userID}` );
 		updateSelectedName( request.userID );
 	}
-	else if ( request.mode == "displayPage" || Object.keys(request).includes("url")) {
+	else if ( request.mode == "displayPage" || request.mode == "killMeNow" || Object.keys(request).includes("url")) {
 		return false;		// leave this for service script to handle
 	} else {
 		let errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
@@ -240,12 +240,23 @@ function save_chr200_records( primary_pair, page_rows ) {
 
 	for(let i=0; i<page_rows.length; i++){
 		let pr=page_rows[i];
-		db23.transaction( makeChr200Transaction( 
-				primary_pair.profileID, pr.ID_icw_relative, pr.shared_pct_P2B, (pr.overlaps === "hidden" )),
-				insertRowFail, insert_OK);
-		db23.transaction( makeChr200Transaction( 
-				primary_pair.matchID, pr.ID_icw_relative, pr.shared_pct_A2B, (pr.overlaps === "hidden" )),
-				insertRowFail, insert_OK);
-
+		if ( pr.shared_pct_P2B > 0.0 ) {
+			db23.transaction( makeChr200Transaction( 
+					primary_pair.profileID, pr.ID_icw_relative, pr.shared_pct_P2B, (pr.overlaps === "hidden" )),
+					insertRowFail, insert_OK);
+		} else {
+			let msg = `Chr200 P2B, Bad pct shared: ${pr.shared_pct_P2B}, for ${pr.name_profile} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
+			console.error( msg );
+			alert( msg );
+		}
+		if ( pr.shared_pct_A2B > 0.0 ) {
+			db23.transaction( makeChr200Transaction( 
+					primary_pair.matchID, pr.ID_icw_relative, pr.shared_pct_A2B, (pr.overlaps === "hidden" )),
+					insertRowFail, insert_OK);
+		} else {
+			let msg = `Chr200 A2B, Bad pct shared: ${pr.shared_pct_A2B}, for ${pr.name_match} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
+			console.error( msg );
+			alert( msg );
+		}
 	}
 }

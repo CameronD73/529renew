@@ -9,7 +9,7 @@
     <section id="allOptions"  class="invisible">
         <div id="otherOptions">
 
-            <h3>Request Delay value:
+            <h3>Delay value for web requests:
             <select id="delay" >
                 <option value="0">0</option>
                 <option value="0.5">0.5</option>
@@ -21,7 +21,7 @@
             </select></h3>
             <p>The number of seconds to delay between each segment request to the <i>23 and me</i> server.
                 If we slow it here then it should reduce blocking from them.
-            If you see Error 429, that is the most common indicator that this value needs increasing.</p>
+            If you see Error 429 more than rarely, then that is the most common indicator that this value needs increasing.</p>
 
             <h3>Rounding of centiMorgan values:
             <select id="roundingcM" >
@@ -31,7 +31,7 @@
                 <option value="3">no rounding</option>
             </select></h3>
             <p>Number of decimal places to save cM values - any more than 1 is most likely meaningless, 2 is very safe.
-                Its only effect is to make displayed values neater and exported files smaller.
+                Its only effect is to make displayed values neater and exported csv files smaller.
             </p>
             
             <h3>Basepair address rounding:
@@ -42,7 +42,8 @@
                 <option value="1000000">1000000</option>
             </select></h3>
             <p>To round off Basepair address values. Use zero unless you really need it to be otherwise, because meaningful information is lost.
-                This option is only here to maintain backward-compatibility with 529 and You.
+                This option is only here to maintain backward-compatibility with 529 and You,
+                which used a high value to maintain backward compatibility with very old 23 and Me results.
             </p>
 
             <h3>Minimum segment overlap:
@@ -61,18 +62,35 @@
             <p>Number that indicates the minimum required overlap before 529Renew will display two overlapping segments. Units are in Mega-base pair address.
                 This applies only to the display in the Browser results page - it does not have any affect on data stored or exported, for example to GDAT.
             </p>
-            <p>The value in <i>529 and You</i> was zero.</p>
+            <p>The value used in <i>529 and You</i> was zero.</p>
             
-            <h3>Minimum shared DNA when not triangulated:
+            <h3>Recording non-overlapping Matches (i.e. when not triangulated)</h3>
+
+            <p>Say your profile person <strong>A</strong> is in common with <strong>X</strong>
+                and <strong>Y</strong> but the matching segments do not overlap.
+                Normal recording of "triangulation"  only accepts matches with 3-way overlaps.
+                You can also shift-select to save segment details between  <strong>the profile person</strong> and <strong>Y</strong>
+                and between <strong>X</strong> and <strong>Y</strong> when they do not overlap.
+                This parameter sets a lower limit - only matches having at least this <i>percentage</i> in common will be recorded.
+            </p>
+                <h4>Minimum shared DNA (pct):
                 <input type="number", min="0" max="100" step="0.05" id="minSharedNonOverlap" >
-                </h3>
-                <p>Say your profile person <strong>A</strong> is in common with <strong>X</strong>
-                    and <strong>Y</strong> but the matching segments do not overlap.
-                    Normal recording of "triangulation"  only accepts matches with 3-way overlaps.
-                    You can also shift-select to save segment details between  <strong>the profile person</strong> and <strong>Y</strong>
-                    and between <strong>X</strong> and <strong>Y</strong> when they do not overlap.
-                    This parameter sets a lower limit - only matches having at least this <i>percentage</i> in common will be recorded.
-                </p>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                Save these segments:
+                    <select id="alwaysIncludeNonOverlap" >
+                        <option value="0">Only with shift-click</option>
+                        <option value="1">Always</option>
+                    </select>
+                </h4>
+                <hr>
+            <H3>Tab action as soon as triangulation completes: 
+                    <select id="closeTabImmediate" >
+                        <option value="0">leave tab open</option>
+                        <option value="1">close tab</option>
+                        </select>
+                    </H3>
+                    <p>This could make processing many tabs slightly faster,
+                         when you are sequentially processing multiple tabs. You can be preparing the next tab to go as soon as the previous one completes.</p>
     </div>
         <hr>
         <div id="debugOptions"> 

@@ -27,7 +27,7 @@ function setDelaySelector(){
 		setSetting( "delay", widget.value);
 	};
 }
-function setOverlapSelector(){
+function setOverlapValue(){
 	var widget=document.getElementById("minimumOverlap");
 	widget.value=getSetting( "minimumOverlap" );
 	widget.onchange=function(){
@@ -42,6 +42,23 @@ function setMinSharedInput() {
 		setSetting( "minSharedNonOverlap", widget.value);
 	};
 }
+
+function setCloseTabSelector(){
+	var widget=document.getElementById("closeTabImmediate");
+	widget.value=(getSetting( "closeTabImmediate" ) == 0? "0" : "1" );
+	widget.onchange=function(){
+		setSetting( "closeTabImmediate", widget.value);
+	};
+}
+
+function setNonOverlapSelector(){
+	var widget=document.getElementById("alwaysIncludeNonOverlap");
+	widget.value=(getSetting( "alwaysIncludeNonOverlap" ) == 0? "0" : "1" );
+	widget.onchange=function(){
+		setSetting( "alwaysIncludeNonOverlap", widget.value);
+	};
+}
+
 
 function setCSVSaveDate() {
 	var widget = document.getElementById("exportDate");
@@ -141,8 +158,10 @@ function installSettings( settingsObj ) {
     setBPRoundingSelector();
 	setcMRoundingSelector();
 	setDelaySelector();
-    setOverlapSelector();
 	setMinSharedInput();
+	setCloseTabSelector();
+    setOverlapValue();
+	setNonOverlapSelector();
 
 	setCSVSaveDate();
     setDebugDBSelector();

@@ -37,8 +37,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 			sendResponse({});
 		}
-		else
-			return false;	// request not handled here
+		else if ( request.mode == "killMeNow" ) {
+			chrome.tabs.remove( sender.tab.id );
+		} else		return false;	// request not handled here
+		
 		return;
 	}
 );

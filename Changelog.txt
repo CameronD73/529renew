@@ -15,9 +15,12 @@ V 1.1.0  submitted to  Chrome store - 2022-10-22
 changes between v1.1.0 and v1.2
     Fixed recording of "lastCSVExport" date - program was ignoring "all chromosome" requests but incorrectly recording when data for a single chromosome was exported.
     Transferred general settings to popup page
-    Added debug settings to popup UI. (created Ver 1 of settings storage object)
+    Added debug settings to popup UI. (settings storage object changed from version 0 to 1)
     Removed the "get 23andMe comparison" button from overlapping segments table (results tab) because it never seemed to do anything.
     Implemented the minimum segment overlap operation, to remove segments that only just touch each other.  Improved efficiency of segment match code
     Add user setting for minimum non-overlap saving.  When using shift-click on triangulate, segments between matches that do not overlap are also stored.
-	This setting allows the user to limit this operation to only cases that have at least a certain percentage shared.
+	    This setting allows the user to limit this operation to only cases that have at least a certain percentage shared. Also added option
+        "Always Save", so that you do not have to remember to use the shift key.
+    Added option: closeTabImmediate - if set to true, then the tab will be closed as soon as the triangulation completes.
+    Save all percentage shared DNA values listed in the relatives-in-common table. Not used in any way yet, but may have value later.
     

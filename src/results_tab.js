@@ -1832,7 +1832,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 			document.getElementById("clearFilterButton").style.visibility="hidden";
 			getMatchesFromDatabase(createNameSelector);
 		}
-		};
+	};
+	try {
+		let myprom = chrome.tabs.getCurrent();
+		if ( myprom === undefined ) {
+			console.log( "promise is undefined");
+		} else {
+			myprom.then( (mytab) => { console.log( "promise resolved to contents: ", mytab ); return true; },
+			() => { console.log( `promise failed `); return false; } );
 
+		}
+	} catch( e ) {
+		console.error( `failed read tab results: err ${e.message}`);
+	}
 });
 
