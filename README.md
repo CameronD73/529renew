@@ -1,5 +1,8 @@
 # 529renew
 Chrome extension to allow "23 and me" customers to extract their DNA segment match information
+
+This is now available on the Chrome Store.
+
 ## Background
 This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early 2023,
 and has been blocked for fresh installations beyond July 2022.
@@ -19,4 +22,4 @@ This is not for the faint-hearted and something you should only do if you feel c
 
 
 ## Version 3 installation
-This is for testing purposes prior to an extension being placed in the Chrome store.
+The latest released version is available in the Chrome store.
