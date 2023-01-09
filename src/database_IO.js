@@ -18,7 +18,7 @@ db_conlog( 2, "loading DB_IO script");
 
 // id1 and id2 are the text representation of the 23 and me UID
 // It requests count of segment hits that are saved between ID1 and ID2.
-//     This includes the fake "chromosome 100" record.
+//     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
 
 function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 	
@@ -32,12 +32,12 @@ function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 			firstid = id2;
 			secondid = id1;
 		}
-		db_conlog( 2, `requesting select on id1= ${firstid} and id2= ${secondid}`);
+		db_conlog( 4, `requesting select on id1= ${firstid} and id2= ${secondid}`);
 		return function(transaction){
-			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=? ',[firstid, secondid], callBackSuccess, callBackFailed);
+			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=? AND chromosome < 150 ',[firstid, secondid], callBackSuccess, callBackFailed);
 		};
 	}
-	db_conlog( 2, `   dbREAD ${id1} vs ${id2}` );
+	db_conlog( 4, `   dbREAD ${id1} vs ${id2}` );
 	db23.readTransaction(makeTransaction(id1, id2, upgradeIfNeeded, upgradeQueryFailed));
 }
 
@@ -91,7 +91,7 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	const sel_short=`SELECT ${sellist1} FROM ${joinlist} ORDER BY ${orderlist}`;
 	// convert base addr to MBase address.
 	const overlapParam = 1000000 * getSetting( "minimumOverlap" );
-	db_conlog( 2, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
+	db_conlog( 3, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
 	function makeTransaction(callback){
 		return function(transaction){
 			transaction.executeSql( sel_short, [segmentId,overlapParam,overlapParam], callback, callback);
@@ -161,7 +161,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 			JOIN idalias t2 ON (t2.idText=ibdsegs.id2)  WHERE ';
 		//const qry_build = ' build=?  AND ';
 		const qry_cond = '(chromosome>? AND chromosome<?) ';
-		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome = 100) ';
+		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome >= 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
 		// convert to julianday to do a floating point comparison rather than string
 		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
@@ -196,7 +196,7 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) ';
 		// const qyr_build = 'AND build=? ';
 		const qry_cond = 'AND chromosome>? AND chromosome<? ';
-		const qry_cond100 = 'AND ((chromosome>? AND chromosome<?) OR chromosome = 100) ';
+		const qry_cond100 = 'AND ((chromosome>? AND chromosome<?) OR chromosome >= 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
 		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
 		var query;
@@ -265,7 +265,7 @@ function import529CSV(lineList, nFields, callback){
 		let name = username;
 		let today = date;
 		var arr = [idtext, name, today, comment];
-		db_conlog( 22, ` in makealiastrans, array ${arr.length} items, type: ${typeof(arr)}, 2nd elem is ${arr[1]}`);
+		//db_conlog( 22, ` in makealiastrans, array ${arr.length} items, type: ${typeof(arr)}, 2nd elem is ${arr[1]}`);
 
 		return function(transaction){
 			transaction.executeSql( 'INSERT or IGNORE INTO idalias ( idText, name, "date", "comment" ) VALUES(?, ?, ?, ? );', arr );
@@ -279,12 +279,12 @@ function import529CSV(lineList, nFields, callback){
 		let secondID = id2;
 		if( id1 > id2 ) {
 			// always store lowest first (necessary to allow uniqueness constraints to work)
-			db_conlog( 23, `    Segments: swapping order: ${id2} then  ${id1}`);
+			//db_conlog( 23, `    Segments: swapping order: ${id2} then  ${id1}`);
 			firstID = id2;
 			secondID = id1;
 		}
-		else
-			db_conlog( 23, `    Segments:  order: ${firstID} then  ${secondID}`);
+		// else
+			// db_conlog( 23, `    Segments:  order: ${firstID} then  ${secondID}`);
 		const qry1 = 'INSERT or IGNORE INTO ibdsegs ( id1, id2, chromosome, start, end, cM, snps, "date", build )VALUES(?,?,?,?,?,?,?,?,?);';
 		
 		return function(transaction){
@@ -329,8 +329,6 @@ function import529CSV(lineList, nFields, callback){
 				aliasmap.get(secondID).comment += cmnt;
 			}
 		}
-		/*  WHY did I comment this block out? Am I relying on them always being in same order in any one file?
-		** that should be true, but why take the risk?*/
 		if ( firstID > secondID ) {
 			let temp = secondID;
 			secondID = firstID;
@@ -345,7 +343,7 @@ function import529CSV(lineList, nFields, callback){
 			matchesmap.get( matchkey).cMtotal += cM;
 		}
 	}
-	db_conlog( 21, `  adding ${aliasmap.size} alias rows`);
+	// db_conlog( 21, `  adding ${aliasmap.size} alias rows`);
 	// add all the unique keys and names to the alias table
 	for( const[key, obj] of aliasmap ) {
 		pendingTransactionCount++;

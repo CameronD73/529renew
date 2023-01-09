@@ -16,4 +16,5 @@ H2 {
 
 .warning {
     color:red;
+    visibility: hidden;
 }

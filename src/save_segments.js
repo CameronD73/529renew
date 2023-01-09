@@ -60,7 +60,7 @@ function handleMessageCatches( location, err ) {
 	alert( msg + "\nTry closing all tabs or restarting" );
 	return;
 }
-/*launch_next_IBD_query
+/* run_query
 ** Start the process to run the query to get DNA segments between pair of matches
 ** Start by checking if the pair is already in the DB,
 */
@@ -409,7 +409,7 @@ function runComparison(ranPrimaryComparison ){
 	// match data is array of objects, one per each ICW relative in the table
 	var match_data = [];
 
-	q_debug_log( 0, "runComp: entry: for " + matchName + " and " + profileName  );
+	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
 	let sharedDNAPrimary = {pct:-1.0, cM:0};
 	if ( !ranPrimaryComparison ) {
 		sharedDNAPrimary = get_pct_shared_primary();
@@ -453,9 +453,10 @@ function runComparison(ranPrimaryComparison ){
 		return;
 	}
 	var foundData=false;
-	q_debug_log( 1, " checking " + row_container.children.length + " rows" );
+	var number_of_rows = row_container.children.length;
+	q_debug_log( 1, " checking " + number_of_rows + " rows" );
 	// typically here the row_container has up to 10 rows of ICWs
-	for(let i=0; i<row_container.children.length; i++){
+	for(let i=0; i<number_of_rows; i++){
 		let row_n = row_container.children[i]
 		match_data[i] = {};
 
@@ -494,17 +495,16 @@ function runComparison(ranPrimaryComparison ){
 						if(yes_no_text==null) continue;
 						overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
 						match_data[i].overlaps = overlap_status;
-						// I think the "share to see" was replaced by "connect to view"
-						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text=="share to see" || yes_no_text=="connect to view") foundData=true;
-						if(yes_no_text=="share to see" || yes_no_text=="connect to view") {
+						// I think the "share to see" was replaced by "connect to view" - can also get "Request sent"
+						// when a request to connect has been initiated
+						if(yes_no_text=="yes" || yes_no_text=="no" ) {
+							foundData=true;
+						} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
+							foundData=true;
 							continue;
 						}
-						if( yes_no_text=="yes" )
+						if( yes_no_text=="yes" || loadAllRequested ) {
 							get_segments = true;
-						else {
-							if ( loadAllRequested ) 
-								get_segments = true;
-							// else if ( remote_shared_pct < minSharedNonOverlap)  continue;
 						}
 
 						// parse the url to get the 3 profile IDs
@@ -575,19 +575,25 @@ function runComparison(ranPrimaryComparison ){
 			console.log( `   Row ${i}: ${md.name_icw_relative} (ID:${md.ID_icw_relative}) overlap: ${md.overlaps}; sharing ${md.shared_pct_P2B} to profile & ${md.shared_pct_A2B} to match`);
 		}
 	}
+	
+	if(!foundData){
+		failedInSomeWay = true;
+		if( number_of_rows == 0 ) {
+			alert( 'No rows found, maybe you forgot to click "find Relatives in common"\nYou will need refresh this page first.' );
+		} else {
+			alert("Failed to parse Relatives in Common table - Q len: " + qQueue.length);
+		}
+		launch_next_IBD_query();
+		return;
+	}
+
 	// save the chr 200 records...
 	let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
 	try {
 		chrome.runtime.sendMessage({mode: "store_chr_200", primary:primary_match, matchData:match_data } );
 	} catch( e ) {
 		handleMessageCatches( "saving chr 200", e );
-	}	
-	if(!foundData){
-		alert("Failed to parse Relatives in Common table, Q len: " + qQueue.length);
-		launch_next_IBD_query();
-		return;
 	}
-
 	document.getElementById("c529r").innerHTML="Collecting DNA segments...";
 	launch_next_IBD_query();
 	return;

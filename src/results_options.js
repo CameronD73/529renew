@@ -37,26 +37,26 @@ const settings529default = {
 	"build": "37",
 	"omitAliases": false,
 	"hideCloseMatches": false,
-	"baseAddressRounding": 0,
-	"cMRounding": 2,
+	"baseAddressRounding": "0",
+	"cMRounding": "2",
 	"delay": "2", // units of seconds
-	"minimumOverlap": 0, //units of Mbp
+	"minimumOverlap": "0", //units of Mbp
 	"lastCSVExportDate": "1900-01-01",
 	"lastGEFXExportDate": "1900-01-01",		// yes, it's a typo
-	"debug_db": 0,
-	"debug_q": 0,
-	"debug_msg": 0,
+	"debug_db": "0",
+	"debug_q": "0",
+	"debug_msg": "0",
 	"minSharedNonOverlap": 0.3,		// percentage
-	"closeTabImmediate": 0,
-	"alwaysIncludeNonOverlap": 0
+	"closeTabImmediate": "0",
+	"alwaysIncludeNonOverlap": "0"
 };
 const settings_upgrade_0to1 = {
-	"debug_db": 0,
-	"debug_q": 0,
-	"debug_msg": 0,
+	"debug_db": "0",
+	"debug_q": "0",
+	"debug_msg": "0",
 	"minSharedNonOverlap": 0.3,
-	"closeTabImmediate": 0,
-	"alwaysIncludeNonOverlap": 0
+	"closeTabImmediate": "0",
+	"alwaysIncludeNonOverlap": "0"
 };
 
 // in-page cache of settings

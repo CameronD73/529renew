@@ -32,10 +32,10 @@ function checkIfInDatabase( request, sender ) {
 			var needToCompare=true;
 			if(resultSet.rows.length==1) {
 				myrow=resultSet.rows.item(0);
-				db_conlog( 2, `   DBquery returned ${myrow.hits} hits, full return:`);
+				db_conlog( 2, `   DBquery ${indexName} vs ${matchName} returned ${myrow.hits} hits, full return:`);
 			}
 			else
-				db_conlog( 2, `   DBquery returned ${resultSet.rows.length} rows` );
+				db_conlog( 2, `   DBquery ${indexName} vs ${matchName} returned ${resultSet.rows.length} rows` );
 			if(myrow!=null){
 				if(myrow.hits>0) needToCompare=false;
 			}
@@ -60,7 +60,7 @@ function checkIfInDatabase( request, sender ) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-	msg_conlog( 2, `dbactions listener, mode: ${request.mode}`);
+	msg_conlog( 3, `dbactions listener, mode: ${request.mode}`);
 	if(request.mode == "checkIfInDatabase"){
 		checkIfInDatabase( request, sender );
 	}
