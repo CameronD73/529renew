@@ -24,3 +24,4 @@ changes between v1.1.0 and v1.2
     Added option: closeTabImmediate - if set to true, then the tab will be closed as soon as the triangulation completes.
     Save all percentage shared DNA values listed in the relatives-in-common table. Not used in any way yet, but may have value later.
     
+V 1.2.0  submitted to  Chrome store - 2023-01-11

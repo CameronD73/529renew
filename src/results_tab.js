@@ -11,6 +11,8 @@ var expectedIdStr=null;	// The ID of the profile person selected from the dropdo
 var expected_id1=null;	// IDs of testers with possibly overlapping matching segments.
 var expected_id2=null;
 
+let selectedPersonID = null;	// user requests "show matches of" to be set to this ID
+
 /*
 ** createMatchSVG
 ** draws graphical representations of segment lengths and overlap.
@@ -488,17 +490,22 @@ function createImportButton(){
 	document.getElementById("upfile").addEventListener('change', requestImportToDatabase);
 }
 
+function clearFilterText() {
+	var ftb =  document.getElementById("selectNameFilter");
+	if ( ftb.value.length > 0 ) { 
+		ftb.value="";
+	}
+	document.getElementById("clearFilterButton").style.visibility="hidden";
+	getMatchesFromDatabase(createNameSelector);
+}
+
 function createClearFilterButton(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Clear filter";
 	newButton.id="clearFilterButton";
 	newButton.setAttribute("type", "button");
 	newButton.style.visibility="hidden";
-	newButton.addEventListener('click', function(){
-		document.getElementById("selectNameFilter").value="";
-  		document.getElementById("clearFilterButton").style.visibility="hidden";
-  		getMatchesFromDatabase(createNameSelector);
-  		});
+	newButton.addEventListener('click', clearFilterText );
 	document.getElementById("filterDiv").appendChild(newButton);
 }
 
@@ -574,21 +581,6 @@ function setDelaySelector(){
 	};
 }
 
-/* 
-function setBuildSelector(){
-	return;		// ignore this atm.
-	
-	var widget=document.getElementById("build");
-	widget.value=getSetting( "build");
-	widget.onchange=function(){
-		setSetting( "build", widget.value);
-		if(document.getElementById("table_div").hasChildNodes()){
-			requestSelectFromDatabase(false, false);
-		}
-	};
-	
-}
-*/
 
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
@@ -605,15 +597,41 @@ function setHideCloseMatchesCheckBox(){
 	};
 }
 
-function updateSelectedName(idstr) {
-	var el=document.getElementById("selectName");
+/*
+** update the selected match name to this ID.
+** - unfortunately, we don't know if the filter has resulted in a shorter
+** list that does not include the selected person, so just unconditionally 
+** clear the filter and follow through to then assign the selected person,
+** which is based on the global var selectedPersonID.
+*/
+function updateSelectedNameViaMsg(idstr) {
 	if ( idstr.length == 16 ) {
 		// used the ID passed in the call
-		el.value = idstr;
-	} else if(window.location.search.length==20) {
-		// otherwise check for any parameter in the url (deprecated, but left in just in case)
-		el.value=window.location.search.substring(4);
+		selectedPersonID = idstr;
+	} else {
+		console.error( `Results_tab: updateSelectedNameViaMsg called with idstr '${idstr}' unexpected.`)
+		return;
 	}
+	clearFilterText();		// this will cascade into reloading full match list.
+}
+/*
+** this part will assign the required ID to the select list. AFTER the list
+** has been rebuilt
+*/
+function finaliseUpdateSelectedName( ) {
+	let idstr = null;
+	if ( selectedPersonID !== null ) {
+		// used the ID passed earlier
+		 idstr = selectedPersonID;
+		 selectedPersonID = null;
+	} else if(window.location.search.length==20) {
+		// otherwise check for any parameter in the url (deprecated, but 
+		// still used by the link buttons under "create match table"
+		idstr = window.location.search.substring(4);
+	} else {
+		return;
+	}
+	document.getElementById("selectName").value = idstr;
 }
 
 // This is the callback from the DB search of names (possibly filtered)
@@ -646,7 +664,8 @@ function createNameSelector(transaction, results){
 		op.value=row.idText;
 		el.appendChild(op);
 	}
-	updateSelectedName( "" );
+	// now that we have updated the name list we can assign the required person.
+	finaliseUpdateSelectedName(  );
 }
 
 function colorizeButton(button, cid1,  cid2){
@@ -874,7 +893,6 @@ function createTable12(transaction, results, colorize){
 			if(showURL && row.id2){
 
 				let link = document.createElement("a");
-				//link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + numbers2id([row.id2_1, row.id2_2]));
 				link.setAttribute("href", "https://you.23andme.com/profile/" + row.id2 +"/");
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name2;
@@ -1700,48 +1718,53 @@ function displayMatchingSegments(rowid, name1, name2, id1, id2){
 
 // display match table on screen
 function requestSelectFromDatabase(shiftIsDown, altIsDown){
-	if(document.getElementById("selectName").selectedIndex<0) return;
-	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
-	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
+	let namesel = document.getElementById("selectName");
+	let chromsel = document.getElementById("chromosome");
+	if(namesel.selectedIndex<0) return;
+	expectedName=namesel.options[namesel.selectedIndex].text;
+	var expectedId=namesel.options[namesel.selectedIndex].value;
 	if(expectedId=='all')
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
 
 	if(shiftIsDown){
-		selectFromDatabase(createTable2, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, altIsDown, false);
+		selectFromDatabase(createTable2, expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
 	}
 	else{
-		selectFromDatabase(createTable, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, altIsDown, false);
+		selectFromDatabase(createTable, expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
 	}
 }
 
 function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
-	if(document.getElementById("selectName").selectedIndex<0) return;
-	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
-	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
+	let namesel = document.getElementById("selectName");
+	if(namesel.selectedIndex<0) return;
+	expectedName=namesel.options[namesel.selectedIndex].text;
+	var expectedId=namesel.options[namesel.selectedIndex].value;
 	if(expectedId=='all')
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
 	let limitDates = !shiftIsDown;
-
+	let chromsel = document.getElementById("chromosome");
 	if(altIsDown){
-		selectFromDatabase(createCSV3, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, limitDates, true);
+		selectFromDatabase(createCSV3, expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, true);
 	}
 	else{
-		selectFromDatabase(createCSV, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, limitDates, false);
+		selectFromDatabase(createCSV, expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
 	}
 }
 function requestSelectFromDatabaseForGEXF(){
-	if(document.getElementById("selectName").selectedIndex<0) return;
-	expectedName=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].text;
-	var expectedId=document.getElementById("selectName").options[document.getElementById("selectName").selectedIndex].value;
+	let namesel = document.getElementById("selectName");
+	let chromsel = document.getElementById("chromosome");
+	if(namesel.selectedIndex<0) return;
+	expectedName=namesel.options[namesel.selectedIndex].text;
+	var expectedId=namesel.options[namesel.selectedIndex].value;
 	if(expectedId=='all')
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
-	selectFromDatabase(createGEXF, expectedId, document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value, false, false);
+	selectFromDatabase(createGEXF, expectedId, chromsel.options[chromsel.selectedIndex].value, false, false);
 }
 
 function reloadSoon(){
@@ -1754,10 +1777,6 @@ function requestImportToDatabase(evt){
 	evt.preventDefault();
 
 	var files = evt.target.files;
-	//if(files[0].type!="text/plain"){
-		//alert("The file you selected does not appear to be a plain text CSV file, instead it is " + files[0].type);
-		//return;
-	//}
 	var file=files[0];
 
 	var reader = new FileReader();
@@ -1833,17 +1852,5 @@ document.addEventListener('DOMContentLoaded', async function () {
 			getMatchesFromDatabase(createNameSelector);
 		}
 	};
-	try {
-		let myprom = chrome.tabs.getCurrent();
-		if ( myprom === undefined ) {
-			console.log( "promise is undefined");
-		} else {
-			myprom.then( (mytab) => { console.log( "promise resolved to contents: ", mytab ); return true; },
-			() => { console.log( `promise failed `); return false; } );
-
-		}
-	} catch( e ) {
-		console.error( `failed read tab results: err ${e.message}`);
-	}
 });
 

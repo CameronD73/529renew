@@ -89,33 +89,7 @@ function open_results_tab( url, atFront ) {
 	);
 }
 
-/* function currently unused - leave in case I change my mind...
-function restart_results_tab(  ) {
-	// context can get invalidated if we update in some circumstances I don't understand in detail
-	// so we kill it and then start it up again.
-	// Unfortunately, the context is retained in the content script, so those need to be refreshed (I won't bother)
-	chrome.tabs.query( {}, function(tabarr) {
-		conlog( 2, `results tab check for kill returns ${tabarr.length} entries`);
-		let tabFound = -1;
-		for( let i = 0; i < tabarr.length; i++ ) {
-			let ttl = tabarr[i].title;
-			conlog( 3, `checking tab ${i} ${ttl} at index ${ttl.indexOf("529Renew")}`);
-			if ( ttl.indexOf("529Renew Results" ) >= 0 ) {
-				conlog( 1, `found result tab in ${ttl}`);
-				tabFound = i;
-			}
-		}
-		if ( tabFound >= 0 ) {
-			const resultTabID =  tabarr[tabFound].id;
-			conlog ( 1, " removing results tab...")
-			chrome.tabs.remove(resultTabID, () => {open_results_tab("results_tab.html", true ); } )
-		} else {
-			open_results_tab("results_tab.html", true );
-		}
-	  }
-	);
-}
-*/
+
 // fire up the db create/update  code...
 
 chrome.runtime.onInstalled.addListener( function() {
