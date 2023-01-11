@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name" : "529renew",
-  "version" : "1.2.0",
+  "version" : "1.2.1",
   "description" : "Tracks 23andMe DNA Matches using a local SQL database",
   "background": {
   	"service_worker": "service.js"

@@ -17,7 +17,8 @@ function roundBaseAddress( addr ) {
 }
 
 function round_cM(  cMvalue ) {
-	let cMRounding = settings529.cMRounding;	// number of decimal places
+	// switch uses === comparisons, so ensure we are using int values.
+	let cMRounding = parseInt(settings529.cMRounding);	// number of decimal places
 	switch ( cMRounding ) {
 		case 2:
 			return Math.round(cMvalue * 100) / 100;
