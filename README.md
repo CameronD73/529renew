@@ -13,5 +13,5 @@ The repository contains a modified copy of the code from manifest version 2 as w
 
 Most of the details are in [this project's Wiki](https://github.com/CameronD73/529renew/wiki).
 
-## nstallation
-The latest released version is available in the Chrome store.
+## Installation
+The latest released version is available in the Chrome store. For experimental installs, details are in the wiki.
