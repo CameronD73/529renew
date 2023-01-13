@@ -3,6 +3,14 @@ Chrome extension to allow "23 and me" customers to extract their DNA segment mat
 
 This is now available on the Chrome Store.
 
+## Contents:
+* [Installation Guide](#installation)
+* [Database Migration](#database-import)
+* [The special "Results" tab](#the-tabpage-named-529renew-results)
+* [User Settings](#settings)
+* [Normal operation](#day-to-day-operation)
+* [Strategies to minimise lockout](#strategies-to-minimise-lockout)
+
 ## Background
 This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early 2023,
 and has been blocked for fresh installations beyond July 2022.
@@ -29,7 +37,7 @@ The following processes apply whichever browser you are using:
 * if you have old data that you want to migrate from _529 and You_
 
 ## Database Import
-* 529renew has a somewhat different database format from that of 529 and You. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
+* 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
 * This means you need to reimport your data to easily populate the database with all the matches you carefully obtained with 529 and You.
 * The file that you need to import is the CSV file that you previously exported for GDAT from _529 and You_. If you have been using 529 and You for a long time then you may have some "build 36" records. The exports from  _529 and You_ could be from either build 36 or from build 37 but not both in the one file. The files do not contain the build info so you have to know if the file is build 37 or not.  _Any file you import will be assumed to be build 37_.
 * before you import, you should  consider the rounding parameters - the cM rounding parameter will be used when importing data.  The base-pair address rounding is not used on import, although  _529 and You_ always rounded to the nearest Megabase address to be compatible with older 23andMe outputs.
@@ -46,8 +54,10 @@ When saving triangulation data there must be exactly one "results" tab present. 
 The code is designed to create this tab if it does not exist whenever you first open or refresh the page listing DNA relatives.
 It will also create the results tab automatically if the settings pop-up page is opened.
 
-On the page of an individual DNA match, triangulation will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page after opening the results tab).
+On the page of an individual DNA match, triangulation will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page _after opening the results tab_).
 If you press the `Open 529renew` button then it will create the page if necessary, then pass the DNA matches name to the selector on the results page and bring the tab to the front.
+
+***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log is saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
 
 ### gruesome details
 Part of the security model of web browser extensions is that any tab/page displaying content from 23andMe (or any external web server) cannot access the database.
@@ -62,24 +72,65 @@ If you were to click on `create match table` in the results page, and then click
 ## Settings
 
 The settings can be viewed and changed in a popup window by clicking on the 529Renew icon on the toolbar in the top right, near the extension button.
+You should review the settings before you start collecting triangulation data.
 
 Setting changes are saved when you exit a settings input selector (click somewhere else, or press the tab key).
 
 When you have finished, simply click back in another tab and the popup should be removed.
 
 ### delay between web requests
-(default 2 seconds). This should help make 23 and me servers complain less, such as givving error 429. (See below for more details)
-* **rounding of base-pair addresses**. The original code rounds to the nearest million in order to match early output from 23 and me. This is discarding significant information, so the default is no rounding, but can be adjusted if required back to the original. A better alternative would be to always save the full address and use the rounding in comparisons.
-* **rounding of centiMorgan values** - now rounds by default to 2 decimal places, purely for appearances. It also stops output files being padded out with numbers that are meaningless.
-* **segment minimum overlap** Similar to GDAT's option.  Currently the display routines consider segments to "overlap" provided they 
+(default 2 seconds). This should help make 23 and me servers complain less, such as giving error 429 and locking your access. (See below for more details)
 
-###
+### rounding of base-pair addresses
+The original _529 and You_ code rounds to the nearest million in order to match early output from 23 and me. This is discarding significant information, so the default is no rounding, but can be adjusted if required back to the original. A better alternative would be to always save the full address and use the rounding in comparisons. The minimum overlap setting now makes this less important.
+
+### rounding of centiMorgan values
+now rounds by default to 2 decimal places, purely for appearances. The second decimal place is almost meaningless in most cases, as uncertainty is usually higher than this. It also stops output files being padded out with numbers that are meaningless.
+
+### segment minimum overlap
+Similar to GDAT's option, and it has no bearing on 23 and Me's definition of whether segments overlap enough to be considered _shared_.  In  _529 and You_  the display routines considered segments to "overlap" provided they merely touch - for example the end address of one segment is the same as the starting address of another.  If you set this parameter to a number above zero then the start and end must overlap by at least this number of Mbase pairs.
+
+### Recording segments that are nor overlapping
+Normally, the "triangulation" process ignores any matches that have no overlaps.  This pair of related options modify this behaviour.
+
+Say your profile person **A** is in common with **X** and **Y** but the matching segments do not overlap. Normal recording of "triangulation" only accepts matches with 3-way overlaps. Both  _529 and You_ and _529renew_ allow you to shift-click to save segment details between the profile person and  **Y**  and between **X** and  **Y**  when they do not overlap. 
+#### Minimum shared DNA (pct):
+This parameter sets a lower limit - only matches having at least this percentage in common will be recorded.
+
+#### Save Segments Mode.
+This parameter can be set to "always" or "only with shift-click". If you want to always record segments then this should be set to "always" to save teh need for you to remember to hold the shift-key every time.
+
+### Tab action when triangulation completes.
+Can be set to "close tab" or "tab remains open".
+
+### Options for Debugging or Troubleshooting
+At the bottom of the settings page are options for troubleshooting.
+The date setting should be exp[lained sufficiently on the page.
+
+The debug levels determine the verbosity of progress notes that are printed on the javascript console. This console is revealed in Chrome or Edge by pressing F12, or by a right-click on the page background and selecting "inspect". 
+This opens the "devtools"   window, and every tab will have its own separate devtools window, which only persists while the tab is present.
+Select the "console" tab to view the error and debug log messages.
+
+# Day-to-day operation
+1. Login to your account on the 23and Me web site
+2. start by selecting the kit of the profile you want to compare (if you manage more than one kit)
+3. go to the  _DNA Relatives_ page, either from the quick links or the *Family and friends* menu list.
+4. by this stage the "529Renew Results" tab should be open and in the background.
+5. Open the filter menu: "Profile features and activity" and tick the box "showing ancestry results". This will remove people from this list who do not allow their DNA segments to be viewed.  You could also apply other filters as you see fit.
+6. search for 
+
+## Gathering Data
+
+## Viewing the stored data
+
+## Exporting your data
 
 
-## Strategies to minimise lockout due to too high a server request rate.
+## Strategies to minimise lockout
+The 23 and Me servers operate under a policy that too high a server request rate will lead to lockout and you will need to prove you are  a human.
 
 As I write this (Jan 2023) it appears that using a delay setting between 1.5 and 2 seconds is normally sufficient to keep the system happy. That timing applies to a single triangulation collection. If you are triangulating with two open tabs at the same time then the request rate will double and most likely upset the servers.
 
-I can usually be triangulating on one tab and have other tabs open and be preparing for triangulation at the same time. These requests are not subject to the rate limiting that 529Renew performs on segment requests and so will add to the request rate.  I have found that it is possible to get locked out simply by opening up a series of tabs too quickly.
+I can usually be triangulating on one tab and have other tabs open and be preparing for triangulation at the same time. These requests are not subject to the delay that 529Renew applies  on segment requests and so will add to the request rate.  I have found that it is possible to get locked out simply by opening up a series of tabs too quickly.
 
 If you are triangulating on one tab only, but your other activities causes a lockout, then generally you will need to go through the multiple Captcha screens once and can then refresh the locked out tabs. The triangulating tab will stop with a message box if it sees an return status of 429. Sometimes it is sufficient to do nothing, wait 30sec to 1 minute, then click `OK` and have the process continue without needing the Captcha.
