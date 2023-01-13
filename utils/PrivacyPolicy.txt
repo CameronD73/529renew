@@ -1,4 +1,6 @@
-The Chrome extension 529renew uses your login session to 23andMe to access some details about your DNA matches that 23andMe provides you.
+The developers of the Chrome extension 529renew have NO ACCESS TO ANY OF YOUR DATA.
+
+This extension uses your login session to 23andMe to access some details about your DNA matches that 23andMe provides you.
 It cannot access your raw dna data and does not touch any information that 23andMe might provide about health traits.
 
 The segment match information is organised and stored on your own computer within the profile folder assigned by the browser.
@@ -7,4 +9,4 @@ Again, these are written to your local computer's filesytem and completely under
 
 The extension sends none of your information out over the internet except for necessary connections to 23andMe servers.
 
-The developers of this extension have NO ACCESS TO ANY OF YOUR DATA.
+The extension uses no cookies, but it does use "local storage" to save your preferences.
