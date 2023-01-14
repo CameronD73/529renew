@@ -28,8 +28,8 @@ By the time you read this, they will no doubt have changed their user interface 
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
 * For Edge, click on 3 horizontal dots top right, then select `extensions`-> `manage extensions` and click on `Chrome web store`.  At some stage you need to enable the option `Allow extensions from other stores`.  Search for __529renew__ and click on the one extension listed and  the details page opens up, along with a button `Add to Chrome`.
 
-The following processes apply whichever browser you are using:
-*  you get a warning that this extension can "read and change your data on you.23andme.com" (badly worded - it means view and change the contents on the web page, I suppose hte extension _could_ edit and update your match notes if it wanted to.) as well as "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
+The following steps then apply whichever browser you are using:
+*  you get a warning that this extension can "read and change your data on you.23andme.com" (badly worded - it means view and change the contents on the web page, I suppose the extension _could_ edit and update your match notes if it wanted to.) as well as "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
 * The extension ID is hgckkjajmcmbificinfabmaelboedjic.
 * It should  then open a new tab and display a message box saying "created a new local database". This will only happen once for a given browser profile, unless you delete the extension, in which case the database is immediately deleted as well.
 * The "extensions" icon (a jigsaw puzzle piece) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
@@ -52,21 +52,23 @@ It is important to understand that this tab is a vital part of the operation of 
 When saving triangulation data there must be exactly one "results" tab present.  Hidden beneath this tab is nearly all the functionality of 529Renew.
 
 The code is designed to create this tab if it does not exist whenever you first open or refresh the page listing DNA relatives.
-It will also create the results tab automatically if the settings pop-up page is opened.
+It will also create the results tab automatically if the _settings_ pop-up page is opened.
 
 On the page of an individual DNA match, triangulation will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page _after opening the results tab_).
 If you press the `Open 529renew` button then it will create the page if necessary, then pass the DNA matches name to the selector on the results page and bring the tab to the front.
 
+It is safe to be using the results tab to view already saved results at the same time as another tab is doing the triangulations.
+
 ***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log is saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
 
 ### gruesome details
-Part of the security model of web browser extensions is that any tab/page displaying content from 23andMe (or any external web server) cannot access the database.
+Part of the security model of web browser extensions is that any tab/page displaying content from 23andMe (or any external web server) is not permitted to access the database.
 Consequently there is a stream of messages passing between the DNA match page and the results page with requests for and results from database operations.
 If this gets interrupted (or never starts) then things get confused.
 
 If multiple results tabs are opened at the same time then a different form of confusion ensues, where each one fights to carry out the same tasks.
 There is, however one situtation where multiple results tabs are deliberately allowed to be open at the same time.
-If you were to click on `create match table` in the results page, and then click on a matches' name on the table of segments then a new results tab is opened in case you want to compare the segments between two sets of results. It is acceptable to simply view results in two tabs at the same time but the code is not designed to be triangulating at the same time.
+If you were to click on `create match table` in the results page, and then click on a match's name on the table of segments then a new results tab is opened in case you want to compare the segments between two sets of results. It is acceptable to simply view results in two tabs at the same time but the code is not designed to be triangulating at the same time.
 
 
 ## Settings
@@ -117,14 +119,55 @@ Select the "console" tab to view the error and debug log messages.
 3. go to the  _DNA Relatives_ page, either from the quick links or the *Family and friends* menu list.
 4. by this stage the "529Renew Results" tab should be open and in the background.
 5. Open the filter menu: "Profile features and activity" and tick the box "showing ancestry results". This will remove people from this list who do not allow their DNA segments to be viewed.  You could also apply other filters as you see fit.
-6. search for 
+6. search for the relative of interest and open their page, preferably in a new tab - using separate tabs makes it much easier to keep track of where you are up to and avoids the need to reload the relatives list each time you go back to it.
 
 ## Gathering Data
+1. having located the page of the relative of interest, scroll to the bottom and click on the `Find Relatives in Common` button.
+2. Then click onto `Triangulate into 529Renew` to have the system collect overlapping segment results.
+So long as there is at least one with a "yes" or "no" under `DNA Overlap` on each page then 529renew will collect all required data for ICW between the two people.
+3. Normally, only matches with DNA overlap showing "yes" will be saved. Holding down shift while you click, or enabling the setting "AlwaysSaveNonOverlaps", will include segment details between each pair even when they have no overlap.
+4. If anything goes wrong and you want to continue with that person then you will need to refresh the page and start again.
+5. The extension will not query the server  if it has already recorded the matching segment data. You can override this behaviour by using a alt-click on the triangulate button. This forces rereading of _all_ overlapping matches.
+6. The "triangulation" process will start from the list (table of 10 matches) currently being shown, so if it is not at the first set then you might miss people on earlier tables.
 
 ## Viewing the stored data
+The results tab offers a fast way to examine what segments are stored in the 529renew database.
+This description assumes you have `Display Mode` set to "_Match and Overlapping Segment Links_". I am not sure there is ever much purpose in using the lesser display modes.
+I am not sure if "Omit Aliases" does anything useful these days.
+* First, you need to select the match person. It could be one of your profile kit owners, or any of your matches. If you choose a profile person then be prepared for a possibly long list - in this case you should always limit your selection to a single chromosome. You select the person from the drop-down list under `show matches of:`. There are two ways to reduce the need to scan the entire list:
+1. If you have a tab already opened at the match person of interest then you can click on `open 529renew` and it will select that person and also bring the results tab to the front. You can then make the required chromosome choice  .
+2. You can apply a filter using the `Optional match filter:` section. enter the full name you require, or include the '%' character to use it as a wildcard. The search does not require you to select upper/lower case correctly. Press _Enter_ or click a blank area outside the filter text box and the drop-down list will be replaced with names that match your search filter. You can then choose the person you want, make the required chromosome choice.
+
+* Clicking on `create match table` then produces a list of all matching segments recorded between that person and everybody else.  Sometimes there may be no entries in the list, depending how you have set your options.
+* The list displays for each matching segment: chromosome number, start and end base-pair address, the centiMorgan value and the number of SNPs. There is also a button `show overlapping segments`  that allows you to explore further.
+* Clicking on the person named on the left will direct your browser to that person's 23 and Me profile page.
+* Clicking on the match name (2nd column) will open up a second results tab. [As warned above](#the-tabpage-named-529renew-results), _do not open this if you are collecting triangulation at the same time_.
+### The overlap graphics
+Clicking on  `show overlapping segments` changes the table to list all segments that overlap that selected match, and whether the match the first person, the second, or both.
+
+When there is only one matching segment, then the non-matching person's entry will say either
+1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
+2. "_no data_", meaning we cannot tell. Early in database collection perhaps these two have never been compared; as the database is developed it becomes more likely that there is no overlap. You can confirm lack of a match if you can place that person in the left column, then click on their name to examine their profile. This will show you the DNA match even if it is less than the lower cutoff - for example, it will show if you match with somebody at 9cM, but it will have a largely blank page if there is no significant DNA match.
+
+Below the list of overlapping segments is a graphical display with coloured bars showing the size of overlapping segments and whether they match one or two of the people being compared.
 
 ## Exporting your data
 
+### CSV format
+
+You can export your segments in CSV format, for example to read into GDAT. The data exported is subject to the restrictions applied by  `show matches of:` and the `chromosome` number.
+Normally you would choose "ALL" for both.
+
+If you hold down the Alt key while  clicking the save button then a more complete dataset will be written. This is not suitable for GDAT import, but may be useful for other analysis.  It would also form the basis for importing to another system, although that might not be fully coded at this time (V1.2.1).
+
+### GEXF format
+This is a standard text file format suitable for some network analysis and graphical display. The free software [Gephi](https://gephi.org/) is one multiplatform program that can read and produce network graphs from  these files.
+
+This needs more detail on how to get useful results.
+
+### SVG format
+
+Once you have created a graphical display of segment overlaps, you can save this as an SVG file (Scaleable Vector Graphics) that can be viewed in various web browsers and handled in some drawing packages.
 
 ## Strategies to minimise lockout
 The 23 and Me servers operate under a policy that too high a server request rate will lead to lockout and you will need to prove you are  a human.
