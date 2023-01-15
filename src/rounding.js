@@ -29,3 +29,11 @@ function round_cM(  cMvalue ) {
 	}
 	return cMvalue;
 }
+
+// converts a base address to Mbase, with rounding suitable for display, not storage.
+// math.floor does not round properly, sometimes inventing trailing  1 least sig digit
+// parseInt requires string conversion, so we might as well simply use the string form toFixed()
+// returns a string representing the base address to 2 dec. places
+function base2Mbase( addr ) {
+	return ( Number.parseFloat(addr/1000000.0).toFixed(2) );
+}

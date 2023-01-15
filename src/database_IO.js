@@ -17,7 +17,7 @@ db_conlog( 2, "loading DB_IO script");
 */
 
 // id1 and id2 are the text representation of the 23 and me UID
-// It requests count of segment hits that are saved between ID1 and ID2.
+// It requests count of segment hits between ID1 and ID2 that are saved in the DB.
 //     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
 
 function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
@@ -50,14 +50,15 @@ const sellist1 = "ibdsegs.ROWID as ROWID,\
 	ibdsegs.start AS start,\
 	ibdsegs.end AS end,\
 	ibdsegs.cM AS cM,\
-	ibdsegs.snps AS snps";
-
+	ibdsegs.snps AS snps,\
+	ibdsegs.date as segdate";
+/* unused
 const sellist2 = "	ibdsegs.phase1 AS phase1,\
 	ibdsegs.relationship1 AS relationship1,\
 	ibdsegs.phase2 AS phase2,\
 	ibdsegs.relationship2 AS relationship2,\
 	ibdsegs.comment AS comment";
-
+*/
 const joinlist = "ibdsegs \
 	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
 	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
@@ -155,7 +156,8 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 				t2.name AS name2, \
 				t1.idText AS id1, \
 				t2.idText AS id2, \
-				chromosome, start, end, cM, snps \
+				chromosome, start, end, cM, snps, \
+				ibdsegs.date as segdate \
 			FROM ibdsegs \
 			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
 			JOIN idalias t2 ON (t2.idText=ibdsegs.id2)  WHERE ';
@@ -189,7 +191,8 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 				t2.name AS name2, \
 				t1.idText AS id1, \
 				t2.idText AS id2, \
-				chromosome, start, end, cM, snps \
+				chromosome, start, end, cM, snps, \
+				ibdsegs.date as segdate  \
 			FROM ibdsegs \
 			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
 			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \

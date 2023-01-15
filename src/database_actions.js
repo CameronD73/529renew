@@ -154,7 +154,7 @@ function storeSegments(request) {
 		};
 	}
 	for(let i=0; i<request.matchingSegments.length; i++){
-		//if(request.matchingSegments[i][0]===request.matchingSegments[i][1]) continue; // Ignore matches to self
+		 // Ignore matches to self
 		if(request.matchingSegments[i].uid1!==request.ids[0].id){
 			alert("StoreSegments: unexpected name mismatch: " + request.matchingSegments[i].name1 + " " + request.ids[0].name);
 			continue;

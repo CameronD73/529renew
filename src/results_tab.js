@@ -13,31 +13,9 @@ var expected_id2=null;
 
 let selectedPersonID = null;	// user requests "show matches of" to be set to this ID
 
-/*
-** createMatchSVG
-** draws graphical representations of segment lengths and overlap.
-
-** displayMode (first drop-down list on page) determines what is shown when "Create Match Table" is clicked
-**	  0:  basic table
-**    1: people's names become clickable links
-**    2:  append overlapping segment "button" to each line
-**    3:  (disabled)enable editing of phase info and relatives.
-*/
-function createMatchSVG(table){
-	var graphNode=document.getElementById("529graph");
-	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
-
-	if(document.getElementById("chromosome").value==0) return;
-	if(document.getElementById("displayMode").value!=3) return;
-
-	var outersvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	outersvg.setAttribute("width", "100%");
-
-	var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	outersvg.setAttribute("id", "529graph");
-	var svgNS = svg.namespaceURI;
-
-	var clengths=[
+// Tables of chromosome lengths in base pairs, and Mbase addresses.
+// zero entry is X chromosome.
+const clengths_base=[
 	155270560.0,
 	249250621.0,
 	243199373.0,
@@ -62,6 +40,62 @@ function createMatchSVG(table){
 	48129895.0,
 	51304566.0
 	];
+
+
+const clengths_Mbase=[
+	155.270560,
+	249.250621,
+	243.199373,
+	198.022430,
+	191.154276,
+	180.915260,
+	171.115067,
+	159.138663,
+	146.364022,
+	141.213431,
+	135.534747,
+	135.006516,
+	133.851895,
+	115.169878,
+	107.349540,
+	102.531392,
+	90.354753,
+	81.195210,
+	78.077248,
+	59.128983,
+	63.025520,
+	48.129895,
+	51.304566
+
+];
+
+/*
+** createMatchSVG
+** draws graphical representations of segment lengths and location.
+**   Only draws content if a single chromosome is chosen.
+
+** displayMode (first drop-down list on page) determines what is shown when "Create Match Table" is clicked
+**	  0:  basic table
+**    1: people's names become clickable links
+**    2:  append overlapping segment "button" to each line
+**    3:  (disabled)enable editing of phase info and relatives.
+*/
+function createMatchSVG(table){
+	var graphNode=document.getElementById("529graph");
+	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
+
+	if(document.getElementById("chromosome").value==0) return;
+	if(document.getElementById("displayMode").value < 2 ) return;
+
+	var outersvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	outersvg.setAttribute("width", "100%");
+
+	var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	outersvg.setAttribute("id", "529graph");
+	var svgNS = svg.namespaceURI;
+
+	var clengths= clengths_Mbase;
+
 	function getTableIndex(label){
 		var theadrow=table.children[0].children[0];
 		for(let i=0; i<theadrow.children.length; i++){
@@ -69,12 +103,12 @@ function createMatchSVG(table){
 		}
 		return -1;
 	}
-	//var nameIndex=getTableIndex("Name");
-	var phaseIndex=getTableIndex("Phase");
+	var nameIndex=getTableIndex("Name");
+	// var phaseIndex=getTableIndex("Phase");
 	var matchNameIndex=getTableIndex("Match name");
-	var chromosomeIndex=getTableIndex("Chromosome");
-	var startIndex=getTableIndex("Start point");
-	var endIndex=getTableIndex("End point");
+	var chromosomeIndex=getTableIndex("Chrom.");
+	var startIndex=getTableIndex("Start Mb");
+	var endIndex=getTableIndex("End Mb");
 	var tbody=table.children[1];
 
 	var chromosome;
@@ -88,11 +122,11 @@ function createMatchSVG(table){
 	var scale=100.0*clengths[chromosomeIndex]/clengths[1];
 	svg.setAttribute("width", scale +"%");
 
-
+	// Draw the vertical grid lines, pale every 10 MBb and darker each 50.
 	for(let i=0; i<250; i+=10){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 		let newLine = document.createElementNS(svgNS,'line');
-		let x1x2=i*100000000/clengths[chromosomeIndex];
+		let x1x2=i*100.0/clengths[chromosomeIndex];
 		newLine.setAttribute('x1',x1x2 + "%");
 		newLine.setAttribute('x2',x1x2 + "%");
 		newLine.setAttribute('y1', "0%");
@@ -101,9 +135,9 @@ function createMatchSVG(table){
 		svg.appendChild(newLine);
 	}
 	for(let i=0; i<250; i+=50){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 		let newLine = document.createElementNS(svgNS,'line');
-		let x1x2=i*100000000/clengths[chromosomeIndex];
+		let x1x2=i*100.0/clengths[chromosomeIndex];
 		newLine.setAttribute('x1',x1x2 + "%");
 		newLine.setAttribute('x2',x1x2 + "%");
 		newLine.setAttribute('y1', "0%");
@@ -112,6 +146,7 @@ function createMatchSVG(table){
 		svg.appendChild(newLine);
 	}
 
+	// now the block for the header
 	let rect = document.createElementNS(svgNS,'rect');
 		rect.setAttribute('x', "0%");
 		rect.setAttribute('y',0);
@@ -119,11 +154,12 @@ function createMatchSVG(table){
 		rect.setAttribute('height',10);
 		svg.appendChild(rect);
 
+	// and the base address legend/title
 	for(let i=10; i<250; i+=10){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 
 			let text= document.createElementNS(svgNS, 'text');
-			let x1x2=i*100000000/clengths[chromosomeIndex];
+			let x1x2=i*100.0/clengths[chromosomeIndex];
 
 			text.setAttribute('x', x1x2 + "%");
 			text.setAttribute('y', 10);
@@ -134,44 +170,41 @@ function createMatchSVG(table){
 			svg.appendChild(text);
 	}
 	var iii=0;
-	var order=[1, 2, -1, 0];
-	for(let j=0; j<order.length; j++){
-		for(let i=0; i<tbody.children.length; i++){
-			var matchName=tbody.children[i].children[matchNameIndex].innerText;
-			if(tbody.children[i].children[phaseIndex].children[0].value!=order[j]) continue;
-			var offset=parseInt(tbody.children[i].children[startIndex].innerText);
-			var width=parseInt(tbody.children[i].children[endIndex].innerText);
-			if(!Number.isNaN(offset)) offset=100.0*offset/clengths[chromosomeIndex];
-			if(!Number.isNaN(width)) width=100.0*width/clengths[chromosomeIndex];
-			if(!Number.isNaN(offset) && !Number.isNaN(width)) width-=offset;
-			{
-				let rect = document.createElementNS(svgNS,'rect');
-				rect.setAttribute('x', offset + "%");
-				rect.setAttribute('y',10*(iii+2));
-				rect.setAttribute('width',width + "%");
-				rect.setAttribute('height',10);
-				let phaseColor=tbody.children[i].children[phaseIndex].children[0].style["background-color"];
-				if(order[j]==-1) rect.setAttribute('stroke','#000000');
-				rect.setAttribute('fill',phaseColor);
-				svg.appendChild(rect);
-			}
-			{
-				let text= document.createElementNS(svgNS, 'text');
-				if(offset+width/2.0<50){
-						text.setAttribute('x', offset + "%");
-				}
-				else{
-					text.setAttribute('x',offset+width + "%");
-					text.setAttribute('text-anchor', 'end');
-				}
-				text.setAttribute('y',10*(iii+2));
-				text.setAttribute('font-family', 'Times');
-				text.setAttribute('height',6);
-				text.appendChild(document.createTextNode(matchName));
-				svg.appendChild(text);
-			}
-			iii+=2;
+
+	for(let i=0; i<tbody.children.length; i++){
+		var name=tbody.children[i].children[nameIndex].innerText;
+		var matchName=tbody.children[i].children[matchNameIndex].innerText;
+		var offset = parseFloat(tbody.children[i].children[startIndex].innerText); 
+		var width= parseFloat(tbody.children[i].children[endIndex].innerText);
+		if(!Number.isNaN(offset)) offset=100.0*offset/clengths[chromosomeIndex];
+		if(!Number.isNaN(width)) width=100.0*width/clengths[chromosomeIndex];
+		if(!Number.isNaN(offset) && !Number.isNaN(width)) width-=offset;
+		{		// draw the box representing matching segment
+			let rect = document.createElementNS(svgNS,'rect');
+			rect.setAttribute('x', offset + "%");
+			rect.setAttribute('y',10*(iii+2));
+			rect.setAttribute('width',width + "%");
+			rect.setAttribute('height',10);
+			let phaseColor='#bbffbb';
+			rect.setAttribute('fill',phaseColor);
+			svg.appendChild(rect);
 		}
+		{		// label the box
+			let text= document.createElementNS(svgNS, 'text');
+			if(offset+width/2.0<50){
+					text.setAttribute('x', offset + "%");
+			}
+			else{
+				text.setAttribute('x',offset+width + "%");
+				text.setAttribute('text-anchor', 'end');
+			}
+			text.setAttribute('y',10*(iii+2));
+			text.setAttribute('font-family', 'Times');
+			text.setAttribute('height',6);
+			text.appendChild(document.createTextNode(name + " <-> " + matchName));
+			svg.appendChild(text);
+		}
+		iii+=2;
 	}
 
 	svg.setAttribute('height', 10*(iii+4));
@@ -182,7 +215,11 @@ function createMatchSVG(table){
 
 }
 
-
+/*
+** createSVG - creates the graphical display showing overlapping segments.
+** Note the input:  it takes the HTMLCollection table structure instead of the raw data objects.
+** WHY?!?
+*/
 function createSVG(table){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
@@ -193,32 +230,8 @@ function createSVG(table){
 	var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	outersvg.setAttribute("id", "529graph");
 	var svgNS = svg.namespaceURI;
+	var clengths= clengths_Mbase;
 
-	var clengths=[
-	155270560.0,
-	249250621.0,
-	243199373.0,
-	198022430.0,
-	191154276.0,
-	180915260.0,
-	171115067.0,
-	159138663.0,
-	146364022.0,
-	141213431.0,
-	135534747.0,
-	135006516.0,
-	133851895.0,
-	115169878.0,
-	107349540.0,
-	102531392.0,
-	90354753.0,
-	81195210.0,
-	78077248.0,
-	59128983.0,
-	63025520.0,
-	48129895.0,
-	51304566.0
-	];
 	function getTableIndex(label){
 		let theadrow=table.children[0].children[0];
 		for(let i=0; i<theadrow.children.length; i++){
@@ -253,10 +266,10 @@ function createSVG(table){
 
 	var nameIndex=getTableIndex("Name");
 	var matchNameIndex=getTableIndex("Match name");
-	var chromosomeIndex=getTableIndex("Chromosome");
-	var startIndex=getTableIndex("Start point");
-	var endIndex=getTableIndex("End point");
-	var reloadIndex=getTableIndex("# SNPs")+1;
+	var chromosomeIndex=getTableIndex("Chrom.");
+	var startIndex=getTableIndex("Start Mb");
+	var endIndex=getTableIndex("End Mb");
+	var reloadIndex=getTableIndex("Date")+1;
 	var tbody=table.children[1];
 	var firstRef=tbody.children[0].children[nameIndex].children[0].href;
 	var secondRef=getSecondRef(tbody, firstRef, nameIndex);
@@ -276,9 +289,9 @@ function createSVG(table){
 
 
 	for(let i=0; i<250; i+=10){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 		let newLine = document.createElementNS(svgNS,'line');
-		let x1x2=i*100000000/clengths[chromosomeIndex];
+		let x1x2=i*100.0/clengths[chromosomeIndex];
 		newLine.setAttribute('x1',x1x2 + "%");
 		newLine.setAttribute('x2',x1x2 + "%");
 		newLine.setAttribute('y1', "0%");
@@ -287,9 +300,9 @@ function createSVG(table){
 		svg.appendChild(newLine);
 	}
 	for(let i=0; i<250; i+=50){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 		let newLine = document.createElementNS(svgNS,'line');
-		let x1x2=i*100000000/clengths[chromosomeIndex];
+		let x1x2=i*100.0/clengths[chromosomeIndex];
 		newLine.setAttribute('x1',x1x2 + "%");
 		newLine.setAttribute('x2',x1x2 + "%");
 		newLine.setAttribute('y1', "0%");
@@ -306,10 +319,10 @@ function createSVG(table){
 		svg.appendChild(rect);
 
 	for(let i=10; i<250; i+=10){
-		if(i*1000000>clengths[chromosomeIndex]) break;
+		if(i>clengths[chromosomeIndex]) break;
 
 			let text= document.createElementNS(svgNS, 'text');
-			let x1x2=i*100000000/clengths[chromosomeIndex];
+			let x1x2=i*100.0/clengths[chromosomeIndex];
 
 			text.setAttribute('x', x1x2 + "%");
 			text.setAttribute('y', 10);
@@ -320,8 +333,6 @@ function createSVG(table){
 			svg.appendChild(text);
 	}
 
-
-
 	var iii=0;
 	var priorNameRef=null;
 	var priorMatchRef=null;
@@ -331,8 +342,8 @@ function createSVG(table){
 		let matchName=tbody.children[i].children[matchNameIndex].innerText;
 		let nameRef=tbody.children[i].children[nameIndex].children[0].href;
 		let matchRef=tbody.children[i].children[matchNameIndex].children[0].href;
-		let offset=parseInt(tbody.children[i].children[startIndex].innerText);
-		let width=parseInt(tbody.children[i].children[endIndex].innerText);
+		var offset = parseFloat(tbody.children[i].children[startIndex].innerText); 
+		var width= parseFloat(tbody.children[i].children[endIndex].innerText);
 		if(!Number.isNaN(offset)) offset=100.0*offset/clengths[chromosomeIndex];
 		if(!Number.isNaN(width)) width=100.0*width/clengths[chromosomeIndex];
 		if(!Number.isNaN(offset) && !Number.isNaN(width)) width-=offset;
@@ -453,7 +464,7 @@ var phaseColors=["#FFFFFF", "#FFDDDD", "#DDDDFF", "#FFFFDD", "#DDDDDD"];
 function createButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Create Match Table";
-	newButton.title="Shift-click to color code buttons (red=unchecked matches, blue=all matches checked, Alt-click to show matches since last csv save)";
+	newButton.title="Shift-click to color code buttons (orange=unchecked matches, green=all matches checked, Alt-click to show matches since last csv save)";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabase(evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonrow").appendChild(newButton);
@@ -937,8 +948,6 @@ function createTable12(transaction, results, colorize){
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
-
-
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
@@ -953,22 +962,28 @@ function createTable12(transaction, results, colorize){
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
 			tcell.className="right";
-			tcell.innerHTML=row.start;
+			tcell.innerHTML=base2Mbase(row.start);
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
 			tcell.className="right";
-			tcell.innerHTML=row.end;
+			tcell.innerHTML=base2Mbase(row.end);
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
 			tcell.className="right";
-			tcell.innerHTML=row.cM+" cM";
+			// normally will be already rounded, but sometimes not.
+			tcell.innerHTML=" " + round_cM(row.cM) + " ";
 		}
 		{
 			let tcell=tablerow.insertCell(curColumnId++);
 			tcell.className="right";
 			tcell.innerHTML=row.snps;
+		}
+		{
+			let tcell=tablerow.insertCell(curColumnId++);
+			tcell.className="right";
+			tcell.innerHTML=row.segdate;
 		}
 		if(enableShowSegments){
 			function makeLink(id, name1, name2, id1, id2){
@@ -989,15 +1004,17 @@ function createTable12(transaction, results, colorize){
 	// Creating the header after the body prevents rows from being inserted into header
 	var tablehead=table.createTHead();
 	var tableheadrow=tablehead.insertRow(0);
+	tableheadrow.className="center";
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Genetic distance";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chrom.";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start Mb";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="End Mb";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="cM";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="#SNPs";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Date";
 		if(enableShowSegments) (tableheadrow.insertCell(curColumnId++)).innerHTML="";
 	}
 	createMatchSVG(table);
@@ -1104,16 +1121,8 @@ function formattedDate(){
 }
 function formattedDate2(){
 	return new Date().toISOString().substring(0, 10);
-	/*
-	var thisDay=new Date();
-	var year=thisDay.getFullYear();
-	var month=thisDay.getMonth()+1;
-	var date=thisDay.getDate();
-	if(month<10) month="0"+month.toString();
-	if(date<10) date="0"+date.toString();
-	return year.toString()+"-"+ month.toString()+"-"+date.toString();
-	*/
 }
+
 function downloadSVG(){
 	if(document.getElementById("529graph")==null){
 		alert("SVGs are only created when a specific chromosome or segment is selected");
@@ -1131,13 +1140,12 @@ function downloadSVG(){
 function createGEXF(transaction, results){
 
 	if(results.message){
-		alert("createGEFX: Failed to retrieve match data: "+ results.message);
+		alert("createGEXF: Failed to retrieve match data: "+ results.message);
 		return;
 	}
 
 	var gexfarray=new Array();
 	gexfarray.push('<?xml version="1.0" encoding="UTF-8"?>\n');
-	// Was 1.2 draft, but this code is compatible with 1.3...
 	gexfarray.push('<gexf xmlns="http://www.gexf.net/1.3" version="1.3" xmlns:viz="http://www.gexf.net/1.3/viz" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.3 http://www.gexf.net/1.3/gexf.xsd">\n');
 	gexfarray.push('  <meta lastmodifieddate="' + formattedDate2() + '">\n');
 	gexfarray.push('    <creator>529renew</creator>\n');
@@ -1208,6 +1216,23 @@ function createGEXF(transaction, results){
 
 }
 
+// return numbers suitable for presentation in table
+
+function get_Mbase( val ){
+	if (typeof val === "number" ) {
+		return( base2Mbase(val) );
+	}
+	else return val;		// probably a string, such as "?"
+}
+
+function get_cM( val ){
+	if (typeof val === "number" ) {
+		return( round_cM(val));
+	}
+	else return val;		// probably a string, such as "?"
+}
+	
+
 /*
 ** createSegmentTable - db transaction callback, with results of query for matching segments
 ** - creates html table of segment overlaps between testing pairs
@@ -1253,7 +1278,7 @@ function createSegmentTable(transaction, results){
 			let row = results.rows.item(i);
 			// result rows are ordered in the first instance by chromosome number, so
 			// once we hit chr 100 there are no real results remaining
-			if(row.chromosome==100) break;
+			if(row.chromosome>=100) break;
 
 			if(omitAliases){
 				if((i+1)<results.rows.length){
@@ -1263,19 +1288,16 @@ function createSegmentTable(transaction, results){
 			ii++;
 
 			let matchingSegment={};
-			//let matchId=new Array();
 			let matchIDObj = {};
 
-			matchingSegment.ROWID=row.ROWID; // 0
+			matchingSegment.ROWID=row.ROWID;
 
 			if((expected_id1==row.id2) || (expected_id2==row.id2)){
 
-				matchingSegment.name1=row.name2; // 1
-				matchingSegment.name2=row.name1; // 2
-				matchingSegment.id1=row.id2; // 3
-				//matchingSegment[4]=row.id2_2; // 4
-				matchingSegment.id2=row.id1; // 5
-				//matchingSegment[6]=row.id1_2; // 6
+				matchingSegment.name1=row.name2;
+				matchingSegment.name2=row.name1;
+				matchingSegment.id1=row.id2;
+				matchingSegment.id2=row.id1; 
 
 
 				if(!((expected_id1==row.id1) || (expected_id2==row.id1))){
@@ -1292,12 +1314,10 @@ function createSegmentTable(transaction, results){
 			}
 			else{
 
-				matchingSegment.name1=row.name1; // 1
-				matchingSegment.name2=row.name2; // 2
-				matchingSegment.id1=row.id1; // 3
-				//matchingSegment[4]=row.id1_2; // 4
-				matchingSegment.id2=row.id2; // 5
-				//matchingSegment[6]=row.id2_2; // 6
+				matchingSegment.name1=row.name1; 
+				matchingSegment.name2=row.name2; 
+				matchingSegment.id1=row.id1;
+				matchingSegment.id2=row.id2;
 
 
 				if(!((expected_id1 == row.id2) || (expected_id2 == row.id2))){
@@ -1312,16 +1332,18 @@ function createSegmentTable(transaction, results){
 					}
 				}
 			}
-			matchingSegment.chromosome=row.chromosome; // 7
+			matchingSegment.chromosome=row.chromosome;
 			if(!matchChromosome && row.chromosome<24) matchChromosome=row.chromosome;
-			matchingSegment.start=row.start; // 8
-			matchingSegment.end=row.end; // 9
-			matchingSegment.cM=row.cM; // 10
-			matchingSegment.snps=row.snps; // 11
+			matchingSegment.start=row.start;
+			matchingSegment.end=row.end;
+			matchingSegment.cM=row.cM;
+			matchingSegment.snps=row.snps;
+			matchingSegment.segdate=row.segdate;
 
 			matchingSegments[ii]=matchingSegment; // i
 		}
 		// Process the chromosome 100 matches
+		// at this stage, i is the first chr 100 entry.
 		for(; i<results.rows.length; i++) {
 
 			let row = results.rows.item(i);
@@ -1335,7 +1357,7 @@ function createSegmentTable(transaction, results){
 
 			let matchingSegment=new Array();
 
-			matchingSegment.ROWID=row.ROWID;	// 0
+			matchingSegment.ROWID=row.ROWID;
 
 			// Screen out segments that don't involve one of the two
 			// individuals of interest and someone on the matchIds
@@ -1348,12 +1370,10 @@ function createSegmentTable(transaction, results){
 				}
 				if(j==matchIds.length) continue;
 
-				matchingSegment.name1=row.name2; // 1
-				matchingSegment.name2=row.name1; // 2
-				matchingSegment.id1=row.id2; // 3
-				//matchingSegment[4]=row.id2_2; // 4
-				matchingSegment.id2=row.id1; // 5
-				//matchingSegment[6]=row.id1_2; // 6
+				matchingSegment.name1=row.name2; 
+				matchingSegment.name2=row.name1; 
+				matchingSegment.id1=row.id2;
+				matchingSegment.id2=row.id1; 
 
 			}
 			else{
@@ -1364,12 +1384,10 @@ function createSegmentTable(transaction, results){
 				}
 				if(j==matchIds.length) continue;
 
-				matchingSegment.name1=row.name1; // 1
-				matchingSegment.name2=row.name2; // 2
-				matchingSegment.id1=row.id1; // 3
-				//matchingSegment[4]=row.id1_2; // 4
-				matchingSegment.id2=row.id2; // 5
-				//matchingSegment[6]=row.id2_2; // 6
+				matchingSegment.name1=row.name1;
+				matchingSegment.name2=row.name2;
+				matchingSegment.id1=row.id1;
+				matchingSegment.id2=row.id2;
 
 			}
 			{
@@ -1378,19 +1396,18 @@ function createSegmentTable(transaction, results){
 				let k;
 				for(k=0; k<matchingSegments.length; k++){
 					if(matchingSegments[k].id1==matchingSegment.id1 &&
-						//matchingSegments[k][4]==matchingSegment[4] &&
 						matchingSegments[k].id2==matchingSegment.id2
-						//&& matchingSegments[k][6]==matchingSegment[6]
 						) break;
 				}
 				if(k==matchingSegments.length){
-					matchingSegment.chromosome=row.chromosome; // 7
-					matchingSegment.start=row.start; // 8
-					matchingSegment.end=row.end; // 9
-					matchingSegment.cM=row.cM; // 10
-					matchingSegment.snps=row.snps; // 11
+					matchingSegment.chromosome=row.chromosome;
+					matchingSegment.start=row.start;
+					matchingSegment.end=row.end;
+					matchingSegment.cM=row.cM;
+					matchingSegment.snps=row.snps;
+					matchingSegment.segdate=row.segdate;
 
-					matchingSegments.push(matchingSegment); // i
+					matchingSegments.push(matchingSegment);
 				}
 			}
 		}
@@ -1417,29 +1434,28 @@ function createSegmentTable(transaction, results){
 		}
 		if(i==matchingSegments.length){
 			let matchingSegment={};
-			matchingSegment.ROWID=-1; // 0
+			matchingSegment.ROWID=-1; 
 			if(matches1){
-				matchingSegment.name1=expectedName2; // 1
-				matchingSegment.name2=matchIds[j].name; // 2
-				matchingSegment.id1=expected_id2; // 3
-				//matchingSegment[4]=expected_id2_2; // 4
+				matchingSegment.name1=expectedName2; 
+				matchingSegment.name2=matchIds[j].name; 
+				matchingSegment.id1=expected_id2; 
 			}
 			else if(matches2){
 				matchingSegment.name1=expectedName1;
-				matchingSegment.name2=matchIds[j].name; // 2
-				matchingSegment.id1=expected_id1; // 3
-				//matchingSegment[4]=expected_id1_2; // 4
+				matchingSegment.name2=matchIds[j].name;
+				matchingSegment.id1=expected_id1; 
 			}
 			else{
 				return; // The page has changed for a new query, so this task is no longer relevant
 			}
 
-			matchingSegment.id2=matchIds[j].id; // 5
-			matchingSegment.chromosome=200; // 7
-			matchingSegment.start="?"; // 8
-			matchingSegment.end="?"; // 9
-			matchingSegment.cM="?"; // 10
-			matchingSegment.snps="?"; // 11
+			matchingSegment.id2=matchIds[j].id;
+			matchingSegment.chromosome=200;
+			matchingSegment.start="?";
+			matchingSegment.end="?";
+			matchingSegment.cM="?";
+			matchingSegment.snps="?";
+			matchingSegment.segdate="?";
 
 			matchingSegments.push(matchingSegment);
 		}
@@ -1591,6 +1607,13 @@ function createSegmentTable(transaction, results){
 							cell.className="bottom";
 						}
 					}
+					{
+						let cell=tablerow.insertCell(curColumnId++);
+						(cell).innerHTML="";
+						if(i==matchingSegmentsArray[k].length-1){
+							cell.className="bottom";
+						}
+					}
 					(tablerow.insertCell(curColumnId++)).innerHTML="no overlapping matching segment >5 cM";
 				}
 				else{
@@ -1613,7 +1636,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i].start;
+						(cell).innerHTML=get_Mbase(matchingSegmentsArray[k][i].start);
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -1621,7 +1644,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i].end;
+						(cell).innerHTML=get_Mbase(matchingSegmentsArray[k][i].end);
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -1629,7 +1652,7 @@ function createSegmentTable(transaction, results){
 					}
 					{
 						let cell=tablerow.insertCell(curColumnId++);
-						(cell).innerHTML=matchingSegmentsArray[k][i].cM+" cM";
+						(cell).innerHTML=" "+ get_cM(matchingSegmentsArray[k][i].cM) +" ";
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -1638,6 +1661,14 @@ function createSegmentTable(transaction, results){
 					{
 						let cell=tablerow.insertCell(curColumnId++);
 						(cell).innerHTML=matchingSegmentsArray[k][i].snps;
+						if(i==matchingSegmentsArray[k].length-1){
+							cell.className="bottom_right";
+						}
+						else cell.className="right";
+					}
+					{
+						let cell=tablerow.insertCell(curColumnId++);
+						(cell).innerHTML=matchingSegmentsArray[k][i].segdate ;
 						if(i==matchingSegmentsArray[k].length-1){
 							cell.className="bottom_right";
 						}
@@ -1693,15 +1724,17 @@ function createSegmentTable(transaction, results){
 	// Creating the header after the body prevents rows from being inserted into header
 	let tablehead=table.createTHead();
 	let tableheadrow=tablehead.insertRow(0);
+	tableheadrow.className="center";
 	{
 		let curColumnId=0;
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Name";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="Match name";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chromosome";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start point";
-		(tableheadrow.insertCell(curColumnId++)).innerHTML="End point";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Chrom.";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Start Mb";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="End Mb";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="cM";
 		(tableheadrow.insertCell(curColumnId++)).innerHTML="# SNPs";
+		(tableheadrow.insertCell(curColumnId++)).innerHTML="Date";
 	}
 	createSVG(table);
 }

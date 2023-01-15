@@ -29,7 +29,7 @@ function decrementPendingTransactionCount(){
 const current23andMeBuild=37;
 
 
-function createTables( db23new ){
+function createDBTables( db23new ){
 	// Called only when database is created
 	//alert(`Creating 529Renew local database from v"${db23new.version}"`);
 	//db23new.changeVersion("", "2.0", (tr) => {alert( "ch ver from empty OK")}, (err) => { alert( `change ver from empty FAILED with ${err.code}, msg:${err.message}`)});
@@ -134,7 +134,7 @@ function init529Database() {
 	        alert('SQL Databases are not supported in this browser.');
 	    } else {
 			console.log( "opening DB" );
-	        dbobj = openDatabase(shortName, version, displayName, maxSize, (db23new) => {createTables(db23new)} );
+	        dbobj = openDatabase(shortName, version, displayName, maxSize, (db23new) => {createDBTables(db23new)} );
 	        if(dbobj==null) alert(`Failed to open a local 529Renew database, version ${version}`);
 	    }
 	} catch(e) {
