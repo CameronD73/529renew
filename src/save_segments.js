@@ -27,6 +27,7 @@ let minSharedNonOverlap = 0.3;
 let closeTabImmediate = false;		// default safe
 let alwaysIncludeNonOverlap = true; // default safe
 
+let settingsProcessed = false;		// used by watchdog timeout
 
 const qQueue = new Queue();
 
@@ -664,6 +665,14 @@ function getMyName(){
 	}
 }
 
+// A timeout routine to trap situations where the results tab is not running.
+function watchdogTimer() {
+	if (!settingsProcessed) {
+		let msg = "No response from Results Tab to settings request - is it running?";
+		console.error( msg );
+		alert( msg );
+	}
+}
 /*
 ** this function handles the "get triangulation data" button.
 ** It scrapes the page for names
@@ -673,28 +682,33 @@ function getMyName(){
 tr_el.onclick=function(evt){
 	var loaded=false;
 	try{
-		var temp3=document.getElementsByClassName("js-relatives-table")[0];
-		if(temp3!=null){
-			for(let k=0; k<temp3.children.length; k++){
-				if(temp3.children[k].hasAttribute("class")){
-					var temp4=temp3.children[k].getAttribute("class");
-					if(temp4.indexOf("headers")>-1){
-						loaded=true;
-						break;
-					}
+		let temp3=document.getElementsByClassName("js-relatives-table")[0];
+		if(temp3 == null) throw "Page structure changed";
+		let classlist = temp3.classList;
+		for( let k=0; k < classlist.length; k++){
+			if ( classlist[k] === "hide") throw "Not clicked";
+		}
+		/*
+		for(let k=0; k<temp3.children.length; k++){
+			if(temp3.children[k].hasAttribute("class")){
+				var temp4=temp3.children[k].getAttribute("class");
+				if(temp4.indexOf("headers")>-1){
+					loaded=true;
+					break;
 				}
 			}
-		}
+		} */
 
 	}
 	catch(e){
-		alert("Please wait for Relatives in Common to finish loading");
+		alert( 'You need to click "Find relatives on common" first\n or else it has not finished loading');
 		return;
 	}
+	/*
 	if(!loaded){
 		alert("Please wait for Relatives in Common to finish loading");
 		return;
-	}
+	} */
 
 	if(tr_el.innerHTML=="Triangulation into 529Renew Completed") return;
 
@@ -723,20 +737,28 @@ tr_el.onclick=function(evt){
 
 	// after we get the current settings (especially the delay) then we start the data collection
 	try {
+		settingsProcessed = false;
+		setTimeout( watchdogTimer, 5000 );
 		chrome.runtime.sendMessage({mode: "getSettingObj" }, ( resp ) => {
 				if ( debug_msg > 0 ) {
 					console.log( `getSettings callback with ${resp}`);
 				}
-				process_settings( resp );
+				if ( resp === undefined ) {
+					handleMessageCatches( "getting settings", chrome.runtime.lastError );
+				} else {
+					process_settings( resp );
+				}
 			}
 		);
 	} catch( e ) {
+		// never catches anything!?
 		handleMessageCatches( "getting options", e );
 	}
 }
 
 
 function process_settings( response ) {
+	settingsProcessed = true;
 	if ( Object.keys( response ).includes('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
 	}

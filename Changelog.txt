@@ -25,3 +25,10 @@ changes between v1.1.0 and v1.2
     Save all percentage shared DNA values listed in the relatives-in-common table. Not used in any way yet, but may have value later.
     
 V 1.2.1  submitted to  Chrome store - 2023-01-11
+changes between V1.2.1 and 1.2.5
+    changed layout of tables with matching segments and overlapping segments. Start and End addresses are displayed in Mbase (to 2 d.p.)
+    added date of segment read.
+    Segment matches for a single chromosome generate graphical display underneath table.
+    Fix code that detected user trying to triangulate before loading relatives in common table
+    
+V 1.2.5 submitted to Chrome store 2023-01-16

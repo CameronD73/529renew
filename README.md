@@ -139,15 +139,16 @@ I am not sure if "Omit Aliases" does anything useful these days.
 2. You can apply a filter using the `Optional match filter:` section. enter the full name you require, or include the '%' character to use it as a wildcard. The search does not require you to select upper/lower case correctly. Press _Enter_ or click a blank area outside the filter text box and the drop-down list will be replaced with names that match your search filter. You can then choose the person you want, make the required chromosome choice.
 
 * Clicking on `create match table` then produces a list of all matching segments recorded between that person and everybody else.  Sometimes there may be no entries in the list, depending how you have set your options.
-* The list displays for each matching segment: chromosome number, start and end base-pair address, the centiMorgan value and the number of SNPs. There is also a button `show overlapping segments`  that allows you to explore further.
+* The list displays for each matching segment: chromosome number, start and end base-pair address, the centiMorgan value and the number of SNPs. From V1.2.2, the date that the segment match was stored is included. There is also a button `show overlapping segments`  that allows you to explore further.
+* A graphical display of the segments is appended to the page, but only if _you selected a single chromosome_ to create the match table then .
 * Clicking on the person named on the left will direct your browser to that person's 23 and Me profile page.
 * Clicking on the match name (2nd column) will open up a second results tab. [As warned above](#the-tabpage-named-529renew-results), _do not open this if you are collecting triangulation at the same time_.
-### The overlap graphics
+### The overlap table and graphics
 Clicking on  `show overlapping segments` changes the table to list all segments that overlap that selected match, and whether the match the first person, the second, or both.
 
 When there is only one matching segment, then the non-matching person's entry will say either
-1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
-2. "_no data_", meaning we cannot tell. Early in database collection perhaps these two have never been compared; as the database is developed it becomes more likely that there is no overlap. You can confirm lack of a match if you can place that person in the left column, then click on their name to examine their profile. This will show you the DNA match even if it is less than the lower cutoff - for example, it will show if you match with somebody at 9cM, but it will have a largely blank page if there is no significant DNA match.
+match at all1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
+2. "_no data_", meaning we cannot tell. Early in database collection perhaps these two have never been compared; as the database is developed it becomes more likely that there is no match at all between the two people. You can confirm lack of a match if you can place that person in the left column, then click on their name to examine their profile. This will show you the DNA match even if it is less than the lower cutoff - for example, it will show if you match with somebody at 9cM, but it will have a largely blank page if there is no significant DNA match.
 
 Below the list of overlapping segments is a graphical display with coloured bars showing the size of overlapping segments and whether they match one or two of the people being compared.
 
