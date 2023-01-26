@@ -92,7 +92,7 @@ now rounds by default to 2 decimal places, purely for appearances. The second de
 ### segment minimum overlap
 Similar to GDAT's option, and it has no bearing on 23 and Me's definition of whether segments overlap enough to be considered _shared_.  In  _529 and You_  the display routines considered segments to "overlap" provided they merely touch - for example the end address of one segment is the same as the starting address of another.  If you set this parameter to a number above zero then the start and end must overlap by at least this number of Mbase pairs.
 
-### Recording segments that are nor overlapping
+### Recording segments that are not overlapping
 Normally, the "triangulation" process ignores any matches that have no overlaps.  This pair of related options modify this behaviour.
 
 Say your profile person **A** is in common with **X** and **Y** but the matching segments do not overlap. Normal recording of "triangulation" only accepts matches with 3-way overlaps. Both  _529 and You_ and _529renew_ allow you to shift-click to save segment details between the profile person and  **Y**  and between **X** and  **Y**  when they do not overlap. 
@@ -143,14 +143,29 @@ I am not sure if "Omit Aliases" does anything useful these days.
 * A graphical display of the segments is appended to the page, but only if _you selected a single chromosome_ to create the match table then .
 * Clicking on the person named on the left will direct your browser to that person's 23 and Me profile page.
 * Clicking on the match name (2nd column) will open up a second results tab. [As warned above](#the-tabpage-named-529renew-results), _do not open this if you are collecting triangulation at the same time_.
-### The overlap table and graphics
-Clicking on  `show overlapping segments` changes the table to list all segments that overlap that selected match, and whether the match the first person, the second, or both.
+### The overlap table
+Clicking on  `show overlapping segments` changes the table to list all segments that overlap that selected match, and whether they match the first person, the second, or both.
 
 When there is only one matching segment, then the non-matching person's entry will say either
-match at all1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
+match at all.
+1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
 2. "_no data_", meaning we cannot tell. Early in database collection perhaps these two have never been compared; as the database is developed it becomes more likely that there is no match at all between the two people. You can confirm lack of a match if you can place that person in the left column, then click on their name to examine their profile. This will show you the DNA match even if it is less than the lower cutoff - for example, it will show if you match with somebody at 9cM, but it will have a largely blank page if there is no significant DNA match.
 
+### Graphical display of overlaps
 Below the list of overlapping segments is a graphical display with coloured bars showing the size of overlapping segments and whether they match one or two of the people being compared.
+
+At the top of the table the text displays "Segments overlapping match of **person A** and **person B**", followed by chromosome and Mb range.
+Note that the allocation of A or B is based on their UID code value, not the order they were selected.
+
+It will show the 3rd person's name with one or two coloured bars:
+* The shared segment between person A and person B is in red.
+* shared segments matching person A are in brown
+* shared segments matching person B are in blue
+* darker colours with both bands show a 3-way overlap
+* darker colours, but only for one of person A or B means "_no overlapping matching segment >5 cM_" - described in detail above.
+* paler colours indicate one person is known to match but the other has "_no data_" - described in detail above.
+
+This graphic can be exported as an SVG file, as described in the next section.
 
 ## Exporting your data
 
