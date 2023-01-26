@@ -12,19 +12,19 @@ This is now available on the Chrome Store.
 * [Strategies to minimise lockout](#strategies-to-minimise-lockout)
 
 ## Background
-This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early 2023,
+This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early-mid 2023,
 and has been blocked for fresh installations beyond July 2022.
 
 Most of the original source was public domain and we have been unable to contact the original developer.
 
-The repository contains a modified copy of the code from manifest version 2 as well as the development towards a manifest V3 extension.
+The repository contains a modified copy of the code from manifest version 2 as well as the development towards a manifest V3 extension (and beyond).
 
-Most of the details are in [this project's Wiki](https://github.com/CameronD73/529renew/wiki).
+Most of the details are in [this project's Wiki](https://github.com/CameronD73/529renew/wiki), but you do not need to know any of that to use the extension. This Readme file is the nearest you will get to a user's manual.
 
 # Installation
 The latest released version is available in the Chrome store. For experimental installs (developer mode) see details in the wiki.
 
-By the time you read this, they will no doubt have changed their user interface again, but as I write this the process is...
+By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
 * For Edge, click on 3 horizontal dots top right, then select `extensions`-> `manage extensions` and click on `Chrome web store`.  At some stage you need to enable the option `Allow extensions from other stores`.  Search for __529renew__ and click on the one extension listed and  the details page opens up, along with a button `Add to Chrome`.
 
