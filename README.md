@@ -153,6 +153,8 @@ When there is only one matching segment, then the non-matching person's entry wi
 ### Graphical display of overlaps
 Below the list of overlapping segments is a graphical display with coloured bars showing the size of overlapping segments and whether they match one or two of the people being compared.
 
+The scaling is in Mbase address - using cM would be preferable but is much more difficult.
+
 At the top of the table the text displays "Segments overlapping match of **person A** and **person B**", followed by chromosome and Mb range.
 Note that the allocation of A or B is based on their UID code value, not the order they were selected.
 
