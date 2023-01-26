@@ -146,8 +146,7 @@ I am not sure if "Omit Aliases" does anything useful these days.
 ### The overlap table
 Clicking on  `show overlapping segments` changes the table to list all segments that overlap that selected match, and whether they match the first person, the second, or both.
 
-When there is only one matching segment, then the non-matching person's entry will say either
-match at all.
+When there is only one matching segment, then the non-matching person's entry will say either:
 1. "_no overlapping matching segment >5 cM_", meaning we can tell from the database that we know there is no overlap there (but most likely this pair share DNA elsewhere), or
 2. "_no data_", meaning we cannot tell. Early in database collection perhaps these two have never been compared; as the database is developed it becomes more likely that there is no match at all between the two people. You can confirm lack of a match if you can place that person in the left column, then click on their name to examine their profile. This will show you the DNA match even if it is less than the lower cutoff - for example, it will show if you match with somebody at 9cM, but it will have a largely blank page if there is no significant DNA match.
 
