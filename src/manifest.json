@@ -37,10 +37,10 @@
     "unlimitedStorage"
   ],
   "icons" : {
-  	"16" : "529Renew-16.png",
-  	"19" : "529Renew-19.png",
-  	"48" : "529Renew-48.png",
-  	"128" : "529Renew-128.png"
+  	"16" : "529renew-16.png",
+  	"19" : "529renew-19.png",
+  	"48" : "529renew-48.png",
+  	"128" : "529renew-128.png"
   },
   "web_accessible_resources": [
 	{
@@ -54,7 +54,7 @@
   ],
   "action":
   {
-  	"default_icon" : "529Renew-19.png",
+  	"default_icon" : "529renew-19.png",
   	"default_title" : "View matches in 529Renew",
     "default_popup" : "popup529.html"
   },
