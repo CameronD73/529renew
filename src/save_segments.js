@@ -807,7 +807,7 @@ b529r.onclick=function(){
 	}
 };
 let img=document.createElement('img');
-img.src=chrome.runtime.getURL("529Renew-48.png");
+img.src=chrome.runtime.getURL("529renew-48.png");
 img.style.verticalAlign='middle';
 b529r.appendChild(img);
 
