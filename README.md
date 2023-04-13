@@ -12,8 +12,7 @@ This is now available on the Chrome Store.
 * [Strategies to minimise lockout](#strategies-to-minimise-lockout)
 
 ## Background
-This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early-mid 2023,
-and has been blocked for fresh installations beyond July 2022.
+This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early-mid 2023, and has been blocked for fresh installations beyond July 2022.
 
 Most of the original source was public domain and we have been unable to contact the original developer.
 
@@ -27,14 +26,16 @@ The latest released version is available in the Chrome store. For experimental i
 By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
 * For Edge, click on 3 horizontal dots top right, then select `extensions`-> `manage extensions` and click on `Chrome web store`.  At some stage you need to enable the option `Allow extensions from other stores`.  Search for __529renew__ and click on the one extension listed and  the details page opens up, along with a button `Add to Chrome`.
+* I have briefly tested using Vivaldi and Opera under windows.
 
 The following steps then apply whichever browser you are using:
 *  you get a warning that this extension can "read and change your data on you.23andme.com" (badly worded - it means view and change the contents on the web page, I suppose the extension _could_ edit and update your match notes if it wanted to.) as well as "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
 * The extension ID is hgckkjajmcmbificinfabmaelboedjic.
 * It should  then open a new tab and display a message box saying "created a new local database". This will only happen once for a given browser profile, unless you delete the extension, in which case the database is immediately deleted as well.
-* The "extensions" icon (a jigsaw puzzle piece) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
+* You should pin the 529renew icon to the toolbar so that you can access the settings page.  On Vivaldi it seems to be present by default, as soon as the extension is installed. For other browsers you need to go to manage extensions to pin 
+* The "extensions" icon (a jigsaw puzzle piece on Chrome, a box on Opera) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
 * you are now ready to start.
-* if you have old data that you want to migrate from _529 and You_
+* if you have old data that you want to migrate from _529 and You_ then go to the next section, otherwise you can skip it.
 
 ## Database Import
 * 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
@@ -73,7 +74,7 @@ If you were to click on `create match table` in the results page, and then click
 
 ## Settings
 
-The settings can be viewed and changed in a popup window by clicking on the 529Renew icon on the toolbar in the top right, near the extension button.
+The settings can be viewed and changed in a popup window by clicking on the 529Renew icon on the toolbar in the top right, near the extension button. The settings are  stored/retrieved across sessions via code attached to the "529 Results" tab, so make sure it is open.
 You should review the settings before you start collecting triangulation data.
 
 Setting changes are saved when you exit a settings input selector (click somewhere else, or press the tab key).
