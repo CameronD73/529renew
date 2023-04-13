@@ -43,7 +43,7 @@ ${BUILDDIR}:
 	mkdir ${BUILDDIR}
 
 zip:	master
-	zip -r ${ZIPTARGET} ${BUILDDIR}
+	( cd ${BUILDDIR} && zip -r ../${ZIPTARGET} . )
 
 ${BUILDDIR}/manifest.json: ${V3SRC}/manifest.json
 	${CP} $< $@
