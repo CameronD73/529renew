@@ -139,7 +139,7 @@ function setSetting(item,value){
 function getSetting(item){
 	//check that item is in settings
 	if(!Object.keys(settings529).includes(item)){	
-        let errmsg = `Error in getSettings: '${item}' not in settings`;
+        let errmsg = `Error in popup getSetting: '${item}' not in settings`;
         console.error(errmsg);	
         alert( errmsg );
         return null;	// clearly a bug
