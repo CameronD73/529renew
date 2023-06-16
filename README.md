@@ -26,13 +26,13 @@ The latest released version is available in the Chrome store. For experimental i
 By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
 * For Edge, click on 3 horizontal dots top right, then select `extensions`-> `manage extensions` and click on `Chrome web store`.  At some stage you need to enable the option `Allow extensions from other stores`.  Search for __529renew__ and click on the one extension listed and  the details page opens up, along with a button `Add to Chrome`.
-* I have briefly tested using Vivaldi and Opera under windows.
+* I have briefly tested using Vivaldi and Opera under windows and 529Renew operates successfully.
 
 The following steps then apply whichever browser you are using:
-*  you get a warning that this extension can "read and change your data on you.23andme.com" (badly worded - it means view and change the contents on the web page, I suppose the extension _could_ edit and update your match notes if it wanted to.) as well as "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
+*  you get a warning that this extension can "read and change your data on you.23andme.com" (this is badly worded - it means view and change the contents on the web page, I suppose the extension _could_ be made to edit and update your match notes if it wanted to). It also warns that the extension can "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
 * The extension ID is hgckkjajmcmbificinfabmaelboedjic.
 * It should  then open a new tab and display a message box saying "created a new local database". This will only happen once for a given browser profile, unless you delete the extension, in which case the database is immediately deleted as well.
-* You should pin the 529renew icon to the toolbar so that you can access the settings page.  On Vivaldi it seems to be present by default, as soon as the extension is installed. For other browsers you need to go to manage extensions to pin 
+* You should _pin the 529renew icon to the toolbar_ so that you can access the settings page.  On Vivaldi it seems to be present by default, as soon as the extension is installed. For other browsers you need to go to `manage extensions` to pin 
 * The "extensions" icon (a jigsaw puzzle piece on Chrome, a box on Opera) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
 * you are now ready to start.
 * if you have old data that you want to migrate from _529 and You_ then go to the next section, otherwise you can skip it.
@@ -77,7 +77,7 @@ If you were to click on `create match table` in the results page, and then click
 The settings can be viewed and changed in a popup window by clicking on the 529Renew icon on the toolbar in the top right, near the extension button. The settings are  stored/retrieved across sessions via code attached to the "529 Results" tab, so make sure it is open.
 You should review the settings before you start collecting triangulation data.
 
-Setting changes are saved when you exit a settings input selector (click somewhere else, or press the tab key).
+Note - _there is no accept/cancel operation_: setting changes are saved immediately after you exit a settings input selector (click somewhere else, or press the tab key).
 
 When you have finished, simply click back in another tab and the popup should be removed.
 
