@@ -1,8 +1,7 @@
 /*
 ** service worker script for 23 and me processing.
-** This code is responsible for:
-*	* handling options
-*	* database processes
+** This code is responsible for handling creation of results_tab
+** and ensuring unnecessary duplicates are avoided.
 */
 
 /*  eslint-disable no-unused-vars */
