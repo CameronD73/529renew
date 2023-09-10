@@ -98,7 +98,8 @@ chrome.runtime.onMessage.addListener(
 		alert ( errmsg);
 		return false;		// not handled here
 	}
-  });
+ 	return true;
+});
 
 
 /*

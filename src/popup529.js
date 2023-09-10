@@ -101,21 +101,6 @@ function setVersionSelector(){
 	};
 }
 
-/* ignore this for now...
-function setBuildSelector(){
-	return;		// ignore this atm.
-	
-	var widget=document.getElementById("build");
-	widget.value=getSetting( "build");
-	widget.onchange=function(){
-		setSetting( "build", widget.value);
-		if(document.getElementById("table_div").hasChildNodes()){
-			requestSelectFromDatabase(false, false);
-		}
-	};
-}
-*/
-
 
 function setSetting(item,value){
 	//check that item is in settings
