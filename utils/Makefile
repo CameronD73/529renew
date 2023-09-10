@@ -27,6 +27,7 @@ JSFILES= \
 	${BUILDDIR}/popup529.js \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
+	${BUILDDIR}/whatsnew-1_3.html \
 	${BUILDDIR}/service.js
 
 LOGOFILES= \
@@ -104,6 +105,9 @@ ${BUILDDIR}/start_db_tab.js:	${V3SRC}/start_db_tab.js
 	${CP} $< $@
 
 ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js 
+	${CP} $< $@
+
+${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 
 	${CP} $< $@
 
 ${BUILDDIR}/service.js:	${V3SRC}/service.js

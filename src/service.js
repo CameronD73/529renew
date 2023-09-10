@@ -96,7 +96,7 @@ function open_results_tab( url, atFront ) {
 
 // fire up the db create/update  code...
 
-chrome.runtime.onInstalled.addListener( (details)=> {
+chrome.runtime.onInstalled.addListener( function(details) {
 	const currentVersion = chrome.runtime.getManifest().version;
 	const previousVersion = details.previousVersion;
 	const reason = details.reason;
@@ -107,9 +107,9 @@ chrome.runtime.onInstalled.addListener( (details)=> {
 			open_results_tab("results_tab.html", true );
 			break;
 		case 'update':
+			conlog(0, `529 extension updated from ${previousVersion} to ${currentVersion}.`);
 			open_results_tab("results_tab.html", false );
 			if (previousVersion != currentVersion) {
-			  conlog(0, `529 extension updated to ${currentVersion}.`);
 			  if (previousVersion.startsWith( '1.2.')  ){
 				chrome.tabs.create({ active:true, url: 'whatsnew-1_3.html' });
 			  }
@@ -117,7 +117,7 @@ chrome.runtime.onInstalled.addListener( (details)=> {
 			break;  
 		default:
 			open_results_tab("results_tab.html", false );
-			console.log('Other install events within the browser');
+			console.log(`529 service worker installed for reason: ${reason}`);
 			break;
 		}
   }
