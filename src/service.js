@@ -1,8 +1,7 @@
 /*
 ** service worker script for 23 and me processing.
-** This code is responsible for:
-*	* handling options
-*	* database processes
+** This code is responsible for handling creation of results_tab
+** and ensuring unnecessary duplicates are avoided.
 */
 
 /*  eslint-disable no-unused-vars */
@@ -35,13 +34,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				chrome.tabs.create({ url: request.url, active: true}, null);
 			}
 
-			sendResponse({});
+			if ( sendResponse !== undefined ) 
+				sendResponse({});
+			else 
+				conlog( 1, "no response to send");
 		}
 		else if ( request.mode == "killMeNow" ) {
 			chrome.tabs.remove( sender.tab.id );
-		} else		return false;	// request not handled here
+		}
+		else
+			return false;	// request not handled here
 		
-		return;
+		return ;
 	}
 );
 
@@ -92,9 +96,29 @@ function open_results_tab( url, atFront ) {
 
 // fire up the db create/update  code...
 
-chrome.runtime.onInstalled.addListener( function() {
-	conlog( 0, "service worker - install/update event");
+chrome.runtime.onInstalled.addListener( function(details) {
+	const currentVersion = chrome.runtime.getManifest().version;
+	const previousVersion = details.previousVersion;
+	const reason = details.reason;
 	// restart_results_tab();  - did not work as hoped
-	open_results_tab("results_tab.html", true );
+	switch( reason ) {
+		case  'install':
+			conlog( 0, "529 extension installed");
+			open_results_tab("results_tab.html", true );
+			break;
+		case 'update':
+			conlog(0, `529 extension updated from ${previousVersion} to ${currentVersion}.`);
+			open_results_tab("results_tab.html", false );
+			if (previousVersion != currentVersion) {
+			  if (previousVersion.startsWith( '1.2.')  ){
+				chrome.tabs.create({ active:true, url: 'whatsnew-1_3.html' });
+			  }
+			}
+			break;  
+		default:
+			open_results_tab("results_tab.html", false );
+			console.log(`529 service worker installed for reason: ${reason}`);
+			break;
+		}
   }
 );

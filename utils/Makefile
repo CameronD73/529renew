@@ -1,4 +1,7 @@
-BUILDDIR	= 529renew-V3
+BUILDDIR	= 529renew-V3n
+BUILD_WEBSQL	= ${BUILDDIR}/websql
+BUILD_LOGOS	= ${BUILDDIR}/logos
+BUILD_UTIL	= ${BUILDDIR}/util
 FSDIR	= FileSaver.js-master/dist
 V3SRC	= 529renew/src
 LOGODIR	= 529renew/logos
@@ -14,33 +17,44 @@ HTMLFILES= \
 	   ${BUILDDIR}/popup529.html 
 
 JSFILES= \
-	${BUILDDIR}/basicQueue.js \
-	${BUILDDIR}/database_actions.js \
-	${BUILDDIR}/database_init.js \
-	${BUILDDIR}/database_IO.js \
+	${BUILD_UTIL}/basicQueue.js \
+	${BUILD_UTIL}/rounding.js \
+	${BUILD_WEBSQL}/database_actions.js \
+	${BUILD_WEBSQL}/database_init.js \
+	${BUILD_WEBSQL}/database_IO.js \
 	${BUILDDIR}/results_options.js \
 	${BUILDDIR}/results_tab.js \
 	${BUILDDIR}/popup529.js \
-	${BUILDDIR}/rounding.js \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
+	${BUILDDIR}/whatsnew-1_3.html \
 	${BUILDDIR}/service.js
 
 LOGOFILES= \
-	${BUILDDIR}/529renew-128.png \
-	${BUILDDIR}/529renew-16.png \
-	${BUILDDIR}/529renew-19.png \
-	${BUILDDIR}/529renew-48.png \
-	${BUILDDIR}/529renew-small-128.png \
-	${BUILDDIR}/529renew.png
+	${BUILD_LOGOS}/529renew-128.png \
+	${BUILD_LOGOS}/529renew-16.png \
+	${BUILD_LOGOS}/529renew-19.png \
+	${BUILD_LOGOS}/529renew-48.png \
+	${BUILD_LOGOS}/529renew-small-128.png \
+	${BUILD_LOGOS}/529renew.png
 
 
 CP	= cp -u
 
-master:	${BUILDDIR} ${LOGOFILES} ${BUILDDIR}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
+master:	${BUILDDIR} ${BUILD_LOGOS} ${BUILD_UTIL} ${BUILD_WEBSQL} \
+		${LOGOFILES} ${BUILDDIR}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
 
 ${BUILDDIR}:
-	mkdir ${BUILDDIR}
+	mkdir -p ${BUILDDIR}
+
+${BUILD_LOGOS}:
+	mkdir -p ${BUILD_LOGOS}
+
+${BUILD_WEBSQL}:
+	mkdir -p ${BUILD_WEBSQL}
+
+${BUILD_UTIL}:
+	mkdir -p ${BUILD_UTIL}
 
 zip:	master
 	( cd ${BUILDDIR} && zip -r ../${ZIPTARGET} . )
@@ -60,19 +74,19 @@ ${BUILDDIR}/popup529.css: ${V3SRC}/popup529.css
 ${BUILDDIR}/popup529.html: ${V3SRC}/popup529.html 
 	${CP} $< $@
 
-${BUILDDIR}/basicQueue.js:	${V3SRC}/basicQueue.js 
+${BUILDDIR}/util/basicQueue.js:	${V3SRC}/util/basicQueue.js 
 	${CP} $< $@
 
-${BUILDDIR}/database_actions.js:	${V3SRC}/database_actions.js 
+${BUILD_WEBSQL}/database_actions.js:	${V3SRC}/websql/database_actions.js 
 	${CP} $< $@
 
-${BUILDDIR}/database_init.js:	${V3SRC}/database_init.js 
+${BUILD_WEBSQL}/database_init.js:	${V3SRC}/websql/database_init.js 
 	${CP} $< $@
 
-${BUILDDIR}/database_IO.js:	${V3SRC}/database_IO.js 
+${BUILD_WEBSQL}/database_IO.js:	${V3SRC}/websql/database_IO.js 
 	${CP} $< $@
 
-${BUILDDIR}/database_results.js:	${V3SRC}/database_results.js 
+${BUILD_WEBSQL}/database_results.js:	${V3SRC}/websql/database_results.js 
 	${CP} $< $@
 
 ${BUILDDIR}/results_options.js:	${V3SRC}/results_options.js 
@@ -84,13 +98,16 @@ ${BUILDDIR}/results_tab.js:	${V3SRC}/results_tab.js
 ${BUILDDIR}/popup529.js:	${V3SRC}/popup529.js 
 	${CP} $< $@
 
-${BUILDDIR}/rounding.js:	${V3SRC}/rounding.js 
+${BUILDDIR}/util/rounding.js:	${V3SRC}/util/rounding.js 
 	${CP} $< $@
 
 ${BUILDDIR}/start_db_tab.js:	${V3SRC}/start_db_tab.js 
 	${CP} $< $@
 
 ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js 
+	${CP} $< $@
+
+${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 
 	${CP} $< $@
 
 ${BUILDDIR}/service.js:	${V3SRC}/service.js
@@ -100,21 +117,21 @@ ${BUILDDIR}/service.js:	${V3SRC}/service.js
 ${BUILDDIR}/FileSaver.js: ${FSDIR}/FileSaver.js
 	${CP} $< $@
 
-${BUILDDIR}/529renew-128.png:	${LOGODIR}/529renew-128.png
+${BUILD_LOGOS}/529renew-128.png:	${LOGODIR}/529renew-128.png
 	${CP} $< $@
 
-${BUILDDIR}/529renew-16.png:	${LOGODIR}/529renew-16.png
+${BUILD_LOGOS}/529renew-16.png:	${LOGODIR}/529renew-16.png
 	${CP} $< $@
 
-${BUILDDIR}/529renew-19.png:	${LOGODIR}/529renew-19.png
+${BUILD_LOGOS}/529renew-19.png:	${LOGODIR}/529renew-19.png
 	${CP} $< $@
 
-${BUILDDIR}/529renew-48.png:	${LOGODIR}/529renew-48.png
+${BUILD_LOGOS}/529renew-48.png:	${LOGODIR}/529renew-48.png
 	${CP} $< $@
 
-${BUILDDIR}/529renew-small-128.png:	${LOGODIR}/529renew-small-128.png
+${BUILD_LOGOS}/529renew-small-128.png:	${LOGODIR}/529renew-small-128.png
 	${CP} $< $@
 
-${BUILDDIR}/529renew.png:	${LOGODIR}/529renew.png
+${BUILD_LOGOS}/529renew.png:	${LOGODIR}/529renew.png
 	${CP} $< $@
 

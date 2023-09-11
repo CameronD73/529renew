@@ -78,7 +78,6 @@ chrome.runtime.onMessage.addListener(
 		msg_conlog( 2, `   DBactions returning all settings ` );
 		wait4Settings( 2 );
 		sendResponse( settings529 );
-
 	}
 	else if(request.mode == "getDebugSettings"){
 		msg_conlog( 2, `   DBactions returning debug settings ` );
@@ -98,7 +97,8 @@ chrome.runtime.onMessage.addListener(
 		alert ( errmsg);
 		return false;		// not handled here
 	}
-  });
+ 	return ; // returns are either synchronous or nothing
+});
 
 
 /*

@@ -189,7 +189,10 @@ chrome.runtime.onMessage.addListener(
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
 		}
+		return ;
 	}
+	else
+		return false;			// not handled here
   });
 
 /*
@@ -426,6 +429,7 @@ function runComparison(ranPrimaryComparison ){
 			// DIV - "local-profile" relation and shared DNA between person B and profile person ("You")
 			// DIV - "remote-profile" relation and shared DNA  between person A and person B
 			// DIV - "shared-dna" - whether there is overlap: yes/no/connect
+			// Sept 2023 the last column changed to 'DNA Overlap' and just says "Compare" instead of yes/no
 		let rows=document.getElementsByClassName("js-rows");
 		if(rows.length<1) throw "Wrong row length";
 		let container=document.getElementsByClassName("js-relatives-table");
@@ -494,11 +498,16 @@ function runComparison(ranPrimaryComparison ){
 
 						var yes_no_text=dna_cell.children[k].innerText.toLowerCase();
 						if(yes_no_text==null) continue;
-						overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
-						match_data[i].overlaps = overlap_status;
+						if(yes_no_text=="compare") {
+							overlap_status =  "undisclosed";
+							loadAllRequested  = true;		// when yes/no options have gone then we need to view everything
+						} else {
+							overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
+						}
+						match_data[i].overlaps = overlap_status;		// just for logging
 						// I think the "share to see" was replaced by "connect to view" - can also get "Request sent"
 						// when a request to connect has been initiated
-						if(yes_no_text=="yes" || yes_no_text=="no" ) {
+						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text== "compare") {
 							foundData=true;
 						} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
 							foundData=true;
@@ -548,7 +557,7 @@ function runComparison(ranPrimaryComparison ){
 			ranPrimaryComparison=true;
 		}
 		if( !get_segments )  continue;
-		if( overlap_status == "yes" ||  remote_shared_pct >= minSharedNonOverlap ) {
+		if( overlap_status == "yes" || overlap_status == "undisclosed" ||  remote_shared_pct >= minSharedNonOverlap ) {
 			qQueue.enqueue( {part:2, id1: ids[1], id2: ids[2], pn1: matchName, pn2: relative_in_common_name, pct_shared:remote_shared_pct} );
 			q_debug_log( 2, `Added to Q1: ${matchName} and ${relative_in_common_name} (sharing ${remote_shared_pct}%)`);
 			if( matchID != ids[1] ) {
@@ -558,7 +567,7 @@ function runComparison(ranPrimaryComparison ){
 			}
 			pendingComparisons++;
 		}
-		if( overlap_status == "yes" || local_shared_pct >= minSharedNonOverlap ) {
+		if( overlap_status == "yes" || overlap_status == "undisclosed" ||  local_shared_pct >= minSharedNonOverlap ) {
 			qQueue.enqueue( {part:3, id1: ids[2], id2: ids[0], pn1: relative_in_common_name, pn2: profileName, pct_shared:local_shared_pct} );
 			q_debug_log( 2, `Added to Q2: ${relative_in_common_name} and ${profileName} (sharing ${local_shared_pct}%)`);
 			if( profileID != ids[0] ) {
@@ -746,7 +755,7 @@ tr_el.onclick=function(evt){
 				if ( resp === undefined ) {
 					handleMessageCatches( "getting settings", chrome.runtime.lastError );
 				} else {
-					process_settings( resp );
+					process_settings_then_compare( resp );
 				}
 			}
 		);
@@ -757,7 +766,7 @@ tr_el.onclick=function(evt){
 }
 
 
-function process_settings( response ) {
+function process_settings_then_compare( response ) {
 	settingsProcessed = true;
 	if ( Object.keys( response ).includes('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
@@ -807,7 +816,7 @@ b529r.onclick=function(){
 	}
 };
 let img=document.createElement('img');
-img.src=chrome.runtime.getURL("529renew-48.png");
+img.src=chrome.runtime.getURL("logos/529renew-48.png");
 img.style.verticalAlign='middle';
 b529r.appendChild(img);
 

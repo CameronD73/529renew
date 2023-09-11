@@ -60,22 +60,45 @@
                 <option value="10">10</option>
             </select></h3>
             <p>Number that indicates the minimum required overlap before 529Renew will display two overlapping segments. Units are in Mega-base pair address.
-                This applies only to the display in the Browser results page - it does not have any affect on data stored or exported, for example to GDAT.
+                This <i>applies only to the display in the Browser results page</i> - it does not have any affect on data stored or exported, for example to GDAT.
             </p>
             <p>The value used in <i>529 and You</i> was zero.</p>
             
-            <h3>Recording non-overlapping Matches (i.e. when not triangulated)</h3>
+            <h3>Minimum shared DNA (pct):
+                <input type="number", min="0" max="1.0" step="0.02" id="minSharedNonOverlap" >
+            </h3>
+            <p>
+                This parameter sets a lower limit - only matches having at least this <i>percentage</i> in common will have their matching segments examined.
+                Note that the test is applied to each pair of matches.
+                Say your profile person <strong>A</strong> is in common with <strong>X</strong>
+                and <strong>Y</strong>, then 529renew might store the matching segments
+                between <strong>A</strong> and <strong>X</strong>, and
+                between <strong>A</strong> and <strong>Y</strong>, but not
+                between <strong>X</strong> and <strong>Y</strong>.
+            </p>
+            
+            <table border="1" cellpadding="5">
+                <caption>Approximate relationship between 23andMe's pct shared DNA and cM</caption>
+                <tr>
+                <Th>cM</th><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+                </tr>
+                <tr>
+                <th>pct</TH><td>0.081</td><td>0.094</td><td>0.107</td><td>0.121</td><td>0.134</td>
+                </tr>
+            </table>
 
-            <p>Say your profile person <strong>A</strong> is in common with <strong>X</strong>
+            <h3>Recording non-overlapping Matches (i.e. when not triangulated)</h3>
+            <p>This option is currently inactive - because the code now has to first read the matching segments
+                to determine if there is any overlap, it will always save the segment data.
+                </p>
+                <p>
+                Say your profile person <strong>A</strong> is in common with <strong>X</strong>
                 and <strong>Y</strong> but the matching segments do not overlap.
                 Normal recording of "triangulation"  only accepts matches with 3-way overlaps.
                 You can also shift-select to save segment details between  <strong>the profile person</strong> and <strong>Y</strong>
                 and between <strong>X</strong> and <strong>Y</strong> when they do not overlap.
-                This parameter sets a lower limit - only matches having at least this <i>percentage</i> in common will be recorded.
             </p>
-                <h4>Minimum shared DNA (pct):
-                <input type="number", min="0" max="100" step="0.05" id="minSharedNonOverlap" >
-              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                <h4>
                 Save these segments:
                     <select id="alwaysIncludeNonOverlap" >
                         <option value="0">Only with shift-click</option>
