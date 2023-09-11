@@ -45,7 +45,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		else
 			return false;	// request not handled here
 		
-		return true;
+		return ;
 	}
 );
 

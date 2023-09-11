@@ -189,7 +189,7 @@ chrome.runtime.onMessage.addListener(
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
 		}
-		return true;
+		return ;
 	}
 	else
 		return false;			// not handled here
