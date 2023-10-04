@@ -5,6 +5,10 @@
     <title>Settings for 529Renew</title>
   </head>
   <body>
+    <H1>Documentation</H1>
+    <p>You may find some documentation (and source code) at
+        <a href="https://github.com/CameronD73/529renew" target="_blank">the 529Renew page on GitHub.</a>
+    </p>
     <H1>529 Renew Settings</H1>
     <section id="allOptions"  class="invisible">
         <div id="otherOptions">
@@ -63,6 +67,19 @@
                 This <i>applies only to the display in the Browser results page</i> - it does not have any affect on data stored or exported, for example to GDAT.
             </p>
             <p>The value used in <i>529 and You</i> was zero.</p>
+            <h3>Action for duplicate imports
+                 <select id="importReplaces" >
+                <option value="0">Ignore</option>
+                <option value="1">Replace</option>
+            </select></h3>
+            <p>When importing results from CSV files, sometimes values are found that already match the conditions 
+                for a record in the database.
+                This option determines whether the import should
+                <ul>
+                    <li><i>Ignore</i>: retain the old values, or</li> 
+                    <li><i>Replace</i>: overwrite the data in the database with the value in the file.</li>
+                </ul>
+            </p>
             
             <h3>Minimum shared DNA (pct):
                 <input type="number", min="0" max="1.0" step="0.02" id="minSharedNonOverlap" >
@@ -114,7 +131,7 @@
                     </H3>
                     <p>This could make processing many tabs slightly faster,
                          when you are sequentially processing multiple tabs. You can be preparing the next tab to go as soon as the previous one completes.</p>
-    </div>
+        </div>
         <hr>
         <div id="debugOptions"> 
             <H2>Debugging options</H2>
@@ -156,18 +173,26 @@
                 <option value="3">3</option>
                 <option value="4">4</option>
             </select> </h4>
-         <hr>
-         <div class="warning">
-            <h5 >Debug setting versioning:
-            <select id="versioning" >
-                <option value="0">none</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-            </select> </h5>
-            <p >This may break things - you have been warned.</p>
+            <hr>
+            <div class="warning">
+                <h5 >Debug setting versioning:
+                <select id="versioning" >
+                    <option value="0">none</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select> </h5>
+                <p >This may break things - you have been warned.</p>
+            </div>
         </div>
+        <div id="status_info">
+            <h4>Status of new database</h4>
+            <div id="status_table">                
+            </div>
+            <h4>Status of profiles</h4>
+            <div id="profile_table">                
+            </div>
         </div>
     </section>
    <script src="popup529.js"></script>

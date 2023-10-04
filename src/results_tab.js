@@ -13,34 +13,14 @@ var expected_id2=null;
 
 let selectedPersonID = null;	// user requests "show matches of" to be set to this ID
 
+let db_initialised = false;		// set true once worker messages completion
+let db_summary = [];
+	// object keys match column names from DB.profiles
+	// initial value is something we can create a dummy select list from
+let profile_summary = [{IDprofile:"none", pname:"no profiles loaded"}];
+
 // Tables of chromosome lengths in base pairs, and Mbase addresses.
 // zero entry is X chromosome.
-const clengths_base=[
-	155270560.0,
-	249250621.0,
-	243199373.0,
-	198022430.0,
-	191154276.0,
-	180915260.0,
-	171115067.0,
-	159138663.0,
-	146364022.0,
-	141213431.0,
-	135534747.0,
-	135006516.0,
-	133851895.0,
-	115169878.0,
-	107349540.0,
-	102531392.0,
-	90354753.0,
-	81195210.0,
-	78077248.0,
-	59128983.0,
-	63025520.0,
-	48129895.0,
-	51304566.0
-	];
-
 
 const clengths_Mbase=[
 	155.270560,
@@ -461,13 +441,16 @@ function createSVG(table){
 
 var phaseColors=["#FFFFFF", "#FFDDDD", "#DDDDFF", "#FFFFDD", "#DDDDDD"];
 
-function createButton( ){
+/* 
+** =======   Create row of buttons for output
+*/
+function createMatchTableButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Create Match Table";
 	newButton.title="Shift-click to color code buttons (orange=unchecked matches, green=all matches checked, Alt-click to show matches since last csv save)";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabase(evt.shiftKey, evt.altKey);});
-	document.getElementById("buttonrow").appendChild(newButton);
+	document.getElementById("buttonOutRow").appendChild(newButton);
 }
 
 function createCSVButton( ){
@@ -476,30 +459,78 @@ function createCSVButton( ){
 	newButton.title="Always includes 23andMe ID's; Shift-click to include all previously exported; Alt-click to also include non-match info";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseForCSV(evt.shiftKey, evt.altKey);});
-	document.getElementById("buttonrow").appendChild(newButton);
+	document.getElementById("buttonOutRow").appendChild(newButton);
 }
 function createGEXFButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Download GEXF";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){requestSelectFromDatabaseForGEXF();});
-	document.getElementById("buttonrow").appendChild(newButton);
+	document.getElementById("buttonOutRow").appendChild(newButton);
 }
 function createSVGButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Download SVG";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){downloadSVG();});
-	document.getElementById("buttonrow").appendChild(newButton);
+	document.getElementById("buttonOutRow").appendChild(newButton);
 }
-function createImportButton(){
+
+function createDBDumpButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Import CSV";
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', function(){document.getElementById("upfile").click();});
-	document.getElementById("buttonrow").appendChild(newButton);
-	document.getElementById("upfile").addEventListener('change', requestImportToDatabase);
+	newButton.innerHTML="Dump Sqlite DB";
+	newButton.title="Export the internal database to your computer's filesystem (mainly for debugging)";
+	newButton.setAttribute("type", "button");
+	newButton.addEventListener('click', function(){askDumpSqlite3DB();});
+	document.getElementById("buttonOutRow").appendChild(newButton);
 }
+/*
+** =======   Create row of buttons for import, etc
+*/
+function createImportProfileButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Import DNA kit list";
+	newButton.title='Import a CSV file that contains ID and name of 23andMe kits that you manage (You create list by hand)';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(){document.getElementById("upprofile").click();});
+	document.getElementById("buttonInRow").appendChild(newButton);
+	document.getElementById("upprofile").addEventListener('change', requestImportProfiles);
+}
+
+function createImport23Button(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Import 23+Me CSV";
+	newButton.title='Import a CSV file that was previously saved from 23andMe "DNA Relatives download"';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(){
+		if ( profile_summary[0].IDprofile === 'none') {
+			alert( "no profiles defined");
+		} else {
+			document.getElementById("upfile23").click();
+		}
+	});
+	document.getElementById("buttonInRow").appendChild(newButton);
+	document.getElementById("upfile23").addEventListener('change', requestImport23CSV);
+}
+
+function createImport529Button(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Import 529 CSV";
+	newButton.title='Import a CSV file that was previously exported from 529renew';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(){document.getElementById("upfile529").click();});
+	document.getElementById("buttonInRow").appendChild(newButton);
+	document.getElementById("upfile529").addEventListener('change', requestImport529CSV);
+}
+
+function createDeleteButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Delete All 529renew Data";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(){requestDeletionFromDatabase();});
+	document.getElementById("buttonInRow").appendChild(newButton);
+}
+/* ========= end of button creation ============= */
 
 function clearFilterText() {
 	var ftb =  document.getElementById("selectNameFilter");
@@ -520,14 +551,6 @@ function createClearFilterButton(){
 	document.getElementById("filterDiv").appendChild(newButton);
 }
 
-
-function createDeleteButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete All 529renew Data";
-	newButton.setAttribute("type", "button");
-	newButton.addEventListener('click', function(){requestDeletionFromDatabase();});
-	document.getElementById("buttonrow").appendChild(newButton);
-}
 
 function resetAfterDeletion(){
 	getMatchesFromDatabase(createNameSelector);
@@ -567,31 +590,6 @@ function setTextSizeSelector(){
 	};
 	setTextSizeLocal();
 }
-/*
-** MOVED TO popup - left here for debugging but not normally visible
-*/
-function setBPRoundingSelector(){
-	var widget=document.getElementById("roundingBP");
-	widget.value=getSetting( "baseAddressRounding" ).toString();
-	widget.onchange=function(){
-		setSetting( "baseAddressRounding", parseInt(widget.value));
-	};
-}
-function setcMRoundingSelector(){
-	var widget=document.getElementById("roundingcM");
-	widget.value=getSetting( "cMRounding" ).toString();
-	widget.onchange=function(){
-		setSetting( "cMRounding", parseInt(widget.value));
-	};
-}
-function setDelaySelector(){
-	var widget=document.getElementById("delay");
-	widget.value=getSetting( "delay" );
-	widget.onchange=function(){
-		setSetting( "delay", widget.value);
-	};
-}
-
 
 function setOmitAliasesCheckBox(){
 	var widget=document.getElementById("omitAliasesCheckBox");
@@ -669,7 +667,8 @@ function createNameSelector(transaction, results){
 	// create list of names from db query return
 	// each row is name, idtext
 	for(let i=0; i<results.rows.length; i++){
-		let row = results.rows.item(i);
+		//let row = results.rows.item(i);
+		let row = results.rows[i];
 		let op=document.createElement('option');
 		op.text=row.name;
 		op.value=row.idText;
@@ -677,6 +676,25 @@ function createNameSelector(transaction, results){
 	}
 	// now that we have updated the name list we can assign the required person.
 	finaliseUpdateSelectedName(  );
+}
+
+// This is the callback from the DB search of names (possibly filtered)
+// each row of the results gives the "name" and the "id" as a string
+function createKitSelector( ){
+	// Remove existing nodes
+	var el=document.getElementById("selectKit");
+	while(el.hasChildNodes()){
+		el.removeChild(el.lastChild);
+	}
+	// create list of profile names 
+	
+	for(let i=0; i<profile_summary.length; i++){
+		let row = profile_summary[i];
+		let op=document.createElement('option');
+		op.value=row.IDprofile;
+		op.text=row.pname;
+		el.appendChild(op);
+	}
 }
 
 function colorizeButton(button, cid1,  cid2){
@@ -1110,18 +1128,6 @@ function createCSV12( results,  includeNonMatch){
 		setSetting( "lastCSVExportDate", formattedDate2() );
 }
 
-function formattedDate(){
-	var thisDay=new Date();
-	var year=thisDay.getFullYear();
-	var month=thisDay.getMonth()+1;
-	var date=thisDay.getDate();
-	if(month<10) month="0"+month.toString();
-	if(date<10) date="0"+date.toString();
-	return year.toString()+month.toString()+date.toString();
-}
-function formattedDate2(){
-	return new Date().toISOString().substring(0, 10);
-}
 
 function downloadSVG(){
 	if(document.getElementById("529graph")==null){
@@ -1785,12 +1791,68 @@ function requestSelectFromDatabaseForGEXF(){
 	selectFromDatabase(createGEXF, expectedId, chromsel.options[chromsel.selectedIndex].value, false, false);
 }
 
-function reloadSoon(){
+let migration_started= 0;
+
+function CSV_loadDone( newSize ){
+	let elapsed = secondsToday() - migration_started;
+
 	document.getElementById("docBody").style.cursor="pointer";
-	alert("CSV file parsing complete, database updated");
-	location.reload(true);
+
+	alert(`CSV file parsing complete in ${elapsed} seconds,\n database updated, now ${newSize} bytes`);
+	// don't remember why I needed to refresh the page - block for now so we can see output
+	// location.reload(true); 
 }
-function requestImportToDatabase(evt){
+
+function requestImportProfiles(evt){
+	evt.stopPropagation();
+	evt.preventDefault();
+
+	var files = evt.target.files;
+	var file=files[0];
+	const CSVheader ='ID,name';
+	var reader = new FileReader();
+
+      // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+        return function(e) {
+        	let lines = e.target.result.split(/\r\n|\r|\n/);
+			if(lines[0] === CSVheader){
+        		document.getElementById("docBody").style.cursor="wait";
+        		importProfileCSV(lines, 2 );
+        	}
+        	else alert('File must show "ID,name" on first line');
+        };
+      })(file);
+
+    reader.readAsText(file);
+}
+// compare two File objects
+function cfFile( a, b ) {
+	if ( a.name > b.name )  return 1;
+	if ( a.name < b.name )  return -1;
+	return 0;
+}
+
+/*
+** sort the array of File objects alphabetically by file name.
+** The concept of "oldestFirst" assumes that the sort by name will also sort in increasing date order
+** (e.g. such as using ISO date format). Because the files are pop()ed off the bottom of the lest when used,
+** the sort order causing oldest to newest will result in the newest file being processed first.
+*/
+function sortFileList( fileList, oldestFirst ) {
+	let flist2 = [];
+	for ( let i = 0; i < fileList.length; i++ ) {
+		// convert the fileList object into an array of File objects so it can be sorted
+		flist2[i] = fileList[i];
+	}
+	let flist3 = flist2.toSorted( cfFile );
+	if( oldestFirst ) {
+		return flist3.toReversed();
+	} else {
+		return flist3;
+	}
+}
+function requestImport529CSV(evt){
 	evt.stopPropagation();
 	evt.preventDefault();
 
@@ -1805,15 +1867,65 @@ function requestImportToDatabase(evt){
         	let lines = e.target.result.split(/\r\n|\r|\n/);
 			if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID"){
         		document.getElementById("docBody").style.cursor="wait";
-        		import529CSV(lines, 9, reloadSoon);
+        		import529CSV(lines, 9 );
         	}
         	else if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID, Phase, Match phase, Label, Match label, Common ancestors"){
         		document.getElementById("docBody").style.cursor="wait";
-        		import529CSV(lines, 14, reloadSoon);
+        		import529CSV(lines, 14);
         	}
         	else if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs"){
         		alert("This file lacks 23andMe unique identifiers and therefore cannot be imported");
         	}
+        	else alert("Unrecognized file format - cannot process");
+        };
+      })(file);
+
+    reader.readAsText(file);
+}
+
+let CSV23Store = {kitName:'none', kitID: '123', filelist: [] };
+
+function requestImport23CSV(evt){
+	let namesel = document.getElementById("selectKit");
+	if(namesel.selectedIndex<0)
+		 return;
+	let kitName=namesel.options[namesel.selectedIndex].text;
+	let kitID=namesel.options[namesel.selectedIndex].value;
+	if(!confirm(`Is this 23+Me DNA Relatives file for ${kitName}?`))
+		 return;
+	const useReplace = parseInt(getSetting( 'importReplaces'));
+	evt.stopPropagation();
+	evt.preventDefault();
+	var files = evt.target.files;
+	let sortedList = sortFileList( files, useReplace );
+	console.log( 'file list is type ', typeof files, ' value: ', files, ' sorted is: ', sortedList);
+
+	CSV23Store = { kitName:kitName, kitID: kitID, filelist: sortedList };
+
+	migration_started = secondsToday();
+	readNextCSV23( );
+}
+function readNextCSV23() {
+	const CSVheader ='"Display Name","Surname","Chromosome Number","Chromosome Start Point","Chromosome End Point","Genetic Distance","# SNPs","Full IBD","Link to Profile Page","Sex","Birth Year","Set Relationship","Predicted Relationship","Relative Range","Percent DNA Shared","# Segments Shared","Maternal Side","Paternal Side","Maternal Haplogroup","Paternal Haplogroup","Family Surnames","Family Locations","Maternal Grandmother Birth Country","Maternal Grandfather Birth Country","Paternal Grandmother Birth Country","Paternal Grandfather Birth Country","Notes","Sharing Status","Showing Ancestry Results","Family Tree URL"';
+	
+	let file = CSV23Store.filelist.pop();
+
+	if (file === undefined )
+		return;		// finished
+
+	let kitID = CSV23Store.kitID;
+	let kitName = CSV23Store.kitName;
+	let reader = new FileReader();
+	logHtml( null, `=============  Reading ${file.name} for ${kitName}`);
+
+	// Closure to capture the file information.
+	reader.onload = (function(theFile) {
+		return function(e) {
+			let lines = e.target.result.split(/\r\n|\r|\n/);
+			if(lines[0] === CSVheader){
+				document.getElementById("docBody").style.cursor="wait";
+				import23CSV(kitID, kitName, lines, 30 );
+			}
         	else alert("Unrecognized file format");
         };
       })(file);
@@ -1821,38 +1933,45 @@ function requestImportToDatabase(evt){
     reader.readAsText(file);
 }
 
-function requestDeletionFromDatabase(){
-	deleteAllData(resetAfterDeletion);
-}
-
-// these options are visible only in debug modes, as they are
-// duplicates of settings on popup page
-function set_option_visibility( level ) {
-	if ( debug_db > 1 ) {
-		document.getElementById("hiddenOptions")?.classList.remove( "invisible");
-	} else if (level > 0 ){
-		document.getElementById("hiddenOptions")?.classList.add( "invisible");
+function dumpSqlite3DB(arrbuf) {
+	let filekB =  arrbuf.byteLength / 1000.0;
+	let fileMB = filekB / 1000.0;
+	let fsstring = "";
+	if ( fileMB < 1.0 ) {
+		fsstring = filekB.toString() + " kB";
+	} else {
+		fsstring = fileMB.toString() + " MB";
 	}
-	setBPRoundingSelector();
-	setcMRoundingSelector();
-	setDelaySelector();
+	let bufferblob = new Blob( [arrbuf], {type:'application/octet-stream'} );
+	let fname = "529wasm" + "_" + formattedDate()+ ".sqlite";
+	saveAs(bufferblob, fname);
+	alert( `Saved to file ${fname}, size : ${fsstring}` );
 }
 
-document.addEventListener('DOMContentLoaded', async function () {
+function askDumpSqlite3DB() {
+	DBworker.postMessage( {reason:"dumpDB"} );
+	}
+
+
+document.addEventListener('DOMContentLoaded',  function () {
+	( async() => {
 	console.log( `DomContent event - getting settings`);
 	const settingStatus = await retrieveSettingsP();
 	console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
-	getMatchesFromDatabase(createNameSelector);
-
-	createButton();
+		// setSetting( "debug_msg", "3");
+		// setSetting( "debug_db", "2");
+		createMatchTableButton();
 	createCSVButton();
 	createGEXFButton();
 	createSVGButton();
-	createImportButton();
+		createDBDumpButton();
+
+		createKitSelector();
+		createImportProfileButton();
+		createImport23Button();
+		createImport529Button();
 	createClearFilterButton();
 	createDeleteButton();
-
-	set_option_visibility();
 
 	setDisplayModeSelector();
 	setTextSizeSelector();
@@ -1870,5 +1989,33 @@ document.addEventListener('DOMContentLoaded', async function () {
 			getMatchesFromDatabase(createNameSelector);
 		}
 	};
+	} )();
+	
 });
 
+	/*
+	** this code is part of the page setup, but needs to be delayed until
+	** the DB setup is completed
+	*/
+function post_DB_init_setup() {
+	/*
+	getMatchesFromDatabase(createNameSelector);
+	*/
+	{
+		let results={
+			ID: 'fake',
+			length: 4,
+			rows: [
+				{name:'able', idText: 'idaaa'},
+				{name:'baker', idText: 'idbbb'},
+				{name:'charlie', idText: 'idccc'},
+				{name:'delta', idText: 'idddd'}
+			]
+		};
+		// FIXME  getMatchesFromDatabase(createNameSelector); 
+		createNameSelector( undefined, results);
+	};
+
+	DBworker.postMessage( {reason:'getProfiles'} ); 
+	populate_settings();
+}

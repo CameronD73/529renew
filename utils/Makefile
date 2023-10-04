@@ -2,7 +2,7 @@ BUILDDIR	= 529renew-V3n
 BUILD_WEBSQL	= ${BUILDDIR}/websql
 BUILD_LOGOS	= ${BUILDDIR}/logos
 BUILD_UTIL	= ${BUILDDIR}/util
-FSDIR	= FileSaver.js-master/dist
+FSDIR	= FileSaver-js/dist
 V3SRC	= 529renew/src
 LOGODIR	= 529renew/logos
 ZIPTARGET	= 529renew.zip
@@ -42,7 +42,7 @@ LOGOFILES= \
 CP	= cp -u
 
 master:	${BUILDDIR} ${BUILD_LOGOS} ${BUILD_UTIL} ${BUILD_WEBSQL} \
-		${LOGOFILES} ${BUILDDIR}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
+		${LOGOFILES} ${BUILD_UTIL}/FileSaver.js ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
 
 ${BUILDDIR}:
 	mkdir -p ${BUILDDIR}
@@ -114,7 +114,7 @@ ${BUILDDIR}/service.js:	${V3SRC}/service.js
 	${CP} $< $@
 
 
-${BUILDDIR}/FileSaver.js: ${FSDIR}/FileSaver.js
+${BUILD_UTIL}/FileSaver.js: ${FSDIR}/FileSaver.js
 	${CP} $< $@
 
 ${BUILD_LOGOS}/529renew-128.png:	${LOGODIR}/529renew-128.png

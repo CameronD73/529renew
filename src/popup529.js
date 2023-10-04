@@ -5,6 +5,13 @@
 
 // local copy of settings.
 var settings529 = {};
+var db_status_test = [
+	['DB Version', 1],
+	['no data', 0],
+	['yet', 0],
+	['again', 55],
+	['blob', 4321]
+];
 
 function setBPRoundingSelector(){
 	var widget=document.getElementById("roundingBP");
@@ -32,6 +39,14 @@ function setOverlapValue(){
 	widget.value=getSetting( "minimumOverlap" );
 	widget.onchange=function(){
 		setSetting( "minimumOverlap", widget.value);
+	};
+}
+
+function setReplaceSelector(){
+	var widget=document.getElementById("importReplaces");
+	widget.value=(getSetting( "importReplaces" ) == 0? "0" : "1" );
+	widget.onchange=function(){
+		setSetting( "importReplaces", widget.value);
 	};
 }
 
@@ -101,6 +116,86 @@ function setVersionSelector(){
 	};
 }
 
+function showDBStatusTable( db_status ) {
+	// Remove any preexisting table
+	let st = document.getElementById("status_table");
+	while(st.hasChildNodes()){
+		st.removeChild( st.firstChild );
+	}
+	let dbstatusTable=document.createElement("table");
+
+	st.appendChild(dbstatusTable);
+	let ncols = db_status.length;		// we display transposed
+	if (ncols < 2 ) {
+		alert( `Error: DB status table has only ${ncols} rows`);
+		return;
+	}
+	dbstatusTable.createCaption( ).innerHTML = 'Size of various tables in new DB';
+	dbstatusTable.style.border = '1px solid black';
+	dbstatusTable.setAttribute( 'class', 'dbstatus');
+	// first row of table
+	let tablerow = dbstatusTable.insertRow(0);
+	tablerow.style.border = '1px solid black';
+	let currCol = 0;
+
+	(tablerow.insertCell( 0 )).innerHTML = db_status[0][0];
+	let thcell = tablerow.insertCell( 1 );
+	thcell.innerHTML = "  Table:";
+	thcell.setAttribute( 'class', 'dbstatus');
+	thcell.style.fontWeight = 'bold';
+	for(let i = 1; i < ncols; i++){
+		let cell = tablerow.insertCell( -1 );
+		cell.innerHTML = db_status[i][0];
+		cell.setAttribute( 'class', 'dbstatus');
+	}
+	// 2nd row
+	tablerow = dbstatusTable.insertRow(1);
+	tablerow.style.border = '1px solid black';
+	currCol = 0;
+
+	(tablerow.insertCell( 0 )).innerHTML = db_status[0][1];
+	thcell = tablerow.insertCell( 1 );
+	thcell.innerHTML = "  Rows:";
+	thcell.setAttribute( 'class', 'dbstatus');
+	thcell.style.fontWeight = 'bold';
+	for(let i = 1; i < ncols; i++){
+		let cell = tablerow.insertCell( -1 );
+		cell.innerHTML = db_status[i][1];
+		cell.setAttribute( 'class', 'dbstatus dbstnum');
+	}
+
+}
+
+function showProfileTable( profiles ) {
+	let st = document.getElementById("profile_table");
+	while(st.hasChildNodes()){
+		st.removeChild( st.firstChild );
+	}
+	let prfTable=document.createElement("table");
+
+	st.appendChild(prfTable);
+	let nrows = profiles.length;	
+	prfTable.createCaption( ).innerHTML = 'Profile Kits';
+	prfTable.style.border = '1px solid black';
+	prfTable.setAttribute( 'class', 'dbstatus');
+	// first row of table
+	let tablerow = prfTable.insertRow(0);
+	tablerow.style.border = '1px solid black';
+
+	(tablerow.insertCell( 0 )).innerHTML = 'ID (from 23 and Me)';
+	(tablerow.insertCell( 1 )).innerHTML = 'short name' ;
+	for(let i = 0; i < nrows; i++){
+		tablerow = prfTable.insertRow(-1);
+		tablerow.style.border = '1px solid black';
+		let cell = tablerow.insertCell( 0 );
+		cell.innerHTML = profiles[i].IDprofile;
+		cell.setAttribute( 'class', 'dbstatus');
+		cell = tablerow.insertCell( 1 );
+		cell.innerHTML = profiles[i].pname;
+		cell.setAttribute( 'class', 'dbstatus');
+	}
+
+}
 
 function setSetting(item,value){
 	//check that item is in settings
@@ -145,6 +240,7 @@ function installSettings( settingsObj ) {
 	setDelaySelector();
 	setMinSharedInput();
 	setCloseTabSelector();
+	setReplaceSelector();
     setOverlapValue();
 	setNonOverlapSelector();
 
@@ -153,6 +249,10 @@ function installSettings( settingsObj ) {
     setDebugMSGSelector();
     setDebugQSelector();
 	setVersionSelector();
+
+	//showDBStatusTable( db_status_test );
+	get_db_status();
+	copy_profile_list();
 
 };
 
@@ -176,7 +276,41 @@ function load_settings() {
 	
 }
 
+function get_db_status() {
+	console.log( "get_db_status for popup");
+    try {
+		chrome.runtime.sendMessage({mode: "getDBStatus" } );	// data return via separate message
+	} catch( e ) {
+		handleMessageCatches( "getting DB status.", e );
+	}
+}
 
+function copy_profile_list() {
+	console.log( "get profile list for popup");
+    try {
+		chrome.runtime.sendMessage({mode: "getProfiles4pop" } );	// data return via separate message
+	} catch( e ) {
+		handleMessageCatches( "getting profiles for popup.", e );
+	}
+}
+
+chrome.runtime.onMessage.addListener(
+	function(request, sender, sendResponse) {
+	  console.log( `popup listener, mode: ${request.mode}`);
+	  if(request.mode == "pop_dbstatus"){
+		showDBStatusTable( request.data );
+	  } else if(request.mode == "pop_profiles"){
+		showProfileTable( request.data );
+	  } else {
+		return false;
+	  }
+	  return;
+	}
+);
+
+
+document.addEventListener('DOMContentLoaded',  function () {
+	( async() => {
 chrome.tabs.query( {} ).then(  
     (tabarr) => {
         let tabFound = -1;
@@ -187,6 +321,7 @@ chrome.tabs.query( {} ).then(
             }
         }
         if ( tabFound >= 0 ) {
+					console.log( 'Exists, loading settings immediately');
             load_settings();        // already present - just talk to it...
         } else {
             // does not exist - fire it up...
@@ -195,5 +330,7 @@ chrome.tabs.query( {} ).then(
             } );
         }
     },
-    () => { console.error( "popup: Broken promise on tab check"); }
- );
+			() => { console.error( "popup: Broken promise on results tab check"); }
+ 		)
+	} ) ();
+} );

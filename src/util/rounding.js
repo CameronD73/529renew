@@ -37,3 +37,14 @@ function round_cM(  cMvalue ) {
 function base2Mbase( addr ) {
 	return ( Number.parseFloat(addr/1000000.0).toFixed(2) );
 }
+
+/*
+* convert between 23 and Me's percent value and centiMorgans.
+* A conversion of 74.40cM/pct seems to apply, no matter whether testers are male or female.
+*/
+function pctShared2cM( pct ) {
+	return (pct * 74.4 );
+}
+function cM2pctShared( cM ){
+	return (cM / 74.4 );
+}

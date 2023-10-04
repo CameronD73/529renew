@@ -61,65 +61,12 @@ function createDBTables( db23new ){
 		function(error){alert(`Failed to create settings table for 529Renew DB. Error: ${error.message}`);},
 		function(){}
     );
-	/* Rats! cannot use Pragma in webSQL!
-	db23new.transaction(
-        function (transaction) {
-			transaction.executeSql( 'PRAGMA journal_mode=WAL;', [] );
-		},
-		function(error){alert(`Failed to set WAL mode for 529Renew local database. Error: ${error.message}`);},
-		function(){}
-    )
-	*/
 
 	db_conlog( 1, `Submitted transactions to create 529Renew local database v${dbLatestVersion}`);
 	alert(`Created 529Renew local database`);
 }
 
-/*  use none of this...
-const setting_values = '("lastCSVExportDate", ?), ("lastGEFXExportDate", ?), ("displayMode", ?), ("textSize", ?),\
-	("build", ?), ("omitAliases", ?), ("hideCloseMatches", ?), ("baseAddressRounding", ?), ("cMRounding", ?),\
-	("delay", ?), ("minimumOverlap", ?),\
-	("version", ?), ("debug_db", ?), ("debug_q", ?), ("debug_msg", ?), ("minSharedNonOverlap", ?) ';
-const set_defaults_sql = `INSERT INTO settings  (setting, value) VALUES  ${setting_values} ;`;
 
-const setting_params = [settings529.lastCSVExportDate, settings529.lastGEFXExportDate, settings529.displayMode, settings529.textSize,
-	settings529.build, settings529.omitAliases, settings529.hideCloseMatches,
-	settings529.baseAddressRounding, settings529.cMRounding, settings529.delay,  settings529.minimumOverlap,
-	settings529.version, settings529.debug_db, settings529.debug_q, settings529.debug_msg, settings529.minSharedNonOverlap
-];
-*/
-
-/*
-** dump all settings into DB list (at the moment, just as a diagnostic tool)
-*/
-function populate_settings( settingList ){
-	for( const [key, value] of  Object.entries(settingList) ) {
-		updateDBSettings( key, value );
-	}
-}
-
-/* I don't use this any more... but leave it around as a template for a new db version.
-function upgrade_1_4_to_2_0(db23new){
-	console.log( "Upgrading to 2.0");
-	db23new.transaction(
-		function(transaction){
-			// Add options table
-			transaction.executeSql('CREATE TABLE  IF NOT EXISTS settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting));', [], function(transaction, results){}, function(tr, error){return false;});
-			console.log( "executing " + set_defaults_sql);
-			transaction.executeSql( set_defaults_sql, [],
-						 function(tr, results){},
-						 function(tr, error){ console.log( "oops buggered it: "+error.code + "; msg: " +  error.message); return false;});
-		},
-		function(error){
-			if(db23new.version!="1.4") db23new.changeVersion(db23new.version, "1.4");
-		},
-		function(){
-			// note - the version number seems to be not written to db the first time, only when reopened!
-			if(db23new.version!="2.0") db23new.changeVersion(db23new.version, "2.0");
-		}
-	);
-}
-*/
 
 function init529Database() {
 	let shortName = 'db23r';

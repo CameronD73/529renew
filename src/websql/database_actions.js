@@ -9,7 +9,7 @@
 "use strict";
 
 
-db_conlog( 1, "loading DB actions");
+db_conlog( 1, "loading WebSQL DB actions");
 
 /*
 ** checkIfInDatabase() called by message listener.
@@ -17,8 +17,8 @@ db_conlog( 1, "loading DB actions");
 ** with reply.needToCompare set true of false.
 ** If true then caller should then request from (23 and me) the segment match details between these two testers.
 */
-
-function checkIfInDatabase( request, sender ) {
+/*
+function checkIfInDatabase_websql( request, sender ) {
 	db_conlog( 1, "InDB checking " + request.mode );
 	if(request.forceSegmentUpdate){
 		// Skip database query
@@ -56,49 +56,8 @@ function checkIfInDatabase( request, sender ) {
 	countMatchingSegments(request.indexId, request.matchId, messageSender, messageSenderForFailure);
 	return;
 }
+*/
 
-
-chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-	msg_conlog( 3, `dbactions listener, mode: ${request.mode}`);
-	if(request.mode == "checkIfInDatabase"){
-		checkIfInDatabase( request, sender );
-	}
-	else if(request.mode == "storeSegments"){
-		storeSegments(request);
-	}
-	else if(request.mode == "store_chr_200"){
-		save_chr200_records( request.primary, request.matchData );
-	}
-	else if(request.mode == "updateSetting"){
-		msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
-		setSetting(request.item, request.value);
-	}
-	else if(request.mode == "getSettingObj"){
-		msg_conlog( 2, `   DBactions returning all settings ` );
-		wait4Settings( 2 );
-		sendResponse( settings529 );
-	}
-	else if(request.mode == "getDebugSettings"){
-		msg_conlog( 2, `   DBactions returning debug settings ` );
-		sendResponse( {	debug_q: settings529["debug_q"],
-						debug_db: settings529["debug_db"],
-						debug_msg: settings529["debug_msg"] }  );
-	}
-	else if(request.mode == "selectUser"){
-		msg_conlog( 2, `   DBactions changing user to  ${request.userID}` );
-		updateSelectedNameViaMsg( request.userID );
-	}
-	else if ( request.mode == "displayPage" || request.mode == "killMeNow" || Object.keys(request).includes("url")) {
-		return false;		// leave this for service script to handle
-	} else {
-		let errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
-		console.log( errmsg, request);
-		alert ( errmsg);
-		return false;		// not handled here
-	}
- 	return ; // returns are either synchronous or nothing
-});
 
 
 /*
@@ -110,14 +69,14 @@ chrome.runtime.onMessage.addListener(
 **			 "name" - the testers name or alias.
 ** matchingSegments - an array of objects - each object has details about one matching segment
 */
-function insert_OK( ){
+function insert_OK_websql( ){
 	return;
 }
-function insertRowFail( error ) {
+function insertRowFail_websql( error ) {
 	console.error( `Insert transaction failed: ${error.message}`);
 	alert( `INSERT FAILED: ${error.message}`);
 }
-function storeSegments(request) {
+function storeSegments_websql(request) {
 
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(idobj){
@@ -194,7 +153,7 @@ function storeSegments(request) {
 ** 				 (it starts as a Maps array, but gets converted to objects in the message passing - I don't know why I bothered)
 */
 
-function save_chr200_records( primary_pair, page_rows ) {
+function save_chr200_records_websql( primary_pair, page_rows ) {
 		// Store the names and ids of the matches - this will be 90% redundant, but the insert or ignore is the fastest way to 
 		// test whether or not it needs doing.
 	function makeIdAliasTransaction(id, name){

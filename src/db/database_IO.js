@@ -19,7 +19,7 @@ db_conlog( 2, "loading DB_IO script");
 // It requests count of segment hits between ID1 and ID2 that are saved in the DB.
 //     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
 
-function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
+function countMatchingSegments_wasm(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 	
 
 	function makeTransaction(id1, id2, callBackSuccess, callBackFailed){
@@ -40,7 +40,7 @@ function countMatchingSegments(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
 	db23.readTransaction(makeTransaction(id1, id2, upgradeIfNeeded, upgradeQueryFailed));
 }
 
-const sellist1 = "ibdsegs.ROWID as ROWID,\
+const sellist1_wasm = "ibdsegs.ROWID as ROWID,\
 	t1.name AS name1,\
 	t2.name AS name2,\
 	t1.idText AS id1,\
@@ -52,7 +52,7 @@ const sellist1 = "ibdsegs.ROWID as ROWID,\
 	ibdsegs.snps AS snps,\
 	ibdsegs.date as segdate";
 
-const joinlist = "ibdsegs \
+const joinlist_wasm = "ibdsegs \
 	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
 	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
 	JOIN ibdsegs t3 ON 	( \
@@ -70,7 +70,7 @@ const joinlist = "ibdsegs \
 			) \
 		)";
 
-const orderlist = "chromosome, \
+const orderlist_wasm = "chromosome, \
 	ibdsegs.start, \
 	ibdsegs.end DESC, \
 	ibdsegs.ROWID, \
@@ -81,8 +81,8 @@ const orderlist = "chromosome, \
 ** returns a table of all segment matches that overlap the one specified by
 ** input parameter segmentId (which is a ROWID value)
 */
-function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
-	const sel_short=`SELECT ${sellist1} FROM ${joinlist} ORDER BY ${orderlist}`;
+function selectSegmentMatchesFromDatabase_wasm(callbackSuccess, segmentId){
+	const sel_short=`SELECT ${sellist1_wasm} FROM ${joinlist_wasm} ORDER BY ${orderlist_wasm}`;
 	// convert base addr to MBase address.
 	const overlapParam = 1000000 * getSetting( "minimumOverlap" );
 	db_conlog( 3, `selectSegmentMatchesFromDatabase: select stmt is: ${sel_short}`);
@@ -96,7 +96,7 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 
 // Get a list of names and associated ids for whom any data are available
 // Used for displaying list of names in results page
-function getMatchesFromDatabase(callbackSuccess){
+function getMatchesFromDatabase_wasm(callbackSuccess){
 	
 	function makeTransaction(callback){
 		return function(transaction){
@@ -107,7 +107,7 @@ function getMatchesFromDatabase(callbackSuccess){
 }
 // Get a reduced list of names and associated ids for whom any data are available
 // Used for displaying filtered list of names in results page
-function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
+function getFilteredMatchesFromDatabase_wasm(filterText, callbackSuccess){
 	
 	function makeTransaction(callback){
 		var query="SELECT name, idText FROM idalias WHERE name LIKE '" +filterText + "' ORDER BY name COLLATE NOCASE";
@@ -120,7 +120,7 @@ function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
 
 
 
-function getSegsFailed( trans, error ) {
+function getSegsFailed_wasm( trans, error ) {
 	db_conlog(1, `selectFromDB failed: ${error.message}`);
 	alert( `DB get seg FAILED: ${error.message}`);
 }
@@ -132,7 +132,7 @@ function getSegsFailed( trans, error ) {
 **			 "All" for when we ask to export the entire DB.
 ** if limitDates it true then we only select those newer than previous save.
 */
-function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, includeChr100){
+function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, includeChr100){
 
 	var lowerBound=0;
 	var upperBound=24;
@@ -225,28 +225,28 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 ********************************************************
 */
 
-function importRowSuccess( ) {
+function importRowSuccess_wasm( ) {
 	decrementPendingTransactionCount( );
 	if ( (pendingTransactionCount % 100) == 1 )
 		db_conlog( 1, `       ${pendingTransactionCount} segments remaining`);
 }
 
-function importRowFail( error ) {
+function importRowFail_wasm( error ) {
 	db_conlog( 1, `Import transact failed: ${error.message}`);
 	alert( `INSERT FAILED: ${error.message}`);
 	decrementPendingTransactionCount();
 }
 
-function requestDeletionFromDatabase(){
+function requestDeletionFromDatabase_wasm(){
 	if(confirm("Destroy your 529Renew local database?\n(ALL saved content will be lost)") ){
 		DBworker.postMessage( { reason: 'deleteAllData' });
 	}
 	alert( 'Now close this "529Renew Results" tab, shutdown Chrome and restart');
 }
 
-function updateDBSettings( key, value ) {
+function updateDBSettings_wasm( key, value ) {
 	if ( db_initialised ) {
-		// nothing we cazn do if this is called too early
+		// nothing we can do if this is called too early
 		DBworker.postMessage( { reason: 'updateDBSettings', newsetting: {key: key, value:value} });
 	}
 }
