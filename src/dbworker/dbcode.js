@@ -21,16 +21,16 @@ var DBwasm = {
             'settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting))',
             'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null )',
 
-            'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
+            'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
 
-            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden) )',
+            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden) )',
 
-            'ibdsegs(ID1 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
+            'ibdsegs(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
 
 
-            'ibdsegsFull(ID1 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
+            'ibdsegsFull(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
 
-            'ICWSets (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(idText) DEFERRABLE INITIALLY DEFERRED, overlap INTEGER DEFAULT NULL, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
+            'ICWSets (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, overlap INTEGER DEFAULT NULL, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
             'ICWSegXref ( ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL )'
         ];
 
@@ -118,7 +118,6 @@ var DBwasm = {
         let rows = [];
         let options = {
             resultRows: rows,
-            //rowMode: 'array'
             rowMode: 'object'
         };
         try{
@@ -130,6 +129,36 @@ var DBwasm = {
         //conlog( 4, 'DB profile list gave: ', rows);
         return rows;
 
+    },
+
+    get_matches_list( filter ) {
+        let qry = "SELECT name, IDText FROM idalias ";
+        if ( filter ) {
+            qry +=  'WHERE name like ?';
+        }
+        qry += " ORDER BY name COLLATE NOCASE";
+        let rows = [];
+        try{
+            if ( filter ) {
+                DB529.exec( qry, {
+                        resultRows: rows,
+                        rowMode: 'object',
+                        bind: [filter]
+                    }
+                );
+            } else {
+                DB529.exec( qry, {
+                        resultRows: rows,
+                        rowMode: 'object'
+                    }
+                );
+            }
+        } catch( e ) {
+            conerror( `DB get_matches list: ${e.message}`);
+            return( [ ] );
+        }
+        //console.log( 'DB summary gave: ', rows);
+        return rows;
     },
 
     updateDBSettings: function( data) {
@@ -154,9 +183,9 @@ var DBwasm = {
         const today = formattedDate2();
         let update_qry_part = '';
         if( hashap ) {
-            update_qry_part =  `(idText, name, date, hapMat, hapPat, bYear) VALUES ($k, $name, '${today}', $hapMat, $hapPat, $byear );`;
+            update_qry_part =  `(IDText, name, date, hapMat, hapPat, bYear) VALUES ($k, $name, '${today}', $hapMat, $hapPat, $byear );`;
         } else {
-            update_qry_part =  `(idText, name, date) VALUES ($k, $name, '${today}');`;
+            update_qry_part =  `(IDText, name, date) VALUES ($k, $name, '${today}');`;
         }
         let update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO idalias' + update_qry_part;
         let rows = [];
@@ -171,6 +200,42 @@ var DBwasm = {
                 let ssret = DB529.exec( update_qry, {
                     returnValue: "saveSql",
                     bind: obj
+                } );
+                
+                let rowsaffected = DB529.changes();
+                total_rows_updated += rowsaffected; 
+                //conlog( 4, `DB MigAlias: There were ${rowsaffected} rows affected by statement ${sqlstmt}, returned ${ssret}`);
+            }
+            DB529.exec( 'COMMIT TRANSACTION;');
+        } catch( e ) {
+            conerror( `DB MigAlias: error: ${e.message}`);
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            return false;
+        }
+        conlog( 1, `DB MigAlias: finished; ${total_rows_updated} rows updated` );
+        //logHtml( null, 'finished');
+        return true;
+    },
+    
+    migrateAliasWebSQL: function( aliasmap, hashap, useReplace ) {
+        // this version is different, because 'aliasmap' is  a Map, not an SqlResultSet - but initially I tried sqlresultset
+        const today = formattedDate2();
+        let update_qry_part = '';
+        if( hashap ) {
+            update_qry_part =  `(IDText, name, date, hapMat, hapPat, bYear) VALUES ($k, $name, '${today}', $hapMat, $hapPat, $byear );`;
+        } else {
+            update_qry_part =  `(IDText, name, date) VALUES ($k, $name, '${today}');`;
+        }
+        let update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO idalias' + update_qry_part;
+        let rows = [];
+        let total_rows_updated = 0;
+
+        try{
+            DB529.exec( 'BEGIN TRANSACTION;');
+            for( const[key, obj] of aliasmap ) {
+                let ssret = DB529.exec( update_qry, {
+                    returnValue: "saveSql",
+                    bind: {$k: obj.k, $name:obj.name }
                 } );
                 
                 let rowsaffected = DB529.changes();
@@ -203,7 +268,6 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of segmap ) {
-                sqlstmt = [];
                 let ssret = DB529.exec( update_qry, {
                     returnValue: "saveSql",
                     bind: obj
@@ -223,6 +287,81 @@ var DBwasm = {
         }
         conlog( 0, `DB migrateSegMap: finished; ${total_rows_updated} rows updated.` );
         //logHtml( null, 'finished');
+        return true;
+    },
+
+    migrateFULLSegmentWebSQL: function( segmap ) {
+        logHtml( null, 'Storing FULLIDB segment pairs ...');
+        // const today = formattedDate2();
+        const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES (?,?,?,?,?,?,?);';
+        const update_qry = 'INSERT OR IGNORE INTO ibdsegsFull ' + update_qry_part;
+
+        let total_rows_updated = 0;
+
+        try{
+            //DB529.exec( 'PRAGMA synchronous=FULL;');
+            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
+            DB529.exec( 'BEGIN TRANSACTION;');
+            let loopcount = 1;
+            for( const[key, o] of segmap ) {
+                let ssret = DB529.exec( update_qry, {
+                    returnValue: "saveSql",
+                    bind: [o.id1, o.id2, o.chromosome, o.start, o.end, o.cM, o.snps]
+                } );
+                let rowsaffected = DB529.changes();
+                total_rows_updated += rowsaffected; 
+                if ( ++loopcount % 10000 == 0 ) {
+                    DB529.exec( 'COMMIT TRANSACTION;');         
+                    DB529.exec( 'BEGIN TRANSACTION;');
+                }
+            }
+            DB529.exec( 'COMMIT TRANSACTION;');
+        } catch( e ) {
+            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows, with stmt ${sqlstmt}`);
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            return false;
+        }
+        let msg = `DB migrateSegMap: finished; ${total_rows_updated} rows updated.`;
+        conlog( 0, msg );
+        logHtml( null, msg);
+        return true;
+    },
+
+    migrateSegmentWebSQL: function( segmap ) {
+        logHtml( null, 'Storing other segment pairs (this may take a while)...');
+        // const today = formattedDate2();
+        const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES (?,?,?,?,?,?,?);';
+
+        const update_qry = 'INSERT OR IGNORE INTO ibdsegs' + update_qry_part;
+        let total_rows_updated = 0;
+
+        try{
+            //DB529.exec( 'PRAGMA synchronous=FULL;');
+            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
+            DB529.exec( 'BEGIN TRANSACTION;');
+            let loopcount = 1;
+            for( const[key, o] of segmap ) {
+                let ssret = DB529.exec( update_qry, {
+                    returnValue: "saveSql",
+                    bind: [o.id1, o.id2, o.chromosome, o.start, o.end, o.cM, o.snps]
+                } );
+                let rowsaffected = DB529.changes();
+                total_rows_updated += rowsaffected; 
+                if ( ++loopcount % 10000 == 0 ) {
+                    DB529.exec( 'COMMIT TRANSACTION;'); 
+                    logHtml( '', `Row ${loopcount}`);        
+                    DB529.exec( 'BEGIN TRANSACTION;');
+                }
+            }
+            DB529.exec( 'COMMIT TRANSACTION;');
+        } catch( e ) {
+            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            return false;
+        }
+        let msg = `DB migrate WebSQLSegMap: finished; ${total_rows_updated} rows updated.`;
+        conlog( 0, msg );
+        logHtml( null, msg);
         return true;
     },
 

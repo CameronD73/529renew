@@ -8,6 +8,13 @@
 
 db_conlog( 1, "loading DB actions");
 
+function updateDNAtesterlist( results ) {
+	DNAtesters.clear();
+	for( let i = 0 ; i < results.length; i++ ) {
+		const nr = results[i];
+		DNAtesters.set( nr.IDText, {ID:nr.IDText, name: nr.name});
+	}
+}
 /*
 ** checkIfInDatabase() called by message listener.
 **  sends reply back to sender in request mode: returnNeedCompare
@@ -78,7 +85,7 @@ function storeSegments(request) {
 	function makeIdAliasTransaction(idobj){
 		return function(transaction){
 			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
+			transaction.executeSql('INSERT or IGNORE INTO idalias ( IDText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
 		};
 	}
 
@@ -155,7 +162,7 @@ function save_chr200_records( primary_pair, page_rows ) {
 	function makeIdAliasTransaction(id, name){
 		return function(transaction){
 			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [id, name]);
+			transaction.executeSql('INSERT or IGNORE INTO idalias ( IDText, name, "date" ) VALUES(?, ?, date() );', [id, name]);
 		};
 	}
 	if ( primary_pair.pct_shared > 0.0 ) {

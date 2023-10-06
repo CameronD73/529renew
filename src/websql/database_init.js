@@ -11,6 +11,7 @@
 
 db_conlog( 1, "loading DB init code");
 
+let hasWebSQL_database = false;
 
 const dbLatestVersion = "3.0";
 
@@ -78,11 +79,13 @@ function init529Database() {
 	db_conlog( 1, `initialising ${displayName}`);
 	try {
 	    if (!window.openDatabase) {
-	        alert('SQL Databases are not supported in this browser.');
+	        alert('WebSQL Databases are not supported in this browser.');
+			hasWebSQL_database = false;
 	    } else {
 			console.log( "opening DB" );
 	        dbobj = openDatabase(shortName, version, displayName, maxSize, (db23new) => {createDBTables(db23new)} );
 	        if(dbobj==null) alert(`Failed to open a local 529Renew database, version ${version}`);
+			else hasWebSQL_database = true;
 	    }
 	} catch(e) {
 	    if (e.name == "INVALID_STATE_ERR" || e.name== "InvalidStateError") {

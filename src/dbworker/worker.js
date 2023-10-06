@@ -50,6 +50,13 @@ self.onmessage = function processMessages( msg ) {
       debugLevel = content.value;
     break;
 
+    case "getMatchList":
+      conlog( 0, 'getMatchList rcvd by worker');
+      let matchList = DBwasm.get_matches_list( content.filter );
+      conlog(0, `matchlist returned ${matchList.length} rows, for ${content.purpose}`);
+      postMessage( {reason:'return_matchlist', payload: matchList, purpose:content.purpose});
+    break;
+
     case "getSummary":
       let retval = DBwasm.get_summary();  // synchronous, so we can just send result back
       postMessage( {reason: 'summary_return', payload: retval } );
@@ -99,6 +106,22 @@ function processMigrations( content ) {
       DBwasm.migrateSegmentMap(content.amap, 'ibdsegsFull', content.useReplace); 
     break;
 
+    case "migrateWebSQLAlias":
+      let retvalwsa = DBwasm.migrateAliasWebSQL(content.sqlres, false, content.useReplace); 
+      postMessage( {reason: 'webSQLAlias_return', payload: retvalwsa } );
+    break;
+
+    case "migrateWebSQLFULLSegs":
+      let retvalwsfs = DBwasm.migrateFULLSegmentWebSQL( content.sqlres ); 
+      postMessage( {reason: 'webSQLFULLSeg_return', payload: retvalwsfs } );
+    break;
+
+    case "migrateWebSQLSegs":
+      let retvalwshs = DBwasm.migrateSegmentWebSQL( content.sqlres ); 
+      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
+    break;
+
+
     case "migrateAliasmap23":
       DBwasm.migrateAliasmap(content.amap, true, content.useReplace); 
     break;
@@ -127,6 +150,8 @@ function processMigrations( content ) {
       DBwasm.migrateMatchMap(content.amap, 'MatchHidden', content.useReplace); 
     break;
 
+    default:
+      conerror( `Invalid migrate parameter: "${reason}"`);
   }
 }
 

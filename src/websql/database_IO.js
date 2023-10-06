@@ -15,7 +15,125 @@ db_conlog( 2, "loading DB_IO script");
 * the following group of functions read from the database
 ********************************************************
 */
+function migIDQueryFailed(trans, error ) {
+	let msg = `migrate idalias call failed with ${error.message}`;
+	db_conlog( 1, msg );
+	alert( msg );
+}
 
+function newset( newmap, sqlresults ) {
+	for( let i = 0; i < sqlresults.length; i++) {
+		newmap.set( i, sqlresults[i]);
+	}
+}
+
+// get the adalias table for migration
+function  getWebsqlAliasTable( ) {
+	
+	function makeTransaction( callBackSuccess, callBackFailed){
+
+		return function(transaction){
+			transaction.executeSql('SELECT idText as k, name  from idalias',[], callBackSuccess, callBackFailed);
+		};
+	}
+	db23.readTransaction(makeTransaction( processWebsqlAliasTable, migIDQueryFailed));
+}
+
+function processWebsqlAliasTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old Alias Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg = `ID table has ${resultSet.rows.length} rows `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	// the SQLResultSetRowList is not iterable nor clonable, so cannot be passed to the worker, need to transmogrify it
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLAlias', sqlres: wat, useReplace:false } );
+	return;
+}
+
+function  getWebsqlFULLSegsTable( ) {
+	function makeTransaction( callBackSuccess, callBackFailed){
+
+		return function(transaction){
+			// this query gets a close approximation to the full-IBD segments that were overlapping.
+			const qry_fullibd = 'select  id1, id2,  chromosome,	sa.start as start,  sa.end as end,  \
+					sa.cM as cM,  sa.snps as snps, sa._rowid_ as rowa \
+				FROM ibdsegs as sa  JOIN ibdsegs as sb USING (id1, id2, chromosome ) \
+				WHERE sa._rowid_ != sb._rowid_ \
+					AND chromosome < 50 \
+					AND  ( ( sa.start BETWEEN sb.start and sb.end  AND sa.snps <= sb.snps ) \
+						OR ( sa.end BETWEEN sb.start and sb.end AND sa.snps < sb.snps ) );'
+
+			transaction.executeSql( qry_fullibd,[], callBackSuccess, callBackFailed);
+		};
+	}
+	db23.readTransaction(makeTransaction( processWebsqlFULLSegsTable, migIDQueryFailed));
+}
+
+
+function processWebsqlFULLSegsTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old IBDsegs Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} Full identical segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	// console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLFULLSegs', sqlres: wat, useReplace:false } );
+	return;
+}
+
+function  getWebsqlHALFSegsTable( ) {
+	
+	function makeTransaction( callBackSuccess, callBackFailed){
+
+		return function(transaction){
+			// query to select all except those tagged as full-ibd
+			let qry = 'SELECT id1, id2, chromosome, start, end, cM, snps, date from ibdsegs where _rowid_ not in ' +
+					'( select  sa._rowid_ as rownum from ibdsegs as sa JOIN ibdsegs as sb USING (id1, id2, chromosome )' +
+						'WHERE sa._rowid_ != sb._rowid_	AND chromosome < 50 '+
+					   'AND  ( ( sa.start BETWEEN sb.start and sb.end  AND sa.snps <= sb.snps ) '+
+						   'OR ( sa.end BETWEEN sb.start and sb.end AND sa.snps < sb.snps ) ) );';
+			transaction.executeSql( qry,[], callBackSuccess, callBackFailed);
+		};
+	}
+	logHtml( '', 'Reading main segment table..');
+	db23.readTransaction(makeTransaction( processWebsqlSegsTable, migIDQueryFailed));
+}
+
+
+function processWebsqlSegsTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old IBDsegs Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} other ibd segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: wat, useReplace:false } );
+	return;
+}
+
+
+/* ***********************************************************************************************
+**** ================================   the following needs wasm  replacement 
+***********************************************************************************************/
 // id1 and id2 are the text representation of the 23 and me UID
 // It requests count of segment hits between ID1 and ID2 that are saved in the DB.
 //     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
@@ -101,32 +219,6 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	db23.readTransaction(makeTransaction(callbackSuccess));
 }
 
-// Get a list of names and associated ids for whom any data are available
-// Used for displaying list of names in results page
-function getMatchesFromDatabase(callbackSuccess){
-	
-	function makeTransaction(callback){
-		return function(transaction){
-			transaction.executeSql('SELECT name, idText FROM idalias ORDER BY name COLLATE NOCASE', [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-// Get a reduced list of names and associated ids for whom any data are available
-// Used for displaying filtered list of names in results page
-function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
-	
-	function makeTransaction(callback){
-		var query="SELECT name, idText FROM idalias WHERE name LIKE '" +filterText + "' ORDER BY name COLLATE NOCASE";
-		return function(transaction){
-			transaction.executeSql(query, [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-
-
-
 function getSegsFailed( trans, error ) {
 	db_conlog(1, `selectFromDB failed: ${error.message}`);
 	alert( `DB get seg FAILED: ${error.message}`);
@@ -137,7 +229,7 @@ function getSegsFailed( trans, error ) {
 ** either as display on page or save to csv or gexf files.
 ** - in: id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
-** if limitDates it true then we only select those newer than previous save.
+** if limitDates is true then we only select those newer than previous save.
 */
 function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, includeChr100){
 
@@ -390,8 +482,8 @@ function import529CSV(lineList, nFields, callback){
 
 }
 
-function deleteAllData(callbackSuccess){
-	if(confirm("Delete all data stored in your 529Renew local database?")){
+function deleteAllDataWebSQL(callbackSuccess){
+	if(confirm("Delete all data stored in your OLD 529Renew local database?\nHave you checked data migration?")){
 		db23.transaction(
 			function(transaction) {
 				transaction.executeSql("DELETE from ibdsegs",[]);		// this is sqlite's TRUNCATE equivalent
@@ -399,15 +491,4 @@ function deleteAllData(callbackSuccess){
 			}, function(){alert("Failed to delete data stored in 529Renew local database");}, callbackSuccess
 		);
 	}
-}
-
-function updateDBSettings( key, value ) {
-	
-	//const update_qry = `UPDATE settings  SET  value = ? WHERE setting = ?  ;`;
-	const update_qry =  `INSERT OR REPLACE INTO settings (setting, value) VALUES (?,?);`;
-	db23.transaction(
-		function(transaction) {
-			transaction.executeSql( update_qry, [key, value] );
-		}, function(){alert(`Failed to update setting ${key} to ${value} in 529Renew database`);} 
-	);
 }

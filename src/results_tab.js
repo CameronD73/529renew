@@ -500,7 +500,7 @@ function createImportProfileButton(){
 function createImport23Button(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Import 23+Me CSV";
-	newButton.title='Import a CSV file that was previously saved from 23andMe "DNA Relatives download"';
+	newButton.title='Import one or more CSV files previously saved from 23andMe "DNA Relatives download"';
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){
 		if ( profile_summary[0].IDprofile === 'none') {
@@ -513,6 +513,24 @@ function createImport23Button(){
 	document.getElementById("upfile23").addEventListener('change', requestImport23CSV);
 }
 
+function createMigrateWebsqlButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Migrate V1 DB";
+	newButton.title='migrate the content directly from the old DB to the new';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', requestMigrateWebsql );
+	document.getElementById("buttonInRow").appendChild(newButton);
+}
+
+function createMigrationFinaliseButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Finalise Migration";
+	newButton.title='This builds a few ancillary tables from the imported data. It is safe to run twice';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', requestMigrationFinalise );
+	document.getElementById("buttonInRow").appendChild(newButton);
+}
+
 function createImport529Button(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Import 529 CSV";
@@ -523,11 +541,18 @@ function createImport529Button(){
 	document.getElementById("upfile529").addEventListener('change', requestImport529CSV);
 }
 
-function createDeleteButton(){
+function createDeleteWASMButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete All 529renew Data";
+	newButton.innerHTML="Delete 529renew New Database";
 	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', function(){requestDeletionFromDatabase();});
+	newButton.addEventListener('click', requestDeletionFromDatabase);
+	document.getElementById("buttonInRow").appendChild(newButton);
+}
+function createDeleteWebSQLButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Empty OLD 529renew Database";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', deleteAllDataWebSQL);
 	document.getElementById("buttonInRow").appendChild(newButton);
 }
 /* ========= end of button creation ============= */
@@ -538,7 +563,7 @@ function clearFilterText() {
 		ftb.value="";
 	}
 	document.getElementById("clearFilterButton").style.visibility="hidden";
-	getMatchesFromDatabase(createNameSelector);
+	getFilteredMatchesFromDatabase( '' );
 }
 
 function createClearFilterButton(){
@@ -553,7 +578,7 @@ function createClearFilterButton(){
 
 
 function resetAfterDeletion(){
-	getMatchesFromDatabase(createNameSelector);
+	getFilteredMatchesFromDatabase( '' );
 	requestSelectFromDatabase(false, false);
 	alert("All data stored in your 529renew local database has been deleted");
 }
@@ -643,15 +668,11 @@ function finaliseUpdateSelectedName( ) {
 	document.getElementById("selectName").value = idstr;
 }
 
-// This is the callback from the DB search of names (possibly filtered)
+// This is the function called after the DB search of names (possibly filtered)
 // each row of the results gives the "name" and the "id" as a string
-function createNameSelector(transaction, results){
-	// Remove existing nodes
-	if(results.message){
-		alert("Failed to retrieve list of people for whom match data are available");
-		return;
-	}
+function createNameSelector(results){
 
+	// Remove existing nodes
 	var el=document.getElementById("selectName");
 	while(el.hasChildNodes()){
 		el.removeChild(el.lastChild);
@@ -665,21 +686,20 @@ function createNameSelector(transaction, results){
 		op.selected=true;
 	}
 	// create list of names from db query return
-	// each row is name, idtext
-	for(let i=0; i<results.rows.length; i++){
-		//let row = results.rows.item(i);
-		let row = results.rows[i];
+	// each row is an object with name, IDText
+	for(let i=0; i<results.length; i++){
+		let row = results[i];	
 		let op=document.createElement('option');
 		op.text=row.name;
-		op.value=row.idText;
+		op.value=row.IDText;
 		el.appendChild(op);
 	}
 	// now that we have updated the name list we can assign the required person.
 	finaliseUpdateSelectedName(  );
 }
 
-// This is the callback from the DB search of names (possibly filtered)
-// each row of the results gives the "name" and the "id" as a string
+// This is the return from the DB search of names (possibly filtered)
+// parameters have been saved to the global profile_summary
 function createKitSelector( ){
 	// Remove existing nodes
 	var el=document.getElementById("selectKit");
@@ -1742,6 +1762,8 @@ function displayMatchingSegments(rowid, name1, name2, id1, id2){
 
 // display match table on screen
 function requestSelectFromDatabase(shiftIsDown, altIsDown){
+	alert( 'Does nothing yet');
+	return;
 	let namesel = document.getElementById("selectName");
 	let chromsel = document.getElementById("chromosome");
 	if(namesel.selectedIndex<0) return;
@@ -1761,6 +1783,8 @@ function requestSelectFromDatabase(shiftIsDown, altIsDown){
 }
 
 function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
+	alert( 'Does nothing yet');
+	return;
 	let namesel = document.getElementById("selectName");
 	if(namesel.selectedIndex<0) return;
 	expectedName=namesel.options[namesel.selectedIndex].text;
@@ -1779,6 +1803,8 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 	}
 }
 function requestSelectFromDatabaseForGEXF(){
+	alert( 'Does nothing yet');
+	return;
 	let namesel = document.getElementById("selectName");
 	let chromsel = document.getElementById("chromosome");
 	if(namesel.selectedIndex<0) return;
@@ -1801,6 +1827,14 @@ function CSV_loadDone( newSize ){
 	alert(`CSV file parsing complete in ${elapsed} seconds,\n database updated, now ${newSize} bytes`);
 	// don't remember why I needed to refresh the page - block for now so we can see output
 	// location.reload(true); 
+}
+
+function WebSQLMigrateDone(  ){
+	let elapsed = secondsToday() - migration_started;
+
+	document.getElementById("docBody").style.cursor="pointer";
+
+	alert(`Migration of old DB complete in ${elapsed} seconds.`);
 }
 
 function requestImportProfiles(evt){
@@ -1852,6 +1886,7 @@ function sortFileList( fileList, oldestFirst ) {
 		return flist3;
 	}
 }
+
 function requestImport529CSV(evt){
 	evt.stopPropagation();
 	evt.preventDefault();
@@ -1945,7 +1980,8 @@ function dumpSqlite3DB(arrbuf) {
 	let bufferblob = new Blob( [arrbuf], {type:'application/octet-stream'} );
 	let fname = "529wasm" + "_" + formattedDate()+ ".sqlite";
 	saveAs(bufferblob, fname);
-	alert( `Saved to file ${fname}, size : ${fsstring}` );
+	// The saveAs is async, so the alert usually appears before the saveAs dialogue box.
+	//alert( `Saved to file ${fname}, size : ${fsstring}` );
 }
 
 function askDumpSqlite3DB() {
@@ -1958,20 +1994,22 @@ document.addEventListener('DOMContentLoaded',  function () {
 	console.log( `DomContent event - getting settings`);
 	const settingStatus = await retrieveSettingsP();
 	console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
-		// setSetting( "debug_msg", "3");
-		// setSetting( "debug_db", "2");
-		createMatchTableButton();
+
+	createMatchTableButton();
 	createCSVButton();
 	createGEXFButton();
 	createSVGButton();
-		createDBDumpButton();
+	createDBDumpButton();
 
-		createKitSelector();
-		createImportProfileButton();
-		createImport23Button();
-		createImport529Button();
+	createKitSelector();
+	createImportProfileButton();
+	createImport23Button();
+	createMigrateWebsqlButton();
+	createMigrationFinaliseButton();
+	createImport529Button();
 	createClearFilterButton();
-	createDeleteButton();
+	createDeleteWASMButton();
+	createDeleteWebSQLButton();
 
 	setDisplayModeSelector();
 	setTextSizeSelector();
@@ -1982,11 +2020,10 @@ document.addEventListener('DOMContentLoaded',  function () {
 	document.getElementById("selectNameFilter").onchange=function(){
 		if(document.getElementById("selectNameFilter").value.length>0){
 			document.getElementById("clearFilterButton").style.visibility="visible";
-			getFilteredMatchesFromDatabase(document.getElementById("selectNameFilter").value, createNameSelector);
+			getFilteredMatchesFromDatabase(document.getElementById("selectNameFilter").value );
 		}
 		else{
 			document.getElementById("clearFilterButton").style.visibility="hidden";
-			getMatchesFromDatabase(createNameSelector);
 		}
 	};
 	} )();
@@ -1998,24 +2035,18 @@ document.addEventListener('DOMContentLoaded',  function () {
 	** the DB setup is completed
 	*/
 function post_DB_init_setup() {
-	/*
-	getMatchesFromDatabase(createNameSelector);
-	*/
-	{
-		let results={
-			ID: 'fake',
-			length: 4,
-			rows: [
-				{name:'able', idText: 'idaaa'},
-				{name:'baker', idText: 'idbbb'},
-				{name:'charlie', idText: 'idccc'},
-				{name:'delta', idText: 'idddd'}
-			]
-		};
-		// FIXME  getMatchesFromDatabase(createNameSelector); 
-		createNameSelector( undefined, results);
-	};
 
-	DBworker.postMessage( {reason:'getProfiles'} ); 
+	let results= [
+		{name:'able', IDText: 'idaaa'},
+		{name:'baker', IDText: 'idbbb'},
+		{name:'charlie', IDText: 'idccc'},
+		{name:'delta', IDText: 'idddd'}
+	];
+
+	createNameSelector( results );
+	getFilteredMatchesFromDatabase( '' );
+	populateDNATesters();  
+
+	DBworker.postMessage( {reason:'getProfiles'} );
 	populate_settings();
 }

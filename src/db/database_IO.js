@@ -43,8 +43,8 @@ function countMatchingSegments_wasm(id1, id2, upgradeIfNeeded, upgradeQueryFaile
 const sellist1_wasm = "ibdsegs.ROWID as ROWID,\
 	t1.name AS name1,\
 	t2.name AS name2,\
-	t1.idText AS id1,\
-	t2.idText AS id2,\
+	t1.IDText AS id1,\
+	t2.IDText AS id2,\
 	ibdsegs.chromosome AS chromosome,\
 	ibdsegs.start AS start,\
 	ibdsegs.end AS end,\
@@ -53,8 +53,8 @@ const sellist1_wasm = "ibdsegs.ROWID as ROWID,\
 	ibdsegs.date as segdate";
 
 const joinlist_wasm = "ibdsegs \
-	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
-	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
+	JOIN idalias t1 ON (t1.IDText=ibdsegs.id1 ) \
+	JOIN idalias t2 ON (t2.IDText=ibdsegs.id2 ) \
 	JOIN ibdsegs t3 ON 	( \
 		t3.ROWID=? \
 		AND (  	( \
@@ -95,29 +95,22 @@ function selectSegmentMatchesFromDatabase_wasm(callbackSuccess, segmentId){
 }
 
 // Get a list of names and associated ids for whom any data are available
-// Used for displaying list of names in results page
-function getMatchesFromDatabase_wasm(callbackSuccess){
+// Used for storing a name/ID list for later use
+function populateDNATesters( ){
 	
-	function makeTransaction(callback){
-		return function(transaction){
-			transaction.executeSql('SELECT name, idText FROM idalias ORDER BY name COLLATE NOCASE', [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
+	DBworker.postMessage( {reason:"getMatchList", filter:'', purpose:'store'} );
 }
 // Get a reduced list of names and associated ids for whom any data are available
-// Used for displaying filtered list of names in results page
-function getFilteredMatchesFromDatabase_wasm(filterText, callbackSuccess){
-	
-	function makeTransaction(callback){
-		var query="SELECT name, idText FROM idalias WHERE name LIKE '" +filterText + "' ORDER BY name COLLATE NOCASE";
-		return function(transaction){
-			transaction.executeSql(query, [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
+// Used for displaying filtered list of names in results page (or full list if filter is emmpty string)
+function getFilteredMatchesFromDatabase( filterText ){
+
+	DBworker.postMessage( {reason:"getMatchList", filter:filterText, purpose:'select'} );
 }
 
+function requestMigrationFinalise ( evt ) {
+	alert( 'Nope, not yet' );
+	return;
+}
 
 
 function getSegsFailed_wasm( trans, error ) {
@@ -147,13 +140,13 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 				ibdsegs.ROWID as ROWID, \
 				t1.name AS name1, \
 				t2.name AS name2, \
-				t1.idText AS id1, \
-				t2.idText AS id2, \
+				t1.IDText AS id1, \
+				t2.IDText AS id2, \
 				chromosome, start, end, cM, snps, \
 				ibdsegs.date as segdate \
 			FROM ibdsegs \
-			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
-			JOIN idalias t2 ON (t2.idText=ibdsegs.id2)  WHERE ';
+			JOIN idalias t1 ON (t1.IDText=ibdsegs.id1) \
+			JOIN idalias t2 ON (t2.IDText=ibdsegs.id2)  WHERE ';
 		//const qry_build = ' build=?  AND ';
 		const qry_cond = '(chromosome>? AND chromosome<?) ';
 		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome >= 100) ';
@@ -182,13 +175,13 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 				ibdsegs.ROWID as ROWID, \
 				t1.name AS name1, \
 				t2.name AS name2, \
-				t1.idText AS id1, \
-				t2.idText AS id2, \
+				t1.IDText AS id1, \
+				t2.IDText AS id2, \
 				chromosome, start, end, cM, snps, \
 				ibdsegs.date as segdate  \
 			FROM ibdsegs \
-			JOIN idalias t1 ON (t1.idText=ibdsegs.id1) \
-			JOIN idalias t2 ON (t2.idText=ibdsegs.id2) \
+			JOIN idalias t1 ON (t1.IDText=ibdsegs.id1) \
+			JOIN idalias t2 ON (t2.IDText=ibdsegs.id2) \
 			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) ';
 		// const qyr_build = 'AND build=? ';
 		const qry_cond = 'AND chromosome>? AND chromosome<? ';
@@ -225,26 +218,26 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 ********************************************************
 */
 
-function importRowSuccess_wasm( ) {
-	decrementPendingTransactionCount( );
-	if ( (pendingTransactionCount % 100) == 1 )
-		db_conlog( 1, `       ${pendingTransactionCount} segments remaining`);
+
+// this is a kludge of webSQL callbacks and webworker message passing...
+function requestMigrateWebsql( evt ) {
+	
+	evt.stopPropagation();
+	evt.preventDefault();
+	document.getElementById("docBody").style.cursor="wait";
+	migration_started = secondsToday();
+
+	getWebsqlAliasTable();
 }
 
-function importRowFail_wasm( error ) {
-	db_conlog( 1, `Import transact failed: ${error.message}`);
-	alert( `INSERT FAILED: ${error.message}`);
-	decrementPendingTransactionCount();
-}
-
-function requestDeletionFromDatabase_wasm(){
-	if(confirm("Destroy your 529Renew local database?\n(ALL saved content will be lost)") ){
+function requestDeletionFromDatabase(){
+	if(confirm("Destroy your new 529Renew local database?\n(ALL saved content will be lost)") ){
 		DBworker.postMessage( { reason: 'deleteAllData' });
+		alert( 'Now close this "529Renew Results" tab, shutdown Chrome and restart');
 	}
-	alert( 'Now close this "529Renew Results" tab, shutdown Chrome and restart');
 }
 
-function updateDBSettings_wasm( key, value ) {
+function updateDBSettings( key, value ) {
 	if ( db_initialised ) {
 		// nothing we can do if this is called too early
 		DBworker.postMessage( { reason: 'updateDBSettings', newsetting: {key: key, value:value} });

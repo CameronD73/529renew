@@ -17,6 +17,8 @@ const logHtml = function (cssClass, ...args) {
 
 const DBworker = new Worker('dbworker/worker.js?sqlite3.dir=jswasm');
 
+let DNAtesters = new Map();
+
 // Handle messages coming back from the DB worker
 DBworker.onmessage = function ( msg ) {
   let data = msg.data;
@@ -60,11 +62,19 @@ DBworker.onmessage = function ( msg ) {
     break;
     
     case 'DBloaded_for_dump':
-      db_conlog( 0, `received ${data.payload.byteLength} bytes data type: ` );
-      //console.log( typeof data.payload );
+      db_conlog( 1, `received ${data.payload.byteLength} bytes data : ` );
       dumpSqlite3DB( data.payload);
     break;
-    
+     
+    case 'return_matchlist':
+      db_conlog( 1, `received ${data.payload.length} records for ${data.purpose}. ` );
+	  if ( data.purpose == 'select') {
+		createNameSelector( data.payload );
+	  } else {
+		updateDNAtesterlist( data.payload );
+	  }
+    break;
+   
 	case 'import_23_done':
 	  	// this can select and process multiple files, so go again if we have more files to process.
 		if ( CSV23Store.filelist.length > 0 ) {
@@ -73,6 +83,19 @@ DBworker.onmessage = function ( msg ) {
 			CSV_loadDone( data.newsize );
 		}
 	break;
+
+	case 'webSQLAlias_return':
+		getWebsqlFULLSegsTable();
+	break;
+
+	case 'webSQLFULLSeg_return':
+		getWebsqlHALFSegsTable();
+	break;
+
+	case 'webSQLSeg_return':
+		WebSQLMigrateDone();
+	break;
+
 
 	case 'migrate_529_done':
       CSV_loadDone( data.newsize );
