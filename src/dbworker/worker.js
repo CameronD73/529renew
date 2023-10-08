@@ -107,19 +107,30 @@ function processMigrations( content ) {
     break;
 
     case "migrateWebSQLAlias":
-      let retvalwsa = DBwasm.migrateAliasWebSQL(content.sqlres, false, content.useReplace); 
+      let retvalwsa = DBwebSQL.migrateAliasWebSQL(content.sqlres, false, content.useReplace); 
       postMessage( {reason: 'webSQLAlias_return', payload: retvalwsa } );
     break;
 
     case "migrateWebSQLFULLSegs":
-      let retvalwsfs = DBwasm.migrateFULLSegmentWebSQL( content.sqlres ); 
+      let retvalwsfs = DBwebSQL.migrateFULLSegmentWebSQL( content.sqlres ); 
       postMessage( {reason: 'webSQLFULLSeg_return', payload: retvalwsfs } );
     break;
 
     case "migrateWebSQLSegs":
-      let retvalwshs = DBwasm.migrateSegmentWebSQL( content.sqlres ); 
+      let retvalwshs = DBwebSQL.migrateSegmentWebSQL( content.sqlres ); 
       postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
     break;
+
+    case "migrateWebSQLSegs":
+      let retvalwshs = DBwebSQL.migrateSegmentWebSQL( content.sqlres ); 
+      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
+    break;
+
+    case "migrateWebSQLchr200":
+      let retvalwshs = DBwebSQL.migrateChr200WebSQL( content.sqlres1, content.sqlres2 ); 
+      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
+    break;
+
 
 
     case "migrateAliasmap23":

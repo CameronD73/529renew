@@ -20,6 +20,11 @@ function migIDQueryFailed(trans, error ) {
 	db_conlog( 1, msg );
 	alert( msg );
 }
+function migSegFailed(trans, error ) {
+	let msg = `migrate segment info failed with ${error.message}`;
+	db_conlog( 1, msg );
+	alert( msg );
+}
 
 function newset( newmap, sqlresults ) {
 	for( let i = 0; i < sqlresults.length; i++) {
@@ -114,9 +119,8 @@ function  getWebsqlFULLSegsTable( ) {
 			transaction.executeSql( qry_fullibd,[], callBackSuccess, callBackFailed);
 		};
 	}
-	db23.readTransaction(makeTransaction( processWebsqlFULLSegsTable, migIDQueryFailed));
+	db23.readTransaction(makeTransaction( processWebsqlFULLSegsTable, migSegFailed));
 }
-
 
 function processWebsqlFULLSegsTable(transaction, resultSet){
 	if(resultSet.message){
@@ -150,9 +154,8 @@ function  getWebsqlHALFSegsTable( ) {
 		};
 	}
 	logHtml( '', 'Reading main segment table..');
-	db23.readTransaction(makeTransaction( processWebsqlSegsTable, migIDQueryFailed));
+	db23.readTransaction(makeTransaction( processWebsqlSegsTable, migSegFailed));
 }
-
 
 function processWebsqlSegsTable(transaction, resultSet){
 	if(resultSet.message){
@@ -168,6 +171,66 @@ function processWebsqlSegsTable(transaction, resultSet){
 	console.log( `newset returned ${wat.size} rows` );
 
 	DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: wat, useReplace:false } );
+	return;
+}
+
+let chr200rels = new Map();
+let chr200mats = new Map();
+
+function  getWebsqlchr200_rels( ) {
+
+	logHtml( '', 'Reading hidden rels..');
+	db23.readTransaction( 
+		function(transaction){
+			let qry = 'select ID1, ID2, end as hidden, snps * 0.001 as pctshared, snps * 0.0744 as cMtotal, 0 as hasSegs from ibdsegs \
+				WHERE chromosome > 150 AND (  id1 in (select IDprofile from profiles) OR  id2 in (select IDprofile from profiles)) \
+				group by ID1, ID2;';
+			transaction.executeSql( qry,[], processWebsqlchr200_rels, migSegFailed);
+		}
+	);
+}
+
+function processWebsqlchr200_rels(transaction, resultSet){
+	if(resultSet.message){
+		alert("get chr200 Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} hidden ibd segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	newset( chr200rels, resultSet.rows);	// save for later
+	console.log( `newset returned ${chr200rels.size} rows` );
+
+	//DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: chr200rels, useReplace:false } );
+	return;
+}
+
+function  getWebsqlchr200_mats( ) {
+	
+	logHtml( '', 'Reading hidden matches..');
+
+	db23.readTransaction( 
+		function(transaction){
+			let qry = 'select ';
+			transaction.executeSql( qry,[], processWebsqlchr200_mats, migSegFailed);
+		}
+	);
+}
+
+function processWebsqlchr200_mats(transaction, resultSet){
+	if(resultSet.message){
+		alert("get chr200 Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} hidden ibd segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	newset( chr200mats, resultSet.rows);	// save for later
+	console.log( `newset returned ${chr200mats.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLchr200', sqlres1: chr200rels,  sqlres2: chr200mats, useReplace:false } );
 	return;
 }
 

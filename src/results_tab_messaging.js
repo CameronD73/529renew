@@ -94,6 +94,10 @@ DBworker.onmessage = function ( msg ) {
 	break;
 
 	case 'webSQLSeg_return':
+		processWebsqlchr200_rels();
+	break;
+
+	case 'webSQLchr200_return':
 		WebSQLMigrateDone();
 	break;
 
