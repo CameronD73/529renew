@@ -1850,11 +1850,11 @@ function requestImportProfiles(evt){
       reader.onload = (function(theFile) {
         return function(e) {
         	let lines = e.target.result.split(/\r\n|\r|\n/);
-			if(lines[0] === CSVheader){
+			if(lines.length > 1 ){
         		document.getElementById("docBody").style.cursor="wait";
         		importProfileCSV(lines, 2 );
         	}
-        	else alert('File must show "ID,name" on first line');
+        	else alert('File must have a header line and at least one kit');
         };
       })(file);
 
@@ -1870,7 +1870,7 @@ function cfFile( a, b ) {
 /*
 ** sort the array of File objects alphabetically by file name.
 ** The concept of "oldestFirst" assumes that the sort by name will also sort in increasing date order
-** (e.g. such as using ISO date format). Because the files are pop()ed off the bottom of the lest when used,
+** (e.g. such as using ISO date format). Because the files are pop()ed off the bottom of the list when used,
 ** the sort order causing oldest to newest will result in the newest file being processed first.
 */
 function sortFileList( fileList, oldestFirst ) {

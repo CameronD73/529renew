@@ -131,12 +131,18 @@ var DBwasm = {
 
     },
 
-    get_matches_list( filter ) {
-        let qry = "SELECT name, IDText FROM idalias ";
+    get_matches_list( filter, purpose ) {
+        // the select is slightly tricky as we want to exclude any hidden DNA matches
+        let qry = "SELECT name, IDText from  DNAmatches join idalias on (IDText = ID1 OR IDText = ID2) where ishidden = 0 ";
         if ( filter ) {
-            qry +=  'WHERE name like ?';
+            qry +=  ' AND name like ?';
         }
-        qry += " ORDER BY name COLLATE NOCASE";
+        qry += " GROUP by IDText ORDER BY ";
+        if ( purpose == 'select') {
+            qry += "name COLLATE NOCASE";
+        } else {            
+            qry += "IDText COLLATE NOCASE";     // not sure this makes any difference
+        }
         let rows = [];
         try{
             if ( filter ) {
@@ -204,7 +210,6 @@ var DBwasm = {
                 
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                //conlog( 4, `DB MigAlias: There were ${rowsaffected} rows affected by statement ${sqlstmt}, returned ${ssret}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -240,7 +245,6 @@ var DBwasm = {
                 
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                //conlog( 4, `DB MigAlias: There were ${rowsaffected} rows affected by statement ${sqlstmt}, returned ${ssret}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -281,7 +285,7 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows, with stmt ${sqlstmt}`);
+            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
@@ -317,7 +321,7 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows, with stmt ${sqlstmt}`);
+            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
@@ -385,7 +389,7 @@ var DBwasm = {
                 } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${sqlstmt}, returned ${ssret}`);
+                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${ssret}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -414,7 +418,6 @@ var DBwasm = {
                 } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                //conlog( 1, `DB MigrateDNSrels: There were ${rowsaffected} rows affected by statement ${sqlstmt}, returned ${ssret}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -447,7 +450,7 @@ var DBwasm = {
                 } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${sqlstmt}, retuurned ${ssret}`);
+                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${ssret}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {

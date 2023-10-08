@@ -31,7 +31,7 @@ function importProfileCSV(lineList, nFields ){
 		var entry=lineList[i].split(',');
 		if(entry.length <= 1 )
 			continue;		// ignore trailing blank line
-		if(entry.length!=nFields){
+		if(entry.length<nFields){
 			let errmsg = `Unexpected line with ${entry.length} fields (expected ${nFields}). Line number ${i}:` + lineList[i];
 			console.log( errmsg);
 			alert( errmsg );
@@ -44,6 +44,7 @@ function importProfileCSV(lineList, nFields ){
 	}
 	db_conlog( 1, `  importCSV: adding ${profilemap.size} profile rows`);
 	// add all the unique keys and names to the alias table
+	need_webSQL_profile = true;		// force websql reload...
 	DBworker.postMessage( { reason: 'insertProfiles', amap: profilemap });
 }
 

@@ -81,15 +81,14 @@ function storeSegments_websql(request) {
 	// Store the names and ids of the matches
 	function makeIdAliasTransaction(idobj){
 		return function(transaction){
-			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql('INSERT or IGNORE INTO idalias ( idText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
+			transaction.executeSql('INSERT or IGNORE INTO idalias ( IDprofile, pname ) VALUES(?, ?);', [idobj.id, idobj.name]);
 		};
 	}
 
 	for(let i=0; i<request.ids.length; i++){
 		// Attempt to insert these two number, name combos
 		db_conlog( 2, `storeSeg: alias ${i} for ${request.ids[i].name}`)
-		db23.transaction(makeIdAliasTransaction(request.ids[i]),  insertRowFail, insert_OK);
+		db23.transaction(makeIdAliasTransaction(request.ids[i]),  insertRowFail_websql, insert_OK_websql);
 	}
 
 	// Store the matching segments
@@ -121,7 +120,7 @@ function storeSegments_websql(request) {
 		let j=1;
 		for( ; j<request.ids.length; j++){
 			if(request.matchingSegments[i].uid2===request.ids[j].id){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, request.matchingSegments[i]),  insertRowFail, insert_OK);
+				db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, request.matchingSegments[i]),  insertRowFail_websql, insert_OK_websql);
 				break;
 			}
 		}
@@ -130,7 +129,7 @@ function storeSegments_websql(request) {
 
 	// Create bogus 'chromosome 100' match to signify that comparison has been performed
 	for(let j=1; j<request.ids.length; j++){
-		db23.transaction( makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
+		db23.transaction( makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail_websql, insert_OK_websql);
 	}
 
 }
@@ -164,14 +163,14 @@ function save_chr200_records_websql( primary_pair, page_rows ) {
 	}
 	if ( primary_pair.pct_shared > 0.0 ) {
 		// only available on first page so don't waste time later.
-		db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail, insert_OK);
-		db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail, insert_OK);
+		db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail_websql, insert_OK_websql);
+		db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail_websql, insert_OK_websql);
 	}
 	for(let i=0; i<page_rows.length; i++){
 		// Attempt to insert these two number, name combos
 		let pr=page_rows[i];		// is an object of the i'th row
 		db_conlog( 2, `save_chr200_records: alias ${i} for ${pr.name_icw_relative}}`)
-		db23.transaction( makeIdAliasTransaction( pr.ID_icw_relative, pr.name_icw_relative ),  insertRowFail, insert_OK);
+		db23.transaction( makeIdAliasTransaction( pr.ID_icw_relative, pr.name_icw_relative ),  insertRowFail_websql, insert_OK_websql);
 	}
 
 	// Store the percent shared value.
@@ -195,14 +194,14 @@ function save_chr200_records_websql( primary_pair, page_rows ) {
 	}
 	// after the first page we don't determine primary pair data.
 	if ( primary_pair.pct_shared > 0.0 )
-		db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail, insert_OK);
+		db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail_websql, insert_OK_websql);
 
 	for(let i=0; i<page_rows.length; i++){
 		let pr=page_rows[i];
 		if ( pr.shared_pct_P2B > 0.0 ) {
 			db23.transaction( makeChr200Transaction( 
 					primary_pair.profileID, pr.ID_icw_relative, pr.shared_pct_P2B, (pr.overlaps === "hidden" )),
-					insertRowFail, insert_OK);
+					insertRowFail_websql, insert_OK_websql);
 		} else {
 			let msg = `Chr200 P2B, Bad pct shared: ${pr.shared_pct_P2B}, for ${pr.name_profile} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
 			console.error( msg );
@@ -211,7 +210,7 @@ function save_chr200_records_websql( primary_pair, page_rows ) {
 		if ( pr.shared_pct_A2B > 0.0 ) {
 			db23.transaction( makeChr200Transaction( 
 					primary_pair.matchID, pr.ID_icw_relative, pr.shared_pct_A2B, (pr.overlaps === "hidden" )),
-					insertRowFail, insert_OK);
+					insertRowFail_websql, insert_OK_websql);
 		} else {
 			let msg = `Chr200 A2B, Bad pct shared: ${pr.shared_pct_A2B}, for ${pr.name_match} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
 			console.error( msg );

@@ -52,7 +52,7 @@ self.onmessage = function processMessages( msg ) {
 
     case "getMatchList":
       conlog( 0, 'getMatchList rcvd by worker');
-      let matchList = DBwasm.get_matches_list( content.filter );
+      let matchList = DBwasm.get_matches_list( content.filter, content.purpose );
       conlog(0, `matchlist returned ${matchList.length} rows, for ${content.purpose}`);
       postMessage( {reason:'return_matchlist', payload: matchList, purpose:content.purpose});
     break;

@@ -9,7 +9,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 1, "loading DB init code");
+db_conlog( 1, "loading webSQL DB init code");
 
 let hasWebSQL_database = false;
 

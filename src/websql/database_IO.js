@@ -7,7 +7,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 2, "loading DB_IO script");
+db_conlog( 2, "loading WebSQL DB_IO script");
 
 
 /*
@@ -27,16 +27,57 @@ function newset( newmap, sqlresults ) {
 	}
 }
 
+let need_webSQL_profile = true;
+
+function  createWebsqlprofiles(  ) {
+	/*
+	function makeTransaction( ){
+
+		return function(transaction){
+			let qry = 'CREATE TABLE IF NOT EXISTS profiles ("IDprofile"	TEXT, "pname" TEXT NOT NULL, PRIMARY KEY("IDprofile"))';
+			transaction.executeSql(qry, []);
+		};
+	} */
+	if ( !need_webSQL_profile )
+		return;
+	need_webSQL_profile = false;		// only do it once.
+	db23.transaction( 
+        function (transaction) {
+			let qry = 'CREATE TABLE IF NOT EXISTS profiles (IDprofile TEXT NOT NULL UNIQUE, pname TEXT NOT NULL, PRIMARY KEY(IDprofile))';
+			db_conlog( 1, `executing webSQL stmt ${qry}`);
+			transaction.executeSql(qry, []);
+		},
+		function (err) {
+			let msg = `Create WebSQL profile failed: ${err.message}`;
+			db_conlog( 0, msg );
+			alert( msg );
+		 },
+		saveWebsqlprofiles
+	);
+}
+
+function  saveWebsqlprofiles(  ) {
+	
+	function makeTransaction( idobj){
+
+		return function(transaction){
+			transaction.executeSql('INSERT OR IGNORE into profiles ( IDprofile, pname ) VALUES (?, ?);',[idobj.IDprofile, idobj.pname] );
+		};
+	}
+	for(let i=0; i<profile_summary.length; i++){
+		let row = profile_summary[i];
+		db23.transaction(makeTransaction( row ), insertRowFail_websql, insert_OK_websql );
+	}
+}
+
 // get the adalias table for migration
 function  getWebsqlAliasTable( ) {
 	
-	function makeTransaction( callBackSuccess, callBackFailed){
-
-		return function(transaction){
-			transaction.executeSql('SELECT idText as k, name  from idalias',[], callBackSuccess, callBackFailed);
-		};
-	}
-	db23.readTransaction(makeTransaction( processWebsqlAliasTable, migIDQueryFailed));
+	db23.readTransaction(  
+		function(transaction){
+			transaction.executeSql('SELECT idText as k, name  from idalias',[], processWebsqlAliasTable, migIDQueryFailed );
+		}
+	);
 }
 
 function processWebsqlAliasTable(transaction, resultSet){
@@ -100,7 +141,7 @@ function  getWebsqlHALFSegsTable( ) {
 
 		return function(transaction){
 			// query to select all except those tagged as full-ibd
-			let qry = 'SELECT id1, id2, chromosome, start, end, cM, snps, date from ibdsegs where _rowid_ not in ' +
+			let qry = 'SELECT id1, id2, chromosome, start, end, cM, snps, date from ibdsegs where chromosome < 50 AND _rowid_ not in ' +
 					'( select  sa._rowid_ as rownum from ibdsegs as sa JOIN ibdsegs as sb USING (id1, id2, chromosome )' +
 						'WHERE sa._rowid_ != sb._rowid_	AND chromosome < 50 '+
 					   'AND  ( ( sa.start BETWEEN sb.start and sb.end  AND sa.snps <= sb.snps ) '+

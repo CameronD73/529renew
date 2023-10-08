@@ -58,6 +58,7 @@ DBworker.onmessage = function ( msg ) {
 	  }
       console.log( 'profiles are: ', profile_list );
 	  createKitSelector();
+	  createWebsqlprofiles();
       chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
     break;
     
