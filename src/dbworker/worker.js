@@ -121,16 +121,10 @@ function processMigrations( content ) {
       postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
     break;
 
-    case "migrateWebSQLSegs":
-      let retvalwshs = DBwebSQL.migrateSegmentWebSQL( content.sqlres ); 
-      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
-    break;
-
     case "migrateWebSQLchr200":
-      let retvalwshs = DBwebSQL.migrateChr200WebSQL( content.sqlres1, content.sqlres2 ); 
-      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
+      let retvalws200 = DBwebSQL.migrateChr200WebSQL( content.sqlres1, content.sqlres2 ); 
+      postMessage( {reason: 'webSQLchr200_return', payload: retvalws200 } );
     break;
-
 
 
     case "migrateAliasmap23":
@@ -153,6 +147,11 @@ function processMigrations( content ) {
     case "migrateDNArelatives529":
       DBwasm.migrateDNArelatives(content.amap, content.useReplace); 
       reportMigratedSize('migrate_529_done');
+    break;
+
+    case "migrationFinalise":
+      let icwadded = DBwasm.identify_icw( ); 
+      postMessage( {reason:'migrationFinalised', rowsadded:icwadded} );
     break;
 
     case "migrateMatchMapHidden":
@@ -298,6 +297,7 @@ conlog( 0,'Loading sqlite3 module...');
 let sqlite3Js = 'jswasm/sqlite3.js';
 importScripts(sqlite3Js);
 importScripts( '/dbworker/dbcode.js' );
+importScripts( '/dbworker/websql_support.js' );
 importScripts( '/util/dates.js' );
 
 conlog( 0,'Initializing sqlite3 module...');

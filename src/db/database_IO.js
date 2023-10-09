@@ -108,7 +108,13 @@ function getFilteredMatchesFromDatabase( filterText ){
 }
 
 function requestMigrationFinalise ( evt ) {
-	alert( 'Nope, not yet' );
+	
+	evt.stopPropagation();
+	evt.preventDefault();
+	document.getElementById("docBody").style.cursor="wait";
+	migration_started = secondsToday();
+
+	DBworker.postMessage( {reason:"migrationFinalise"} );
 	return;
 }
 

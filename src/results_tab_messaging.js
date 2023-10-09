@@ -22,7 +22,7 @@ let DNAtesters = new Map();
 // Handle messages coming back from the DB worker
 DBworker.onmessage = function ( msg ) {
   let data = msg.data;
-  msg_conlog( 2, `msg from worker, code ${data.reason}` );
+  msg_conlog( 4, `msg from worker, code ${data.reason}` );
 
   switch (data.reason) {
     case 'log':
@@ -94,11 +94,15 @@ DBworker.onmessage = function ( msg ) {
 	break;
 
 	case 'webSQLSeg_return':
-		processWebsqlchr200_rels();
+		getWebsqlchr200_rels();
 	break;
 
 	case 'webSQLchr200_return':
 		WebSQLMigrateDone();
+	break;
+
+	case 'migrationFinalised':
+		migrationFinalise_done( data.rowsadded );
 	break;
 
 

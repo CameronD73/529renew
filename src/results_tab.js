@@ -1837,6 +1837,20 @@ function WebSQLMigrateDone(  ){
 	alert(`Migration of old DB complete in ${elapsed} seconds.`);
 }
 
+function migrationFinalise_done( s ) {
+	let elapsed = secondsToday() - migration_started;
+	let elapsed_min = elapsed / 60.0;
+	let str = '';
+	if ( elapsed > 100) {
+		str = `${elapsed_min} minutes`;
+	} else {
+		str = `${elapsed} seconds`;
+	}
+	document.getElementById("docBody").style.cursor="pointer";
+
+	alert(`ICW sets analysed in ${str}.\nTriang: ${s.triang}; no overlap: ${s.no_overlap}; status unknown: ${s.unknown}.`);
+}
+
 function requestImportProfiles(evt){
 	evt.stopPropagation();
 	evt.preventDefault();
@@ -2037,10 +2051,10 @@ document.addEventListener('DOMContentLoaded',  function () {
 function post_DB_init_setup() {
 
 	let results= [
-		{name:'able', IDText: 'idaaa'},
-		{name:'baker', IDText: 'idbbb'},
-		{name:'charlie', IDText: 'idccc'},
-		{name:'delta', IDText: 'idddd'}
+		{name:'this', IDText: 'idaaa'},
+		{name:'should', IDText: 'idbbb'},
+		{name:'not', IDText: 'idccc'},
+		{name:'remain', IDText: 'idddd'}
 	];
 
 	createNameSelector( results );

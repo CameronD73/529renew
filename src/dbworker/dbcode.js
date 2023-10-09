@@ -19,6 +19,7 @@ var DBwasm = {
             'DBVersion (version INTEGER, date TEXT, PRIMARY KEY( version) )',
             'profiles ( IDprofile TEXT, pname TEXT NOT NULL UNIQUE, PRIMARY KEY(IDprofile) )',
             'settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting))',
+
             'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null )',
 
             'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
@@ -30,7 +31,8 @@ var DBwasm = {
 
             'ibdsegsFull(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
 
-            'ICWSets (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, overlap INTEGER DEFAULT NULL, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
+            'ICWSets (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
+
             'ICWSegXref ( ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL )'
         ];
 
@@ -126,9 +128,47 @@ var DBwasm = {
             conerror( `DB get_profile_list: ${e.message}`);
             return( [ ] );
         }
-        //conlog( 4, 'DB profile list gave: ', rows);
         return rows;
+    },
 
+    get_DNArel_list: function( IDprofile ) {
+        let rows = [];
+        let options = {
+            resultRows: rows,
+            rowMode: 'object'
+        };
+        let sqlcode = "SELECT IDprofile, IDrelative  from DNArelatives";
+        if ( IDprofile ) {
+            sqlcode += ' WHERE IDprofile = ?';
+            options.bind = [IDprofile];
+        }
+        sqlcode += ' ORDER BY IDrelative;';
+        try{
+            DB529.exec( sqlcode, options );
+        } catch( e ) {
+            conerror( `DB get_DNArel_list: ${e.message}, with ${sqlcode}`);
+            return( [ ] );
+        }
+        return rows;
+    },
+
+    /* returns a single row for each id1-id2 pair - reporting only unhidden results if both are present
+    */
+    get_DNAmatch_list: function(  ) {
+        let sqlcode = "SELECT ID1, ID2, min(ishidden) as ishidden, max(hasSegs) as hasSegs, max(nsegs) as nsegs from DNAmatches GROUP BY ID1,ID2;";
+        
+        let rows = [];
+        let options = {
+            resultRows: rows,
+            rowMode: 'object'
+        };
+        try{
+            DB529.exec( sqlcode, options );
+        } catch( e ) {
+            conerror( `DB get_DNAmatch_list: ${e.message}`);
+            return( [ ] );
+        }
+        return rows;
     },
 
     get_matches_list( filter, purpose ) {
@@ -221,41 +261,6 @@ var DBwasm = {
         //logHtml( null, 'finished');
         return true;
     },
-    
-    migrateAliasWebSQL: function( aliasmap, hashap, useReplace ) {
-        // this version is different, because 'aliasmap' is  a Map, not an SqlResultSet - but initially I tried sqlresultset
-        const today = formattedDate2();
-        let update_qry_part = '';
-        if( hashap ) {
-            update_qry_part =  `(IDText, name, date, hapMat, hapPat, bYear) VALUES ($k, $name, '${today}', $hapMat, $hapPat, $byear );`;
-        } else {
-            update_qry_part =  `(IDText, name, date) VALUES ($k, $name, '${today}');`;
-        }
-        let update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO idalias' + update_qry_part;
-        let rows = [];
-        let total_rows_updated = 0;
-
-        try{
-            DB529.exec( 'BEGIN TRANSACTION;');
-            for( const[key, obj] of aliasmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind: {$k: obj.k, $name:obj.name }
-                } );
-                
-                let rowsaffected = DB529.changes();
-                total_rows_updated += rowsaffected; 
-            }
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB MigAlias: error: ${e.message}`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        conlog( 1, `DB MigAlias: finished; ${total_rows_updated} rows updated` );
-        //logHtml( null, 'finished');
-        return true;
-    },
 
     migrateSegmentMap: function( segmap, table, useReplace ) {
         //logHtml( null, 'Storing segment pairs ...');
@@ -291,219 +296,6 @@ var DBwasm = {
         }
         conlog( 0, `DB migrateSegMap: finished; ${total_rows_updated} rows updated.` );
         //logHtml( null, 'finished');
-        return true;
-    },
-
-    migrateFULLSegmentWebSQL: function( segmap ) {
-        logHtml( null, 'Storing FULLIDB segment pairs ...');
-        // const today = formattedDate2();
-        const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES (?,?,?,?,?,?,?);';
-        const update_qry = 'INSERT OR IGNORE INTO ibdsegsFull ' + update_qry_part;
-
-        let total_rows_updated = 0;
-
-        try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
-            DB529.exec( 'BEGIN TRANSACTION;');
-            let loopcount = 1;
-            for( const[key, o] of segmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind: [o.id1, o.id2, o.chromosome, o.start, o.end, o.cM, o.snps]
-                } );
-                let rowsaffected = DB529.changes();
-                total_rows_updated += rowsaffected; 
-                if ( ++loopcount % 10000 == 0 ) {
-                    DB529.exec( 'COMMIT TRANSACTION;');         
-                    DB529.exec( 'BEGIN TRANSACTION;');
-                }
-            }
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        let msg = `DB migrateSegMap: finished; ${total_rows_updated} rows updated.`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-        return true;
-    },
-
-    migrateSegmentWebSQL: function( segmap ) {
-        logHtml( null, 'Storing other segment pairs (this may take a while)...');
-        // const today = formattedDate2();
-        const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES (?,?,?,?,?,?,?);';
-
-        const update_qry = 'INSERT OR IGNORE INTO ibdsegs' + update_qry_part;
-        let total_rows_updated = 0;
-
-        try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
-            DB529.exec( 'BEGIN TRANSACTION;');
-            let loopcount = 1;
-            for( const[key, o] of segmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind: [o.id1, o.id2, o.chromosome, o.start, o.end, o.cM, o.snps]
-                } );
-                let rowsaffected = DB529.changes();
-                total_rows_updated += rowsaffected; 
-                if ( ++loopcount % 10000 == 0 ) {
-                    DB529.exec( 'COMMIT TRANSACTION;'); 
-                    logHtml( '', `Row ${loopcount}`);        
-                    DB529.exec( 'BEGIN TRANSACTION;');
-                }
-            }
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        let msg = `DB migrate WebSQLSegMap: finished; ${total_rows_updated} rows updated. Now checking for any relative updates`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-        // now update any DNA relatives that not in the list already (typically those with too short a match
-        // to be in the top 1500)
-        total_rows_updated = 0;
-        try {
-            DB529.exec( 'BEGIN TRANSACTION;');
-            // ID1 and ID2 will always be in sort order, but the DNArelatives table always has profile ID first, the
-            // temporary table is the only way I can see to swap them in-place if necessary.
-            let qry1 = 'drop table if exists temprelmin;';
-            let qry2 = 'create temporary table temprelmin as select ID1, ID2, min(chromosome) as chr, cM, end, snps from ibdsegs \
-                WHERE chromosome < 50 AND (ID1 in (select IDprofile from profiles) OR  ID2 in (select IDprofile from profiles) ) \
-                GROUP BY ID1, ID2 ;';
-            let qry3 = 'UPDATE temprelmin set ID1 = ID2, ID2 = ID1 where id1 not in (select IDprofile from profiles);';
-            let qry4 = 'INSERT OR IGNORE into DNArelatives (IDprofile, IDrelative)  SELECT ID1, ID2  from temprelmin;';
-            let qry5 = 'drop table if exists temprelmin;';
-            let update_qry = qry1 + qry2 + qry3 + qry4 + qry5;
-
-            DB529.exec( update_qry );
-            total_rows_updated = DB529.changes();
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMapWebSQL DNArelatives: error: ${e.message}`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        let abb = 3;
-        msg = `DB update DNArelatives WebSQL: finished; ${total_rows_updated} rows updated. Now checking for any segment summary updates`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-        // finally, add new entries to the DNAmatches summary table - this replaces the old "chromosome 100" hack
-        total_rows_updated = 0;
-        try {
-            DB529.exec( 'BEGIN TRANSACTION;');
-            // ID1 and ID2 will always be in sort order, 
-            let qry1 = 'INSERT or IGNORE into DNAmatches  select \
-                ID1, ID2, 0 as ishidden, 0.01*floor(sum(cM)/0.744) as pctshared, \
-                sum(cM) as cMtotal, count(*) as nsegs, 1 as hasSegs, null as lastdate from ibdsegs \
-                GROUP BY ID1, ID2;';
-
-            DB529.exec( qry1 );
-            total_rows_updated = DB529.changes();
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMapWebSQL DNAmatches update: error: ${e.message}`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        msg = `DB update DNAmatches WebSQL: finished; ${total_rows_updated} rows updated.`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-
-        return true;
-    },
-
-    migrateChr200WebSQL: function( maprel, mapmat ) {
-        logHtml( null, 'Storing hidden match summaries ...');
-        // const today = formattedDate2();
-        const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES (?,?,?,?,?,?,?);';
-
-        const update_qry = 'INSERT OR IGNORE INTO ibdsegs' + update_qry_part;
-        let total_rows_updated = 0;
-
-        try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
-            DB529.exec( 'BEGIN TRANSACTION;');
-            let loopcount = 1;
-            for( const[key, o] of segmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind: [o.id1, o.id2, o.chromosome, o.start, o.end, o.cM, o.snps]
-                } );
-                let rowsaffected = DB529.changes();
-                total_rows_updated += rowsaffected; 
-                if ( ++loopcount % 10000 == 0 ) {
-                    DB529.exec( 'COMMIT TRANSACTION;'); 
-                    logHtml( '', `Row ${loopcount}`);        
-                    DB529.exec( 'BEGIN TRANSACTION;');
-                }
-            }
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        let msg = `DB migrate WebSQLSegMap: finished; ${total_rows_updated} rows updated. Now checking for any relative updates`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-        // now update any DNA relatives that not in the list already (typically those with too short a match
-        // to be in the top 1500)
-        total_rows_updated = 0;
-        try {
-            DB529.exec( 'BEGIN TRANSACTION;');
-            // ID1 and ID2 will always be in sort order, but the DNArelatives table always has profile ID first, the
-            // temporary table is the only way I can see to swap them in-place if necessary.
-            let qry1 = 'drop table if exists temprelmin;';
-            let qry2 = 'create temporary table temprelmin as select ID1, ID2, min(chromosome) as chr, cM, end, snps from ibdsegs \
-                WHERE chromosome < 50 AND (ID1 in (select IDprofile from profiles) OR  ID2 in (select IDprofile from profiles) ) \
-                GROUP BY ID1, ID2 ;';
-            let qry3 = 'UPDATE temprelmin set ID1 = ID2, ID2 = ID1 where id1 not in (select IDprofile from profiles);';
-            let qry4 = 'INSERT OR IGNORE into DNArelatives (IDprofile, IDrelative)  SELECT ID1, ID2  from temprelmin;';
-            let qry5 = 'drop table if exists temprelmin;';
-            let update_qry = qry1 + qry2 + qry3 + qry4 + qry5;
-
-            DB529.exec( update_qry );
-            total_rows_updated = DB529.changes();
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMapWebSQL DNArelatives: error: ${e.message}`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        let abb = 3;
-        msg = `DB update DNArelatives WebSQL: finished; ${total_rows_updated} rows updated. Now checking for any segment summary updates`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-        // finally, add new entries to the DNAmatches summary table - this replaces the old "chromosome 100" hack
-        total_rows_updated = 0;
-        try {
-            DB529.exec( 'BEGIN TRANSACTION;');
-            // ID1 and ID2 will always be in sort order, 
-            let qry1 = 'INSERT or IGNORE into DNAmatches  select \
-                ID1, ID2, 0 as ishidden, 0.01*floor(sum(cM)/0.744) as pctshared, \
-                sum(cM) as cMtotal, count(*) as nsegs, 1 as hasSegs, null as lastdate from ibdsegs \
-                GROUP BY ID1, ID2;';
-
-            DB529.exec( qry1 );
-            total_rows_updated = DB529.changes();
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            conerror( `DB migrateSegMapWebSQL DNAmatches update: error: ${e.message}`);
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            return false;
-        }
-        msg = `DB update DNAmatches WebSQL: finished; ${total_rows_updated} rows updated.`;
-        conlog( 0, msg );
-        logHtml( null, msg);
-
         return true;
     },
 
@@ -629,6 +421,168 @@ var DBwasm = {
         }
         conlog( 1, 'DB ProfileTable: finished' );
         //logHtml( null, 'finished');
+        return true;
+    },
+
+    identify_icw: function() {
+        logHtml( '' , 'Looking for 3-way segment overlaps.');
+        const profiles = DBwasm.get_profile_list();
+        const matchList = DBwasm.get_DNAmatch_list();
+        if ( matchList.length < 1) {
+            alert( 'no matches found');
+            return;
+        }
+        const icwmap = new Map();
+        const icwxrefmap = new Map();
+        const matchmap = new Map();
+        for( let i = 0 ; i < matchList.length ; i++ ) {
+            const nr = matchList[i];
+            let key = nr.ID1 + "_" + nr.ID2;
+            matchmap.set( key, nr );
+        }
+        let sumICW = {'unknown': 0, 'no_overlap':0, 'triang':0}
+
+        for( let p = 0 ; p < profiles.length; p++ ) {
+        //let p=1; {
+            pr = profiles[p];
+            P1id = pr.IDprofile;
+            logHtml( '' , `Looking for segment overlaps for ${pr.pname}`);
+            const relList = DBwasm.get_DNArel_list( P1id );
+            const rlsize = relList.length;
+            const maxChecks = 0.5*(rlsize-1) * ( rlsize - 2);
+            const checkInterval = Math.floor(maxChecks/20);
+            let checksdone = 0;
+            // We need an inner loop descending from one below the outer element, so a numerical index is easiest to handle
+            for( let i = 0; i < rlsize; i++ ) {
+                let M1obj = relList[i];
+                let M1id = M1obj.IDrelative;
+                for ( j = i+1; j < rlsize; j++ ) {
+                    if ( (checksdone++) % checkInterval === 1) {
+                        let msg = `  ${Math.floor(100*checksdone/maxChecks)} pct done, ${j}: ${i}/${rlsize} - ${checksdone}, ${maxChecks}`;
+                        logHtml( '', msg );
+                        conlog( 1, msg );
+                    }
+                    let M2obj = relList[j];
+                    let M2id = M2obj.IDrelative;
+                    // relList is sorted, so M2 is always ID2 in relation to M1 in the matches table.
+                    let key3 = M1id + "_" + M2id;
+                    // we already know M1 and M2 match the profile person, so existence of a some sort of M1-M2 match proves 3-way ICW.
+                    if ( ! matchmap.has( key3 ) )
+                        continue;
+                    const P1M1 = DBwasm.get_match_2way( matchmap, P1id, M1id );
+                    const P1M2 = DBwasm.get_match_2way( matchmap, P1id, M2id );
+                    const M1M2 = matchmap.get( key3 );
+                    let icwkey = P1id + "_" + M1id + "_" + M2id;
+                    if ( P1M1.hasSegs == 0 ||  P1M2.hasSegs == 0 ||  M1M2.hasSegs == 0 ) {
+                        // is ICW, but we cannot tell how - this key is good enough for this pass, but not enough for the entire db
+                        icwmap.set( icwkey, {$IDp:P1id, $ID2:M1id, $ID3:M2id, $chr: -1, $st: 0, $end: 0} );
+                        sumICW.unknown++;
+                    } else {
+
+                        // we have icw - the question now is, is there any overlap == triangulation
+                        const overlaps = DBwasm.get_icw_overlaps( P1id, M1id, M2id );
+                        if ( overlaps.length === 0 ) {
+                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M1id, $ID3:M2id, $chr: 0, $st: 0, $end: 0} );      // we know there is zero full overlap
+                            sumICW.no_overlap++;
+                        } else {
+                            // I'm not sure we need this, rather than just rescan icwmap.
+                            icwxrefmap.set( icwkey, {$IDp:P1id, $ID2:M1id, $ID3:M2id, $chr:overlaps[0].chr, $st:overlaps[0].startolap, $end:overlaps[0].endolap}) ;
+                            for( let r = 0 ; r < overlaps.length; r++) {
+                                sumICW.triang++;
+                                let ol = overlaps[r];
+                                icwmap.set( icwkey + "_" + r.toString(),
+                                             {$IDp:P1id, $ID2:M1id, $ID3:M2id, $chr:ol.chr, $st:ol.startolap, $end:ol.endolap} );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        DBwasm.insertICW( icwmap );
+        return sumICW;
+    },
+
+    get_match_2way: function( matchmap, id1, id2 ) {
+        // return the match list object that corresponds to id1-id2
+        let m1 = id1;
+        let m2 = id2;
+        if ( id2 < id1 ){
+            m1 = id2;
+            m2 = id1
+        }
+        let key = m1 + "_" + m2;
+        return matchmap.get( key );
+    },
+
+    get_icw_overlaps: function( P1id, M1id, M2id ) {
+        // created a sorted list (we know M1 and M2 are already in order)
+        let olist = [];
+        if ( P1id < M1id ){
+            olist[0] = P1id;
+            olist[1] = M1id;
+            olist[2] = M2id;
+        } else {
+            olist[0] = M1id;            
+            if( P1id < M2id ) {
+                olist[1] = P1id;
+                olist[2] = M2id;
+            } else {
+                olist[1] = M2id;
+                olist[2] = P1id;
+            }
+        }
+        let rows = [];
+        // a giant join is just too complicated for me to understand - if it is even possible.  Just split into 3x two-way matches and compare.
+        try {
+            DB529.exec( 'DROP TABLE IF EXISTS wab;DROP TABLE IF EXISTS wac;DROP TABLE IF EXISTS wbc;', {} );
+            DB529.exec( 'CREATE temporary table wab as SELECT * from ibdsegs where id1 = ? and id2 = ?;', {bind:[olist[0], olist[1]]} );
+            DB529.exec( 'CREATE temporary table wac as SELECT * from ibdsegs where id1 = ? and id2 = ?;', {bind:[olist[0], olist[2]]} );
+            DB529.exec( 'CREATE temporary table wbc as SELECT * from ibdsegs where id1 = ? and id2 = ?;', {bind:[olist[1], olist[2]]} );
+            DB529.exec( 'SELECT ww.chr as chr,  case when ww.startolap < wbc.start then wbc.start else ww.startolap end as startolap,\
+                                    case when ww.endolap < wbc.end then ww.endolap else wbc.end end as endolap \
+                FROM \
+                    ( SELECT wab.chromosome as chr,  case when wab.start < wac.start then wac.start else wab.start end as startolap, \
+                                                     case when wab.end < wac.end then wab.end else wac.end end as endolap \
+                    FROM wab JOIN wac ON wab.chromosome = wac.chromosome AND (wab.start between wac.start and wac.end or wac.start between wab.start and wab.end) \
+                    ) as ww \
+                    JOIN wbc ON chr = wbc.chromosome AND (wbc.start between ww.startolap and ww.endolap or wbc.start between ww.startolap and ww.endolap)',
+                 { resultRows: rows, rowMode: 'object' } );
+
+        } catch( e ) {
+            logHtml( 'error', `Find triangulation failed with ${e.message}, for ${olist[0]},  ${olist[1]},  ${olist[2]}`);
+            return [];
+        }
+        return rows;
+    },
+
+    insertICW: function( icwmap ) {
+        //logHtml( null, `Storing ${matchtype}  pair summary ...`);
+        const today = formattedDate2();
+        const update_qry = 'INSERT OR IGNORE INTO ICWSets(IDprofile, ID2, ID3, chromosome, start, end) VALUES ($IDp, $ID2, $ID3, $chr, $st, $end );';
+        let total_rows_updated = 0;
+
+        try{
+            DB529.exec( 'BEGIN TRANSACTION;');
+            let loopcount = 1;
+            for( const[key, obj] of icwmap ) {
+                let ssret = DB529.exec( update_qry, {
+                    returnValue: "saveSql",     //pointless
+                    bind:obj
+                } );
+                let rowsaffected = DB529.changes();
+                total_rows_updated += rowsaffected; 
+                if ( ++loopcount % 10000 == 0 ) {
+                    DB529.exec( 'COMMIT TRANSACTION;');         
+                    DB529.exec( 'BEGIN TRANSACTION;');
+                }
+            }
+            DB529.exec( 'COMMIT TRANSACTION;');
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml('error', `DB insertICW: error: ${e.message}`);
+            return false;
+        }
+        conlog( 4, `DB insertICW: finished` );
         return true;
     },
     

@@ -195,13 +195,13 @@ function processWebsqlchr200_rels(transaction, resultSet){
 		alert("get chr200 Table: Failed to retrieve  data: "+ resultSet.message);
 		return;
 	}
-	let msg =  `Have read ${resultSet.rows.length} hidden ibd segments `;
+	let msg =  `Have read ${resultSet.rows.length} hidden DNA relatives `;
 	console.log( msg );
 	logHtml( '', msg );
 
 	newset( chr200rels, resultSet.rows);	// save for later
 	console.log( `newset returned ${chr200rels.size} rows` );
-
+	getWebsqlchr200_mats();
 	//DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: chr200rels, useReplace:false } );
 	return;
 }
@@ -212,7 +212,8 @@ function  getWebsqlchr200_mats( ) {
 
 	db23.readTransaction( 
 		function(transaction){
-			let qry = 'select ';
+			let qry = 'SELECT  ID1, ID2,  end as hidden, snps * 0.001 as pctshared, snps * 0.0744 as cMtotal, 0 as hasSegs \
+					FROM ibdsegs  WHERE chromosome > 150 GROUP by ID1, ID2;';
 			transaction.executeSql( qry,[], processWebsqlchr200_mats, migSegFailed);
 		}
 	);
@@ -274,13 +275,7 @@ const sellist1 = "ibdsegs.ROWID as ROWID,\
 	ibdsegs.cM AS cM,\
 	ibdsegs.snps AS snps,\
 	ibdsegs.date as segdate";
-/* unused
-const sellist2 = "	ibdsegs.phase1 AS phase1,\
-	ibdsegs.relationship1 AS relationship1,\
-	ibdsegs.phase2 AS phase2,\
-	ibdsegs.relationship2 AS relationship2,\
-	ibdsegs.comment AS comment";
-*/
+
 const joinlist = "ibdsegs \
 	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
 	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
