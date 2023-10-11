@@ -5,15 +5,24 @@
     <title>What's new in 529Renew</title>
   </head>
   <body style="font-size: medium;">
-    <h2>Changes with version 2.0 of 529Renew.</h2>
-    <h3>This page  appears only when 529renew is upgraded from version 1.x to 2.0</h3>
+    <h2>Changes with version 2 of 529Renew.</h2>
+    <h3>This page  appears only when 529renew is upgraded from version 1.x to 2.0 (or 1.9)</h3>
     <p>
-      This <b>major</b> change was required before 30 October 2023, when Chromium-based browsers plan to remove the webSQL API that was a core part of 529Renew.
+      This <b>major</b> change was required before 30 October 2023, when Chromium-based browsers plan to remove the <i>WebSQL API</i> that was a core part of 529Renew.
     </p>
+    <h4>Version 1.9.x - mid to late October 2023</h4>
     <p>With this version you will be able to migrate your existing database, provided it is done before approximately 26th October.
       You should take care to follow the procedure outlined - while it is not essential that you follow every step in order, I have not studied all possible combinations.
     </p>
+    <h4>Version 2.x - introduced late October 2023</h4>
+    <p>
+      Starting around the 26th October, all code relating to the old database (WebSQL API) will be removed.
+      It is likely to be incomplete, and subsequent updates should follow to reach at least the same functionality as V1.3.
+    </p>
     <h2>Migration Pathway</h2>
+    <p>
+      Migration is not mandatory - if all fails you could start again - but migration will retain as much of your hard-won data as possible, (otherwise you will eventually need to scan them all again).
+    </p>
     <p>This process is set out in buttons on the "529Renew Results" tab, as shown in this screenshot.</p>
     <hr/>
     <img src="websql/529renew-results-startup.png" alt="screenshot showing migration buttons" />
@@ -22,6 +31,7 @@
     <p>
       This is <i>an essential first step</i>.
       The profile table will be a tiny CSV file, which you need to create, identifying all the kits that you manage on 23 and Me.
+      It might be a good idea to put older generations first (future code might be optimised on this assumption.)
       The format is very simple:
       <ul>
         <li>column 1: the 16-character ID that 23andMe uses to identify the profile, the same as GDAT uses. The allowed characters are digits 0 to 9 and alphabetic a to f.</li>
@@ -32,8 +42,8 @@
       Your file will look like something like this example:</p>
       <pre style="font-size:larger;">
         ID, name     # this file is for initial entry to 529Renew
-        1234567890abcdef,My-name        
-        abcdef1234567890,Mum
+        1234567890abcdef,Mum     
+        abcdef1234567890,My-name  
       </pre>
       Any quotation marks will be removed automatically, but extraneous embedded commas may cause errors.
     </p>
@@ -81,14 +91,21 @@
     </p>
     <h3>4. Finalise the Migration</h3>
     <p>
-      Use that button and there will be some housekeeping, ensuring that the database is self-consistent and some utility tables are calculated.
+      This will take several minutes.
+      If you use this button then there will be some housekeeping, checking  that the database is self-consistent and some utility tables are calculated.
+      It generates lists of ICWs that all share a common segment, as well as ICWs where the profile person shares the same segment with each but for some reason we cannot identify a 3-way overlap.
+      These are planning for changes after the loss of information about shared overlap, but I am not sure at the moment how best to use the information (so at the moment it does nothing with the information).
     </p>
     <h2>Other options</h2>
     <p>
       There are various other operations that are active at this stage, although none are essential.
     </p>
+    <h3>Reporting problems</h3>
+    <p>
+      If you need to report a bug, please copy/paste the content of the status area below the buttons, to give me some initial idea what might be happening.
+    </p>
     <h3>view the DB status in the Settings Pop-up</h3>
-    <p>If you go to the 529 settings popup, scroll to the bottom and you will see tables showing the sizes of the database tables and also the profile list.
+    <p>If you go to the 529 settings popup, scroll to the bottom and you will see tables showing the sizes of the database tables and also your  profile list.
     </p>
     <h3>Dump Sqlite DB</h3>
     <p>

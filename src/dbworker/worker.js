@@ -6,8 +6,8 @@ const logHtml = function (cssClass, ...args) {
     payload: { cssClass, args },
   });
 };
-const DBdir = 'CJDtestdir';
-const DBname = 'test6.sqlite3';
+const DBdir = '529renew';
+const DBname = 'matches.sqlite3';
 const DBpath = '/' + DBdir + '/' + DBname;
 let DB529 = undefined;
 let DBsize = 0;

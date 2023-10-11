@@ -32,6 +32,27 @@ function newset( newmap, sqlresults ) {
 	}
 }
 
+// prepare DNArelatives entries. Input id1 and id2 are in sort order, so we need to ensure that the profile ID is first.
+function newsetRels( newmap, sqlresults ) {
+	const proflist = [];
+	for( let p=0; p < profile_summary.length; p++) {
+		proflist[p] = profile_summary[p].IDprofile;
+	}
+	for( let i = 0; i < sqlresults.length; i++) {
+		let o = sqlresults[i];
+		if ( proflist.indexOf( o.id1 ) < 0 ){
+			// id1 id not a profile - need to swap.
+			let temp = o.id2;
+			o.id2 = o.id1;
+			o.id1 = temp;
+			if ( proflist.indexOf( temp ) < 0 ) {
+				console.error( `newsetRels: Neither ${o.id1} nor ${o.id2} are profile IDs.`)
+			}
+		}
+		newmap.set( i, o);
+	}
+}
+
 let need_webSQL_profile = true;
 
 function  createWebsqlprofiles(  ) {
@@ -199,7 +220,7 @@ function processWebsqlchr200_rels(transaction, resultSet){
 	console.log( msg );
 	logHtml( '', msg );
 
-	newset( chr200rels, resultSet.rows);	// save for later
+	newsetRels( chr200rels, resultSet.rows);	// save for later
 	console.log( `newset returned ${chr200rels.size} rows` );
 	getWebsqlchr200_mats();
 	//DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: chr200rels, useReplace:false } );
@@ -435,7 +456,7 @@ function importRowFail( error ) {
 	decrementPendingTransactionCount();
 }
 // Put data from 529 export (without phase) into database
-// CJD completely redid this, because we needed to get the key values from idalias creation
+// Completely redid this, because we needed to get the key values from idalias creation
 // in order to feed the ibdsegs. Then I changed my mind 
 // 1. scan entire file and split into testers (alias) and segments
 // 2. insert/update alias values and retrieve ID key values

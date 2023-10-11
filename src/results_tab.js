@@ -1848,7 +1848,7 @@ function migrationFinalise_done( s ) {
 	}
 	document.getElementById("docBody").style.cursor="pointer";
 
-	alert(`ICW sets analysed in ${str}.\nTriang: ${s.triang}; no overlap: ${s.no_overlap}; status unknown: ${s.unknown}.`);
+	alert(`ICW sets analysed in ${str}.\n${s.triang} triangulate; ${s.twoway} overlaps 2-way only; ${s.no_overlap} have no overlap;\n${s.hidden} are hidden; ${s.unknown} have status uncertain.`);
 }
 
 function requestImportProfiles(evt){

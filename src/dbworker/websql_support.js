@@ -174,14 +174,14 @@ var DBwebSQL = {
         logHtml( null, 'Storing hidden match summaries ...');
         // const today = formattedDate2();
         const update_qry = 'INSERT OR IGNORE INTO DNArelatives (IDprofile, IDrelative ) VALUES (?,?);';
+
         let total_rows_updated = 0;
 
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, o] of maprel ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind: [o.id1, o.id2 ]
                 } );
                 let rowsaffected = DB529.changes();
@@ -198,7 +198,7 @@ var DBwebSQL = {
             conerror( `DB migrate hidden rels: error: ${e.message} after ${total_rows_updated} rows`);
             return false;
         }
-        msg = `DB update DNArelatives WebSQL: finished; ${total_rows_updated} rows updated. Now checking for any segment summary updates`;
+        msg = `DB update hidden DNArelatives WebSQL: finished; ${total_rows_updated} rows updated. Now checking for any segment summary updates`;
         conlog( 0, msg );
         logHtml( null, msg);
         // finally, add new entries to the DNAmatches summary table - this replaces the old "chromosome 200" hack
@@ -228,7 +228,7 @@ var DBwebSQL = {
             conerror( `DB migrateChr200WebSQL DNAmatches update: error: ${e.message}`);
             return false;
         }
-        msg = `DB update DNAmatches WebSQL: finished; ${total_rows_updated} rows updated.`;
+        msg = `DB update hidden DNAmatches WebSQL: finished; ${total_rows_updated} rows updated.`;
         conlog( 0, msg );
         logHtml( null, msg);
 

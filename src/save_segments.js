@@ -690,6 +690,8 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
+	alert( 'Not yet available with the new database format');
+	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw "Page structure changed";
