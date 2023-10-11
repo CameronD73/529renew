@@ -7,7 +7,7 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-db_conlog( 2, "loading DB_IO script");
+db_conlog( 2, "loading WebSQL DB_IO script");
 
 
 /*
@@ -15,7 +15,251 @@ db_conlog( 2, "loading DB_IO script");
 * the following group of functions read from the database
 ********************************************************
 */
+function migIDQueryFailed(trans, error ) {
+	let msg = `migrate idalias call failed with ${error.message}`;
+	db_conlog( 1, msg );
+	alert( msg );
+}
+function migSegFailed(trans, error ) {
+	let msg = `migrate segment info failed with ${error.message}`;
+	db_conlog( 1, msg );
+	alert( msg );
+}
 
+function newset( newmap, sqlresults ) {
+	for( let i = 0; i < sqlresults.length; i++) {
+		newmap.set( i, sqlresults[i]);
+	}
+}
+
+// prepare DNArelatives entries. Input id1 and id2 are in sort order, so we need to ensure that the profile ID is first.
+function newsetRels( newmap, sqlresults ) {
+	const proflist = [];
+	for( let p=0; p < profile_summary.length; p++) {
+		proflist[p] = profile_summary[p].IDprofile;
+	}
+	for( let i = 0; i < sqlresults.length; i++) {
+		let o = sqlresults[i];
+		if ( proflist.indexOf( o.id1 ) < 0 ){
+			// id1 id not a profile - need to swap.
+			let temp = o.id2;
+			o.id2 = o.id1;
+			o.id1 = temp;
+			if ( proflist.indexOf( temp ) < 0 ) {
+				console.error( `newsetRels: Neither ${o.id1} nor ${o.id2} are profile IDs.`)
+			}
+		}
+		newmap.set( i, o);
+	}
+}
+
+let need_webSQL_profile = true;
+
+function  createWebsqlprofiles(  ) {
+	/*
+	function makeTransaction( ){
+
+		return function(transaction){
+			let qry = 'CREATE TABLE IF NOT EXISTS profiles ("IDprofile"	TEXT, "pname" TEXT NOT NULL, PRIMARY KEY("IDprofile"))';
+			transaction.executeSql(qry, []);
+		};
+	} */
+	if ( !need_webSQL_profile )
+		return;
+	need_webSQL_profile = false;		// only do it once.
+	db23.transaction( 
+        function (transaction) {
+			let qry = 'CREATE TABLE IF NOT EXISTS profiles (IDprofile TEXT NOT NULL UNIQUE, pname TEXT NOT NULL, PRIMARY KEY(IDprofile))';
+			db_conlog( 1, `executing webSQL stmt ${qry}`);
+			transaction.executeSql(qry, []);
+		},
+		function (err) {
+			let msg = `Create WebSQL profile failed: ${err.message}`;
+			db_conlog( 0, msg );
+			alert( msg );
+		 },
+		saveWebsqlprofiles
+	);
+}
+
+function  saveWebsqlprofiles(  ) {
+	
+	function makeTransaction( idobj){
+
+		return function(transaction){
+			transaction.executeSql('INSERT OR IGNORE into profiles ( IDprofile, pname ) VALUES (?, ?);',[idobj.IDprofile, idobj.pname] );
+		};
+	}
+	for(let i=0; i<profile_summary.length; i++){
+		let row = profile_summary[i];
+		db23.transaction(makeTransaction( row ), insertRowFail_websql, insert_OK_websql );
+	}
+}
+
+// get the adalias table for migration
+function  getWebsqlAliasTable( ) {
+	
+	db23.readTransaction(  
+		function(transaction){
+			transaction.executeSql('SELECT idText as k, name  from idalias',[], processWebsqlAliasTable, migIDQueryFailed );
+		}
+	);
+}
+
+function processWebsqlAliasTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old Alias Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg = `ID table has ${resultSet.rows.length} rows `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	// the SQLResultSetRowList is not iterable nor clonable, so cannot be passed to the worker, need to transmogrify it
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLAlias', sqlres: wat, useReplace:false } );
+	return;
+}
+
+function  getWebsqlFULLSegsTable( ) {
+	function makeTransaction( callBackSuccess, callBackFailed){
+
+		return function(transaction){
+			// this query gets a close approximation to the full-IBD segments that were overlapping.
+			const qry_fullibd = 'select  id1, id2,  chromosome,	sa.start as start,  sa.end as end,  \
+					sa.cM as cM,  sa.snps as snps, sa._rowid_ as rowa \
+				FROM ibdsegs as sa  JOIN ibdsegs as sb USING (id1, id2, chromosome ) \
+				WHERE sa._rowid_ != sb._rowid_ \
+					AND chromosome < 50 \
+					AND  ( ( sa.start BETWEEN sb.start and sb.end  AND sa.snps <= sb.snps ) \
+						OR ( sa.end BETWEEN sb.start and sb.end AND sa.snps < sb.snps ) );'
+
+			transaction.executeSql( qry_fullibd,[], callBackSuccess, callBackFailed);
+		};
+	}
+	db23.readTransaction(makeTransaction( processWebsqlFULLSegsTable, migSegFailed));
+}
+
+function processWebsqlFULLSegsTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old IBDsegs Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} Full identical segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	// console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLFULLSegs', sqlres: wat, useReplace:false } );
+	return;
+}
+
+function  getWebsqlHALFSegsTable( ) {
+	
+	function makeTransaction( callBackSuccess, callBackFailed){
+
+		return function(transaction){
+			// query to select all except those tagged as full-ibd
+			let qry = 'SELECT id1, id2, chromosome, start, end, cM, snps, date from ibdsegs where chromosome < 50 AND _rowid_ not in ' +
+					'( select  sa._rowid_ as rownum from ibdsegs as sa JOIN ibdsegs as sb USING (id1, id2, chromosome )' +
+						'WHERE sa._rowid_ != sb._rowid_	AND chromosome < 50 '+
+					   'AND  ( ( sa.start BETWEEN sb.start and sb.end  AND sa.snps <= sb.snps ) '+
+						   'OR ( sa.end BETWEEN sb.start and sb.end AND sa.snps < sb.snps ) ) );';
+			transaction.executeSql( qry,[], callBackSuccess, callBackFailed);
+		};
+	}
+	logHtml( '', 'Reading main segment table..');
+	db23.readTransaction(makeTransaction( processWebsqlSegsTable, migSegFailed));
+}
+
+function processWebsqlSegsTable(transaction, resultSet){
+	if(resultSet.message){
+		alert("get old IBDsegs Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} other ibd segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	let wat = new Map();
+	newset( wat, resultSet.rows);
+	console.log( `newset returned ${wat.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: wat, useReplace:false } );
+	return;
+}
+
+let chr200rels = new Map();
+let chr200mats = new Map();
+
+function  getWebsqlchr200_rels( ) {
+
+	logHtml( '', 'Reading hidden rels..');
+	db23.readTransaction( 
+		function(transaction){
+			let qry = 'select ID1, ID2, end as hidden, snps * 0.001 as pctshared, snps * 0.0744 as cMtotal, 0 as hasSegs from ibdsegs \
+				WHERE chromosome > 150 AND (  id1 in (select IDprofile from profiles) OR  id2 in (select IDprofile from profiles)) \
+				group by ID1, ID2;';
+			transaction.executeSql( qry,[], processWebsqlchr200_rels, migSegFailed);
+		}
+	);
+}
+
+function processWebsqlchr200_rels(transaction, resultSet){
+	if(resultSet.message){
+		alert("get chr200 Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} hidden DNA relatives `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	newsetRels( chr200rels, resultSet.rows);	// save for later
+	console.log( `newset returned ${chr200rels.size} rows` );
+	getWebsqlchr200_mats();
+	//DBworker.postMessage( {reason:'migrateWebSQLSegs', sqlres: chr200rels, useReplace:false } );
+	return;
+}
+
+function  getWebsqlchr200_mats( ) {
+	
+	logHtml( '', 'Reading hidden matches..');
+
+	db23.readTransaction( 
+		function(transaction){
+			let qry = 'SELECT  ID1, ID2,  end as hidden, snps * 0.001 as pctshared, snps * 0.0744 as cMtotal, 0 as hasSegs \
+					FROM ibdsegs  WHERE chromosome > 150 GROUP by ID1, ID2;';
+			transaction.executeSql( qry,[], processWebsqlchr200_mats, migSegFailed);
+		}
+	);
+}
+
+function processWebsqlchr200_mats(transaction, resultSet){
+	if(resultSet.message){
+		alert("get chr200 Table: Failed to retrieve  data: "+ resultSet.message);
+		return;
+	}
+	let msg =  `Have read ${resultSet.rows.length} hidden ibd segments `;
+	console.log( msg );
+	logHtml( '', msg );
+
+	newset( chr200mats, resultSet.rows);	// save for later
+	console.log( `newset returned ${chr200mats.size} rows` );
+
+	DBworker.postMessage( {reason:'migrateWebSQLchr200', sqlres1: chr200rels,  sqlres2: chr200mats, useReplace:false } );
+	return;
+}
+
+
+/* ***********************************************************************************************
+**** ================================   the following needs wasm  replacement 
+***********************************************************************************************/
 // id1 and id2 are the text representation of the 23 and me UID
 // It requests count of segment hits between ID1 and ID2 that are saved in the DB.
 //     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
@@ -52,13 +296,7 @@ const sellist1 = "ibdsegs.ROWID as ROWID,\
 	ibdsegs.cM AS cM,\
 	ibdsegs.snps AS snps,\
 	ibdsegs.date as segdate";
-/* unused
-const sellist2 = "	ibdsegs.phase1 AS phase1,\
-	ibdsegs.relationship1 AS relationship1,\
-	ibdsegs.phase2 AS phase2,\
-	ibdsegs.relationship2 AS relationship2,\
-	ibdsegs.comment AS comment";
-*/
+
 const joinlist = "ibdsegs \
 	JOIN idalias t1 ON (t1.idText=ibdsegs.id1 ) \
 	JOIN idalias t2 ON (t2.idText=ibdsegs.id2 ) \
@@ -101,32 +339,6 @@ function selectSegmentMatchesFromDatabase(callbackSuccess, segmentId){
 	db23.readTransaction(makeTransaction(callbackSuccess));
 }
 
-// Get a list of names and associated ids for whom any data are available
-// Used for displaying list of names in results page
-function getMatchesFromDatabase(callbackSuccess){
-	
-	function makeTransaction(callback){
-		return function(transaction){
-			transaction.executeSql('SELECT name, idText FROM idalias ORDER BY name COLLATE NOCASE', [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-// Get a reduced list of names and associated ids for whom any data are available
-// Used for displaying filtered list of names in results page
-function getFilteredMatchesFromDatabase(filterText, callbackSuccess){
-	
-	function makeTransaction(callback){
-		var query="SELECT name, idText FROM idalias WHERE name LIKE '" +filterText + "' ORDER BY name COLLATE NOCASE";
-		return function(transaction){
-			transaction.executeSql(query, [], callback, callback);
-		};
-	}
-	db23.readTransaction(makeTransaction(callbackSuccess));
-}
-
-
-
 function getSegsFailed( trans, error ) {
 	db_conlog(1, `selectFromDB failed: ${error.message}`);
 	alert( `DB get seg FAILED: ${error.message}`);
@@ -137,7 +349,7 @@ function getSegsFailed( trans, error ) {
 ** either as display on page or save to csv or gexf files.
 ** - in: id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
-** if limitDates it true then we only select those newer than previous save.
+** if limitDates is true then we only select those newer than previous save.
 */
 function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, includeChr100){
 
@@ -244,7 +456,7 @@ function importRowFail( error ) {
 	decrementPendingTransactionCount();
 }
 // Put data from 529 export (without phase) into database
-// CJD completely redid this, because we needed to get the key values from idalias creation
+// Completely redid this, because we needed to get the key values from idalias creation
 // in order to feed the ibdsegs. Then I changed my mind 
 // 1. scan entire file and split into testers (alias) and segments
 // 2. insert/update alias values and retrieve ID key values
@@ -390,8 +602,8 @@ function import529CSV(lineList, nFields, callback){
 
 }
 
-function deleteAllData(callbackSuccess){
-	if(confirm("Delete all data stored in your 529Renew local database?")){
+function deleteAllDataWebSQL(callbackSuccess){
+	if(confirm("Delete all data stored in your OLD 529Renew local database?\nHave you checked data migration?")){
 		db23.transaction(
 			function(transaction) {
 				transaction.executeSql("DELETE from ibdsegs",[]);		// this is sqlite's TRUNCATE equivalent
@@ -399,15 +611,4 @@ function deleteAllData(callbackSuccess){
 			}, function(){alert("Failed to delete data stored in 529Renew local database");}, callbackSuccess
 		);
 	}
-}
-
-function updateDBSettings( key, value ) {
-	
-	//const update_qry = `UPDATE settings  SET  value = ? WHERE setting = ?  ;`;
-	const update_qry =  `INSERT OR REPLACE INTO settings (setting, value) VALUES (?,?);`;
-	db23.transaction(
-		function(transaction) {
-			transaction.executeSql( update_qry, [key, value] );
-		}, function(){alert(`Failed to update setting ${key} to ${value} in 529Renew database`);} 
-	);
 }

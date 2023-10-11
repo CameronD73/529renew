@@ -14,7 +14,7 @@
 // settings get initialised.
 // These will get defaulted to zero (or user choice) as soon as retrieveSettingsP is called
 let debug_db = 2;
-let debug_msg = 2;
+let debug_msg = 3;
 
 function db_conlog( level, msg ) {
 	if ( debug_db >= level ) {
@@ -31,7 +31,7 @@ function msg_conlog( level, msg ) {
 // default values for first time.
 // Use string for integers to stop conversion to float in DB.
 const settings529default = {
-	"version": 1,		// version of this structure
+	"version": 2,		// version of this structure
 	"displayMode": "2",
 	"textSize": "small",	// never set in old code
 	"build": "37",
@@ -48,15 +48,20 @@ const settings529default = {
 	"debug_msg": "0",
 	"minSharedNonOverlap": 0.3,		// percentage
 	"closeTabImmediate": "0",
-	"alwaysIncludeNonOverlap": "0"
+	"alwaysIncludeNonOverlap": "0",
+	"importReplaces": "0"		// if imports and migrate uses replace (1) or ignore (0)
 };
 const settings_upgrade_0to1 = {
 	"debug_db": "0",
 	"debug_q": "0",
 	"debug_msg": "0",
-	"minSharedNonOverlap": 0.3,
+	"minSharedNonOverlap": 0.08,  // 0.08 will allow all
 	"closeTabImmediate": "0",
 	"alwaysIncludeNonOverlap": "0"
+};
+
+const settings_upgrade_1to2 = {
+	"importReplaces": "0"		// if imports and migrate uses replace (1) or ignore (0)
 };
 
 // in-page cache of settings
@@ -79,24 +84,19 @@ function retrieveSettingsP() {
 						chrome.storage.local.set( {'set529':settings529 });
 						settings_from_storage = false;
 						console.log("No settings found in storage. Default values loaded and stored.");
-						populate_settings(settings529);
 						resolve( "new" );
 					} else {
 					// saved values exist so we use them
 						Object.assign(settings529, data.set529);
-						if(settings529["version"] != 1 ) {
+						if(settings529["version"] < 1 ) {
 							// merge in new values...
 							Object.assign(settings529, settings_upgrade_0to1);
 							setSetting( "version", 1 );
-							// there's a bit of redundancy here, but this catches some rare problems.
-							// (not actually problems, since the settings in DB are never used.)
-							populate_settings(settings529);
-							/*
-							settings529["version"] = 1;
-							// update storage with extra new values...
-							chrome.storage.local.set( {'set529':settings529 });
-							updateDBSettings( "version", settings529["version"] );
-							*/
+						}
+						if(settings529["version"] < 2 ) {
+							// merge in new values...
+							Object.assign(settings529, settings_upgrade_1to2);
+							setSetting( "version", 2 );
 						}
 						settings_from_storage = true;
 						console.log("Stored settings retrieved:", settings529); 
@@ -128,12 +128,12 @@ function setSetting(item,value){
 			return false;	// clearly a bug
 		}
 		console.log("WEIRD! Error in setSettings: lost item ",item );	
-		// otherwise fall trhrough and apply new value (a different bug)
+		// otherwise fall through and apply new value (a different bug)
 	};
 	settings529[item] = value;
 	if ( item == "debug_db" ) {
 		debug_db = value;
-		set_option_visibility( 1 );
+		//set_option_visibility( 1 );		// results tab only (not popup)
 	}
 	else if ( item == "debug_msg" )  {
 		debug_msg = value;
@@ -148,12 +148,22 @@ function getSetting(item){
 	//check that item is in settings
 	if(!Object.keys(settings529).includes(item)){	
 		if(!Object.keys(settings529default).includes(item)){
-			console.log("Error in getSettings: item ",item," not in settings");	
+			console.error("Error in getSettings: item ",item," not in settings");	
 			return null;	// clearly a bug
 		}
 		// otherwise reinstate "lost" setting (a different bug)
-		console.log("WEIRD! reinstating lost item ",item );	
+		console.error("WEIRD! reinstating lost item ",item );	
 		settings529[item] = settings529default[item];
 	};
 	return settings529[item];
 };
+
+
+/*
+** dump all settings into DB list (at the moment, just as a diagnostic tool)
+*/
+function populate_settings(  ){
+	for( const [key, value] of  Object.entries(settings529) ) {
+		updateDBSettings( key, value );
+	}
+}

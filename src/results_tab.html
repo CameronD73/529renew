@@ -2,8 +2,14 @@
 <html id="docBody">
   <head>
 	<script src="util/rounding.js"></script>
-	<script src="FileSaver.js"></script>
+	<script src="util/dates.js"></script> 
+	<script src="util/FileSaver.js"></script>
+	<script src="util/papaparse.min.js"></script> 
 	<script src="results_options.js"></script>
+	<script src="db/database_IO.js"></script>
+	<script src="db/CSV_input.js"></script>
+  	<script src="db/db_actions.js"></script> 
+  	<script src="results_tab_messaging.js"></script>
 	<script src="websql/database_IO.js"></script>
   	<script src="websql/database_init.js"></script>
   	<script src="websql/database_actions.js"></script>
@@ -16,40 +22,13 @@
   	<datalist id="labels">
   	</datalist>
   	<img src="logos/529renew.png" alt="" />
-	<!-- render visible only when debugging -->
-	<div id="hiddenOptions" class="invisible"> Basepair address rounding
-		<select id="roundingBP" title="To round of Basepair address values. Use zero unless you really need otherwise because meaningful information is lost">
-			<option value="0">0</option>
-			<option value="100">100</option>
-			<option value="1000">1000</option>
-			<option value="1000000">1000000</option>
-		</select> &nbsp;&nbsp;&nbsp;cM Rounding
-		<select id="roundingcM" title="Number of decimal places to save cM values - any more than 1 is most likely meaningless, 2 is very safe.">
-			<option value="0">0</option>
-			<option value="1">1</option>
-			<option value="2">2</option>
-			<option value="3">none</option>
-		</select> &nbsp;&nbsp;&nbsp; Delay (seconds)
-		<select id="delay" title="seconds between each call to 23 and me server (throttling here to reduce blocking from them)">
-			<option value="0">0</option>
-			<option value="0.5">0.5</option>
-			<option value="1">1</option>
-			<option value="1.5">1.5</option>
-			<option value="2">2</option>
-			<option value="3">3</option>
-		</select>
-	</div>
 
 	<div class="displaySettings">Display mode:
 	  <select id="displayMode">
   		<option value="0">Basic</option>
   		<option value="1">Match Links</option>
   		<option selected value="2">Match and Overlapping Segment Links</option>
-  	  </select><!-- 
-  	  <select id="build">
-  	  	<option selected value="37">Build 37</option>
-  	  	<option value="36">Build 36 (does nothing)</option>
-  	  </select>-->
+  	  </select>
   	  <select id="textSize">
   	  	<option selected value="small">Small Text</option>
   	  	<option value="normal">Normal Text</option>
@@ -94,12 +73,25 @@
 		<input id="hideCloseMatchesCheckBox" type="checkbox">
 		<label for="hideCloseMatchesCheckBox">Don't display close relatives with more than 21 such segments</label>
 	</div>
-	<!-- <div class="fileupload" style='height: 0px;width:0px; overflow:hidden;'><input id="upfile" type="file" value="upload"/></div> -->
-	<!-- why do we need this? chrome won't allow inline style to hide button that randomly appears. Let's see what happens when we remove.
-	However, the style in the css file is occasionally ignored! Not all the time!-->
-	<div class="fileupload" ><input id="upfile" type="file" value="upload"/></div>
-  	<div id="buttonrow"></div>
+	<br/>
+	<div id="buttonInRow">
+		<!-- input file selectors (not visible) - one required for each different file. -->
+		<div class="fileupload" >
+			<input id="upprofile" type="file" value="upload"/>
+			<input id="upfile23" type="file" value="upload" multiple/>
+			<input id="upfile529" type="file" value="upload"/>
+		</div>
+		<div id="profile_selector" class="displaySettings">
+			Select profile for import:
+				<select id="selectKit" title="You must specify the profile kit in order to upload DNA Relatives CSV file from 23 and Me"></select>
+		</div>
+	</div>
+	<br/>
+  	<div id="buttonOutRow"></div>
 
   	<div class="special" id="table_div"></div>
+
+	
+	<div id="conflict_info"></div>
   </body>
 </html>

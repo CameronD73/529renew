@@ -110,8 +110,8 @@ chrome.runtime.onInstalled.addListener( function(details) {
 			conlog(0, `529 extension updated from ${previousVersion} to ${currentVersion}.`);
 			open_results_tab("results_tab.html", false );
 			if (previousVersion != currentVersion) {
-			  if (previousVersion.startsWith( '1.2.')  ){
-				chrome.tabs.create({ active:true, url: 'whatsnew-1_3.html' });
+			  if (previousVersion.startsWith( '1.')  ){
+				chrome.tabs.create({ active:true, url: 'whatsnew-2_0.html' });
 			  }
 			}
 			break;  

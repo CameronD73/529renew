@@ -18,3 +18,14 @@ H2 {
     color:red;
     visibility: hidden;
 }
+
+.dbstatus {
+    border: 1px solid red;
+    border-spacing: 1px;
+    padding-right: 4px;
+    padding-top: 1px;
+}
+
+.dbstnum {
+    text-align: right;
+}
