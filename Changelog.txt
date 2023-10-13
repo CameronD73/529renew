@@ -38,3 +38,14 @@ significant changes between 1.2.5 and 1.2.6
     fixed problem with upper/lower case confusion in icon files, for situations where the filesystem is case-sensitive.
 
 V 1.2.6  submitted to Chrome store 2023-04-13
+
+V 1.3.0  submitted to Chrome store mid-September 2023
+    23 and Me changed the way ICW matches were displayed, removing the yes/no indicator of overlap.  This release was required to enable 529renew to continue to work.  The "minimum pct shared" parameter became meaningless due to the 23andMe changes, and so was altered slightly to any available ICW matches
+
+V1.9.0  submitted to Chrome store  11-Oct-2023
+    major changes, to permit migration of WebSQL database to an sqlite API based on sqlite-WASM.  In the 1.9 series, both database interfaces are included.
+    Normal functionality is not available in the V1.9 series, as those most of those routines still use the webSQL api.
+    The opportunity was taken to substantially modify the DB schema.
+
+V2.0.0   submission to Chrome store  expected late October 2023.
+    Will have no webSQL code.
