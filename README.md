@@ -23,21 +23,26 @@ Most of the details are in [this project's Wiki](https://github.com/CameronD73/5
 # Installation
 The latest released version is available in the Chrome store. For experimental installs (developer mode) see details in the wiki.
 
+Versions of 529Renew at 1.9.0 and later (October 2023) require the ability to load the sqlite-wasm code with the Origin-Private File-System. It seems that browsers Egde, Vivaldi and Opera all provide suitable support and work under ms-windows based on my minimal testing.
+
 By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
 * For Edge, click on 3 horizontal dots top right, then select `extensions`-> `manage extensions` and click on `Chrome web store`.  At some stage you need to enable the option `Allow extensions from other stores`.  Search for __529renew__ and click on the one extension listed and  the details page opens up, along with a button `Add to Chrome`.
 * I have briefly tested using Vivaldi and Opera under windows and 529Renew operates successfully.
 
 The following steps then apply whichever browser you are using:
-*  you get a warning that this extension can "read and change your data on you.23andme.com" (this is badly worded - it means view and change the contents on the web page, I suppose the extension _could_ be made to edit and update your match notes if it wanted to). It also warns that the extension can "read your browsing history" (I have no idea where this comes from - we don't ask for it and as far as I know the extension doesn't access your history).  Click `Add extension`
+*  you get a warning that this extension can "read and change your data on you.23andme.com. This is badly worded - it means view and change the contents on the web page; it cannot change your DNA data on 23andMe.com . In theory the extension _could_ be made to edit and update your match notes, but it doesn't. It also warns that the extension can "read your browsing history" (I have no idea where this comes from - we don't ask for this capability and the extension doesn't access your history).  Click `Add extension`
 * The extension ID is hgckkjajmcmbificinfabmaelboedjic.
 * It should  then open a new tab and display a message box saying "created a new local database". This will only happen once for a given browser profile, unless you delete the extension, in which case the database is immediately deleted as well.
 * You should _pin the 529renew icon to the toolbar_ so that you can access the settings page.  On Vivaldi it seems to be present by default, as soon as the extension is installed. For other browsers you need to go to `manage extensions` to pin 
 * The "extensions" icon (a jigsaw puzzle piece on Chrome, a box on Opera) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
 * you are now ready to start.
 * if you have old data that you want to migrate from _529 and You_ then go to the next section, otherwise you can skip it.
+## Database Migration from 529Renew before October 2023
+Version 1.9 offers an easy migration process and is documented in a web page that pops up when the extension is installed. Since it is transient, I will not document it here.
 
-## Database Import
+## Database Import from 529 and You
+
 * 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
 * This means you need to reimport your data to easily populate the database with all the matches you carefully obtained with 529 and You.
 * The file that you need to import is the CSV file that you previously exported for GDAT from _529 and You_. If you have been using 529 and You for a long time then you may have some "build 36" records. The exports from  _529 and You_ could be from either build 36 or from build 37 but not both in the one file. The files do not contain the build info so you have to know if the file is build 37 or not.  _Any file you import will be assumed to be build 37_.
@@ -85,6 +90,7 @@ When you have finished, simply click back in another tab and the popup should be
 (default 2 seconds). This should help make 23 and me servers complain less, such as giving error 429 and locking your access. (See below for more details)
 
 ### rounding of base-pair addresses
+This is not a good idea and will be removed at some stage.
 The original _529 and You_ code rounds to the nearest million in order to match early output from 23 and me. This is discarding significant information, so the default is no rounding, but can be adjusted if required back to the original. A better alternative would be to always save the full address and use the rounding in comparisons. The minimum overlap setting now makes this less important.
 
 ### rounding of centiMorgan values
@@ -94,21 +100,23 @@ now rounds by default to 2 decimal places, purely for appearances. The second de
 Similar to GDAT's option, and it has no bearing on 23 and Me's definition of whether segments overlap enough to be considered _shared_.  In  _529 and You_  the display routines considered segments to "overlap" provided they merely touch - for example the end address of one segment is the same as the starting address of another.  If you set this parameter to a number above zero then the start and end must overlap by at least this number of Mbase pairs.
 
 ### Recording segments that are not overlapping
+This section is out of date as of V1.3.0, after 23andMe removed the information about whether there was any overlap.
+
 Normally, the "triangulation" process ignores any matches that have no overlaps.  This pair of related options modify this behaviour.
 
 Say your profile person **A** is in common with **X** and **Y** but the matching segments do not overlap. Normal recording of "triangulation" only accepts matches with 3-way overlaps. Both  _529 and You_ and _529renew_ allow you to shift-click to save segment details between the profile person and  **Y**  and between **X** and  **Y**  when they do not overlap. 
 #### Minimum shared DNA (pct):
-This parameter sets a lower limit - only matches having at least this percentage in common will be recorded.
+This parameter sets a lower limit - only matches having at least this percentage in common will be recorded.  This now applies to all ICW, as we cannot tell in advance whether they have overlap.
 
 #### Save Segments Mode.
-This parameter can be set to "always" or "only with shift-click". If you want to always record segments then this should be set to "always" to save teh need for you to remember to hold the shift-key every time.
+This parameter can be set to "always" or "only with shift-click". If you want to always record segments then this should be set to "always" to save the need for you to remember to hold the shift-key every time.
 
 ### Tab action when triangulation completes.
 Can be set to "close tab" or "tab remains open".
 
 ### Options for Debugging or Troubleshooting
 At the bottom of the settings page are options for troubleshooting.
-The date setting should be exp[lained sufficiently on the page.
+The date setting should be explained sufficiently on the page.
 
 The debug levels determine the verbosity of progress notes that are printed on the javascript console. This console is revealed in Chrome or Edge by pressing F12, or by a right-click on the page background and selecting "inspect". 
 This opens the "devtools"   window, and every tab will have its own separate devtools window, which only persists while the tab is present.
