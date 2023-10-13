@@ -464,7 +464,7 @@ function importRowFail( error ) {
 
 // lineList is an array with the full text from the file - one line per array row
 // nFields may be 9 (normal export) or 14 (exported with full phase, etc details)
-function import529CSV(lineList, nFields, callback){
+function import529CSV_websql(lineList, nFields, callback){
 
 	if(!lineList) return;
 	const aliasmap = new Map();

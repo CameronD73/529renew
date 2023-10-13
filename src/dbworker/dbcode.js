@@ -264,8 +264,9 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
-        conlog( 1, `DB MigAlias: finished; ${total_rows_updated} rows updated` );
-        //logHtml( null, 'finished');
+        let msg = `DB migrate Alias: finished; ${total_rows_updated} rows updated` ;
+        conlog( 1, msg );
+        logHtml( null, msg);
         return true;
     },
 
@@ -301,8 +302,9 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
-        conlog( 0, `DB migrateSegMap: finished; ${total_rows_updated} rows updated.` );
-        //logHtml( null, 'finished');
+        let msg = `DB migrateSegMap: finished; ${total_rows_updated} rows updated.`;
+        conlog( 0, msg );
+        logHtml( null, msg);
         return true;
     },
 
@@ -334,8 +336,9 @@ var DBwasm = {
             logHtml('error', `DB Migrate${matchtype}: error: ${e.message}`);
             return false;
         }
-        conlog( 4, `DB Migrate${matchtype}: finished` );
-        //logHtml( null, 'finished');
+        let msg = `DB Migrate${matchtype}: finished`;
+        conlog( 4, msg );
+        logHtml( null, msg);
         return true;
     },
 
@@ -359,10 +362,10 @@ var DBwasm = {
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
-            logHtml('error', `DB MigrateDNSrels: error: ${e.message}`);
+            logHtml('error', `DB MigrateDNArels: error: ${e.message}`);
             return false;
         }
-        conlog( 4, `DB MigrateDNSrels: finished` );
+        conlog( 4, `DB MigrateDNArels: finished` );
         //logHtml( null, 'finished');
         return true;
     },

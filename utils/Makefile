@@ -1,4 +1,4 @@
-# BUILDxxx represent the target directories in while to build the extension.
+# BUILDxxx represent the target directories in which to build the extension.
 BUILDDIR	= 529renew-V2
 BUILD_WEBSQL	= ${BUILDDIR}/websql
 BUILD_LOGOS	= ${BUILDDIR}/logos

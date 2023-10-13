@@ -194,12 +194,15 @@ function import529CSV(lineList, nFields ){
 	// DBworker.postMessage( { reason: 'migrateMatchMapHidden', amap: chr200map, useReplace: useReplace });
 
 	db_conlog( 1, `  adding ${aliasmap.size} alias rows`);
+	logHtml( '',  `  adding up to ${aliasmap.size} alias rows` );
 	// add all the unique keys and names to the alias table
 	// never replace existing, as 23 imports have more info.
 	DBworker.postMessage( { reason: 'migrateAliasmap529', amap: aliasmap, useReplace: false });
 
 	
-	db_conlog( 1, `adding ${lineList.length} segment rows. This may take a while...`);
+	let segmsg= `adding ${lineList.length} segment rows. This may take a while...`;
+	db_conlog( 1, segmsg); 
+	logHtml( '', segmsg );
 	// Now reprocess the list and save the matched segments
 	for(let i=1; i< lineList.length; i++){
 		var entry=lineList[i].split(',');
