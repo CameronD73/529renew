@@ -11,9 +11,9 @@ const DBname = 'matches.sqlite3';
 const DBpath = '/' + DBdir + '/' + DBname;
 let DB529 = undefined;
 let DBsize = 0;
+let _sqlite3 = undefined;
 
 let debugLevel = 0;
-//let _sqlite3 = undefined;
 
 
 const log = (...args) => logHtml('', ...args);
@@ -50,6 +50,32 @@ self.onmessage = function processMessages( msg ) {
       debugLevel = content.value;
     break;
 
+    case "insertNewAliasAndSegs":
+      if ( amap.size > 0 )
+        DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
+      if( smap.size > 0 )
+        DBwasm.insertSegmentMap(content.smap, 'ibdsegs', content.useReplace); 
+      if( fullsmap.size > 0 )
+        DBwasm.insertSegmentMap(content.fullsmap, 'ibdsegsFull', content.useReplace); 
+      if ( mmap.size > 0 )
+        DBwasm.insertMatchMap(content.mmap, 'Match', content.useReplace); 
+      if ( rmap.size > 0 )
+        DBwasm.insertDNArelatives(content.rmap, 'Match', false);      // never overwrite 
+    break;
+
+    case "insertHiddenMap":
+      if ( amap.size > 0 )
+        DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
+      if( smap.size > 0 )
+        DBwasm.insertMatchMap(content.hmap, 'MatchHidden', content.useReplace); 
+    break;
+
+    case "checkIfInDatabase":
+      let hassegs = DBwasm.checkInDB( content.matchpair.indexId, content.matchpair.matchId);
+      let ntc = ! hassegs;
+      postMessssage( {reason:"return_DBcheck", tabID:content.tabID,  matchpair:content.matchpair, needToCompare: ntc});
+    break;
+
     case "getMatchList":
       conlog( 0, 'getMatchList rcvd by worker');
       let matchList = DBwasm.get_matches_list( content.filter, content.purpose );
@@ -66,14 +92,6 @@ self.onmessage = function processMessages( msg ) {
       DBwasm.updateDBSettings(content.newsetting); 
     break;
 
-    case "dumpDB":
-      dumpDB(); 
-      break;
-
-    case "deleteAllData":
-      destroyDB(); 
-      break;
-
     case "insertProfiles":
       let retvalpstat = DBwasm.insertProfiles(content.amap);  // synchronous, so we can just send result back
       postMessage( {reason: 'insertProfiles_return', payload: retvalpstat } );
@@ -84,68 +102,65 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'profile_return', payload: retvalp } );
     break;
 
-    case "close":     // creator tab is closing...
-      closeDB();
-      conlog( 0, "closing DB worker");   // you won't see this?
-      self.close();
-      break;
+    case "dumpDB":
+      dumpDB(); 
+    break;
+
+    case "restoreDB":
+      logHtml( '', `Loading file into DB`);
+      restoreDB( content.filecontents ).then( ()=>{
+            logHtml( '', 'Restore done');
+            postMessage( {reason: 'restoredDB_return' } );
+          }); 
+      
+    break;
+
+    case "deleteAllData":
+      destroyDB(); 
+    break;
+
+    case "closing":     // creator tab is closing...
+      closeDB().then( ()=> { self.close(); });      
+    break;
+
+    default:
+      conerror( `Invalid DBworker call: "${reason}"`);
+
   }
 }
-
 
 function processMigrations( content ) {
   let reason = content.reason;
 
   switch( reason ) {
     case "migrateSegmentMap":
-      DBwasm.migrateSegmentMap(content.amap, 'ibdsegs', content.useReplace); 
+      DBwasm.insertSegmentMap(content.amap, 'ibdsegs', content.useReplace); 
     break;
 
     case "migrateSegmentMapFull":
       // small table for full-match IBD
-      DBwasm.migrateSegmentMap(content.amap, 'ibdsegsFull', content.useReplace); 
+      DBwasm.insertSegmentMap(content.amap, 'ibdsegsFull', content.useReplace); 
     break;
-
-    case "migrateWebSQLAlias":
-      let retvalwsa = DBwebSQL.migrateAliasWebSQL(content.sqlres, false, content.useReplace); 
-      postMessage( {reason: 'webSQLAlias_return', payload: retvalwsa } );
-    break;
-
-    case "migrateWebSQLFULLSegs":
-      let retvalwsfs = DBwebSQL.migrateFULLSegmentWebSQL( content.sqlres ); 
-      postMessage( {reason: 'webSQLFULLSeg_return', payload: retvalwsfs } );
-    break;
-
-    case "migrateWebSQLSegs":
-      let retvalwshs = DBwebSQL.migrateSegmentWebSQL( content.sqlres ); 
-      postMessage( {reason: 'webSQLSeg_return', payload: retvalwshs } );
-    break;
-
-    case "migrateWebSQLchr200":
-      let retvalws200 = DBwebSQL.migrateChr200WebSQL( content.sqlres1, content.sqlres2 ); 
-      postMessage( {reason: 'webSQLchr200_return', payload: retvalws200 } );
-    break;
-
 
     case "migrateAliasmap23":
-      DBwasm.migrateAliasmap(content.amap, true, content.useReplace); 
+      DBwasm.insertAliasmap(content.amap, true, content.useReplace); 
     break;
 
     case "migrateAliasmap529":
-      DBwasm.migrateAliasmap(content.amap, false, content.useReplace); 
+      DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
     break;
 
     case "migrateMatchMap":
-      DBwasm.migrateMatchMap(content.amap, 'Match', content.useReplace); 
+      DBwasm.insertMatchMap(content.amap, 'Match', content.useReplace); 
     break;
 
     case "migrateDNArelatives":
-      DBwasm.migrateDNArelatives(content.amap, content.useReplace); 
+      DBwasm.insertDNArelatives(content.amap, content.useReplace); 
       reportMigratedSize('import_23_done');
     break;
 
     case "migrateDNArelatives529":
-      DBwasm.migrateDNArelatives(content.amap, content.useReplace); 
+      DBwasm.insertDNArelatives(content.amap, content.useReplace); 
       reportMigratedSize('migrate_529_done');
     break;
 
@@ -157,7 +172,7 @@ function processMigrations( content ) {
     case "migrateMatchMapHidden":
       conerror( 'Should not be calling migrateMatchMapHidden');
       return;
-      DBwasm.migrateMatchMap(content.amap, 'MatchHidden', content.useReplace); 
+      DBwasm.insertMatchMap(content.amap, 'MatchHidden', content.useReplace); 
     break;
 
     default:
@@ -165,9 +180,8 @@ function processMigrations( content ) {
   }
 }
 
-/* open the DB, creating it if not already found
-*/
-const start = async function (sqlite3) {
+// early version, using dir loop...
+const startbig = async function (sqlite3) {
   const capi = sqlite3.capi; /*C-style API*/
   conlog( 0,'sqlite3 version', capi.sqlite3_libversion());
   if (! sqlite3.oo1.OpfsDb)  {
@@ -208,7 +222,60 @@ const start = async function (sqlite3) {
       DBwasm.create_db_tables();
     }
   } catch( e ){
-    conerror( 'failed to open DB: ', e.message);
+    let msg = `Failed to create DB: ${e.message}`;
+    alert( msg );
+    conerror( msg );
+    return;
+  }
+  conlog( 1,'db =', DB529.filename);
+
+};
+/* 
+** open the DB, creating it if not already found
+*/
+const start = async function (sqlite3) {
+  const capi = sqlite3.capi; /*C-style API*/
+  conlog( 0,'sqlite3 version', capi.sqlite3_libversion());
+  if (! sqlite3.oo1.OpfsDb)  {
+    conerror('The OPFS is not available. Giving up!');
+    return;
+  }
+  try {
+    if ( DB529 !== undefined ) {
+      conlog( 0, 'DB already open?');
+      return;   // already opened.
+    }
+    const root = await navigator.storage.getDirectory();
+    const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
+    let found = false;
+    try {
+      const fhandle = await sdhandle.getFileHandle( DBname );
+      found = true;
+    } catch( fe ) {
+      if ( fe.name !== 'NotFoundError')  throw(fe);
+    }
+    if( found ) {
+      let ahand = await fhandle.createSyncAccessHandle();
+      let dbsize = ahand.getSize();
+      ahand.close();
+
+      if ( dbsize < 10 ) {
+        conlog( 0, `DB file is only  ${dbsize} bytes, recreating tables`);
+        DBwasm.create_db_tables();
+      }
+      // open the file as a DB object
+      DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'w' );
+      conlog( 0,`The DB is open. ${dbsize} bytes`);
+    } else {
+      conlog( 0, 'DB not found, trying to create...');
+      DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'c' );
+      conlog( 0,'The DB is created.');
+      DBwasm.create_db_tables();
+    }
+  } catch( e ){
+    let msg = `Failed to create DB: ${e.message}`;
+    alert( msg );
+    conerror( msg );
     return;
   }
   conlog( 1,'db =', DB529.filename);
@@ -233,8 +300,8 @@ const getDBSize = async function (  ) {
 const reportMigratedSize = async function( mode ) {
   let retsize = await getDBSize();
   postMessage( {reason: mode , newsize: retsize } );
-
 }
+
 const dumpDB = async function (  ) {
 
   const root = await navigator.storage.getDirectory();
@@ -243,17 +310,32 @@ const dumpDB = async function (  ) {
   let ahand = await fhandle.createSyncAccessHandle();
   let sz = ahand.getSize();
   let dvbuf = new DataView( new ArrayBuffer(sz) );
+  let buf = new ArrayBuffer(sz);
   try {
     // Moz docs say ArrayBuffer or ArrayBufferView, BUT chrome crashes, demanding ...View.
-    let retval = ahand.read(dvbuf);
+    let retval = ahand.read(buf);
     conlog( 0, `DBWorker: buffer loaded with ${retval} bytes, from ${sz}`);
-    self.postMessage( {reason: 'DBloaded_for_dump', payload:dvbuf.buffer }, [dvbuf.buffer]);
+    self.postMessage( {reason: 'DBloaded_for_dump', payload:buf }, [buf]);
   } catch( e ){
     conerror( 'failed to load DB: ', e.message);
   } finally {
     ahand.close();
   }
   return;
+};
+
+const restoreDB = async function ( filecontents ) {
+  await destroyDB();
+  try {
+    await _sqlite3.oo1.OpfsDb.importDb( DBpath, filecontents );
+  } catch( e ) {
+    let msg = `Failed to import DB: ${e.message}`;
+    alert( msg );
+    conerror( msg );
+  } finally {
+    await start( _sqlite3 );    // reopen DB, or else create empty one on error
+  }
+  return 1;
 };
 
 const removeDBs = async function () {
@@ -276,10 +358,18 @@ const removeDBs = async function () {
 
 const destroyDB = async function () {
   await closeDB();      // in case DB is locked...
-  const root = await navigator.storage.getDirectory();
-  const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
-  const fhandle = await sdhandle.getFileHandle( DBname );
-  fhandle.remove();
+  try {
+    const root = await navigator.storage.getDirectory();
+    const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
+    try {
+      const fhandle = await sdhandle.getFileHandle( DBname );
+      fhandle.remove();
+    } catch( fe ) {
+      if ( fe.name === 'NotFoundError')  return;      // nothing to destroy
+    }
+  } catch( e ) {
+    conerror( `Failed to destroy database: ${e.message}` );
+  }
 }
 
 const closeDB = async function () {
@@ -297,7 +387,6 @@ conlog( 0,'Loading sqlite3 module...');
 let sqlite3Js = 'jswasm/sqlite3.js';
 importScripts(sqlite3Js);
 importScripts( '/dbworker/dbcode.js' );
-importScripts( '/dbworker/websql_support.js' );
 importScripts( '/util/dates.js' );
 
 conlog( 0,'Initializing sqlite3 module...');
@@ -308,9 +397,9 @@ self.sqlite3InitModule({
   .then( async function (sqlite3) {
     conlog( 0,'InitModule completed....');
     try {
-      //_sqlite3 = sqlite3;
+      _sqlite3 = sqlite3;
       await start(sqlite3);
-      removeDBs();
+      //removeDBs();    // don't normally need this (except during development)
     } catch (e) {
       conerror('DB worker Exception:', e.message);
     } finally {

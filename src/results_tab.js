@@ -478,11 +478,25 @@ function createSVGButton( ){
 
 function createDBDumpButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Dump Sqlite DB";
-	newButton.title="Export the internal database to your computer's filesystem (mainly for debugging)";
+	newButton.innerHTML="Backup Sqlite DB";
+	newButton.title="Export the internal database to your computer's filesystem (current version cannot restore)";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){askDumpSqlite3DB();});
 	document.getElementById("buttonOutRow").appendChild(newButton);
+}
+
+function createDBRestoreButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Restore Sqlite DB";
+	newButton.title="Restore the internal database from a backup on your computer's filesystem";
+	newButton.setAttribute("type", "button");
+	newButton.addEventListener('click', ()=> {
+		if ( confirm('This will destroy all data in the current DB and\noverwrite with previously backed up file. Are you sure?') ) 
+			document.getElementById("upfile-restore").click();
+
+	} );
+	document.getElementById("buttonOutRow").appendChild(newButton);
+	document.getElementById("upfile-restore").addEventListener('change',(evt)=>{askRestoreSqlite3DB(evt);});
 }
 /*
 ** =======   Create row of buttons for import, etc
@@ -513,14 +527,6 @@ function createImport23Button(){
 	document.getElementById("upfile23").addEventListener('change', requestImport23CSV);
 }
 
-function createMigrateWebsqlButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Migrate V1 DB";
-	newButton.title='migrate the content directly from the old DB to the new';
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', requestMigrateWebsql );
-	document.getElementById("buttonInRow").appendChild(newButton);
-}
 
 function createMigrationFinaliseButton(){
 	let newButton=document.createElement('button');
@@ -546,13 +552,6 @@ function createDeleteWASMButton(){
 	newButton.innerHTML="Delete 529renew New Database";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', requestDeletionFromDatabase);
-	document.getElementById("buttonInRow").appendChild(newButton);
-}
-function createDeleteWebSQLButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Empty OLD 529renew Database";
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', deleteAllDataWebSQL);
 	document.getElementById("buttonInRow").appendChild(newButton);
 }
 /* ========= end of button creation ============= */
@@ -817,17 +816,17 @@ function colorizeButton(button, cid1,  cid2){
 
 // The createTable and createCSV.. functions are sql transaction callbacks
 function createTable(transaction, results){
-	createTable12(transaction, results, false);
+	createTable12( results, false);
 }
 function createTable2(transaction, results){
-	createTable12(transaction, results, true);
+	createTable12( results, true);
 }
 /*
 ** createTable12
 ** does the bulk of the processing after the big join
 ** Lays out the "Match Table" for the selected person.
 */
-function createTable12(transaction, results, colorize){
+function createTable12( results, colorize){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
 
@@ -1829,14 +1828,6 @@ function CSV_loadDone( newSize ){
 	// location.reload(true); 
 }
 
-function WebSQLMigrateDone(  ){
-	let elapsed = secondsToday() - migration_started;
-
-	document.getElementById("docBody").style.cursor="pointer";
-
-	alert(`Migration of old DB complete in ${elapsed} seconds.`);
-}
-
 function migrationFinalise_done( s ) {
 	let elapsed = secondsToday() - migration_started;
 	let elapsed_min = elapsed / 60.0;
@@ -2000,8 +1991,26 @@ function dumpSqlite3DB(arrbuf) {
 
 function askDumpSqlite3DB() {
 	DBworker.postMessage( {reason:"dumpDB"} );
-	}
+}
 
+function askRestoreSqlite3DB(evt) {
+	
+	evt.stopPropagation();
+	evt.preventDefault();
+
+	const file = evt.target.files[0];
+	if ( ! file ) return;
+	const reader = new FileReader();
+
+
+	reader.addEventListener('load', function(theFile) {
+		let data = this.result;  // an ArrayBuffer
+		DBworker.postMessage( {reason:"restoreDB", filecontents:data}, [data] );
+	} );
+
+    reader.readAsArrayBuffer(file);
+}
+	
 
 document.addEventListener('DOMContentLoaded',  function () {
 	( async() => {
@@ -2014,16 +2023,15 @@ document.addEventListener('DOMContentLoaded',  function () {
 	createGEXFButton();
 	createSVGButton();
 	createDBDumpButton();
+	createDBRestoreButton();
 
 	createKitSelector();
 	createImportProfileButton();
 	createImport23Button();
-	createMigrateWebsqlButton();
 	createMigrationFinaliseButton();
 	createImport529Button();
 	createClearFilterButton();
 	createDeleteWASMButton();
-	createDeleteWebSQLButton();
 
 	setDisplayModeSelector();
 	setTextSizeSelector();

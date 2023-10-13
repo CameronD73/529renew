@@ -43,8 +43,7 @@ function importProfileCSV(lineList, nFields ){
 		profilemap.set( ID, {name:Name });
 	}
 	db_conlog( 1, `  importCSV: adding ${profilemap.size} profile rows`);
-	// add all the unique keys and names to the alias table
-	need_webSQL_profile = true;		// force websql reload...
+
 	DBworker.postMessage( { reason: 'insertProfiles', amap: profilemap });
 }
 
@@ -68,7 +67,7 @@ function import529CSV(lineList, nFields ){
 	const aliasmap = new Map();
 	const matchesmap = new Map();
 	const DNArelsmap = new Map();
-	const chr200map = new Map();
+	const hiddenmap = new Map();
 	// there may be conflicting records where reported matching segment has changed.
 	const segmentmap = new Map();		// unique to id1, id2, chr, start MB
 	const segmentmapHigh = new Map();		// unique to id1, id2, chr, end MB
@@ -146,7 +145,7 @@ function import529CSV(lineList, nFields ){
 		let matchkey = firstID + "_" + secondID;
 		if( !matchesmap.has( matchkey ) ) {
 			matchesmap.set( matchkey,
-				 {$id1: firstID, $id2: secondID, $ishidden: undefined, $cMtotal : 0.0, $pctshared:0.0 , $nsegs: 0, $hasSegs: false} );
+				 {$id1: firstID, $id2: secondID, $ishidden: undefined, $cMtotal : 0.0, $pctshared:0.0 , $nsegs: 0, $hasSegs: 0} );
 		}
 		let chr;
 		if( entry[2] == "X" ) {
@@ -159,39 +158,39 @@ function import529CSV(lineList, nFields ){
 			let cM=parseFloat(entry[5]);
 			matchesmap.get( matchkey).$cMtotal += cM;
 			matchesmap.get( matchkey).$nsegs++; 
-			matchesmap.get( matchkey).$hasSegs = true; 
+			matchesmap.get( matchkey).$hasSegs = 1; 
 			matchesmap.get( matchkey).$ishidden = false; 
 		} else if( chr == 200 ){
-			// we might have chr200 as well as other segment match entries.  We could rely on the file being sorted by chr number
+			// we might have hidden as well as other segment match entries.  We could rely on the file being sorted by chr number
 			// but the user may have re-sorted for some reason, so just load all and scan later.
-			if( !chr200map.has( matchkey ) ) {
+			if( !hiddenmap.has( matchkey ) ) {
 				let pctsh = 0.001 * parseFloat( entry[6] );
 				let cM = pctShared2cM( pctsh );
 				let segshidden =  (entry[4] == "1") ? 1 : 0;
-				chr200map.set( matchkey,
-					 {$id1: firstID, $id2: secondID, $ishidden: segshidden, $cMtotal: cM, $pctshared : pctsh, $nsegs: 0, $hasSegs: false } );
+				hiddenmap.set( matchkey,
+					 {$id1: firstID, $id2: secondID, $ishidden: segshidden, $cMtotal: cM, $pctshared : pctsh, $nsegs: 0, $hasSegs: 0 } );
 			}
 		}
 	}
 	// now realign all chr 200 values where we have real segments...
-	for( const[key, obj] of chr200map ) {
+	for( const[key, obj] of hiddenmap ) {
 		if ( !matchesmap.has( key )) {
 			let msg = `URK - chr 200 for ${key} cf ${obj.$id2} has no matching dnamatch map`;
 			db_conlog( 0, msg );
 			// should create if needed...
 		} else {
 			let mapval = matchesmap.get( key )
-			if ( ! mapval.$hassegs) {
+			if ( ! mapval.$hasSegs) {
 				// have not recorded any segments, so update the matchesmap with what little we know
-				let map200 = chr200map.get( key );
+				let map200 = hiddenmap.get( key );
 				mapval.$ishidden = map200.$ishidden;
 				mapval.$cMtotal = map200.$cMtotal;
 				mapval.$pctshared = map200.$pctshared;
 			}
-			// chr200map.delete( key );	  can ignore...
+			// hiddenmap.delete( key );	  can ignore...
 		}
 	}
-	// DBworker.postMessage( { reason: 'migrateMatchMapHidden', amap: chr200map, useReplace: useReplace });
+	// DBworker.postMessage( { reason: 'migrateMatchMapHidden', amap: hiddenmap, useReplace: useReplace });
 
 	db_conlog( 1, `  adding ${aliasmap.size} alias rows`);
 	// add all the unique keys and names to the alias table

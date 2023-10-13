@@ -15,31 +15,6 @@ db_conlog( 2, "loading DB_IO script");
 ********************************************************
 */
 
-// id1 and id2 are the text representation of the 23 and me UID
-// It requests count of segment hits between ID1 and ID2 that are saved in the DB.
-//     This includes the fake "chromosome 100" record, but not the fake chr 200 record.
-
-function countMatchingSegments_wasm(id1, id2, upgradeIfNeeded, upgradeQueryFailed){
-	
-
-	function makeTransaction(id1, id2, callBackSuccess, callBackFailed){
-		// Don't query matches with self. Not sure I understand this because then neither callback is fired off.
-		if(id1 == id2) return; 
-		var firstid = id1;
-		var secondid = id2;
-		if(id1 > id2){
-			firstid = id2;
-			secondid = id1;
-		}
-		db_conlog( 4, `requesting select on id1= ${firstid} and id2= ${secondid}`);
-		return function(transaction){
-			transaction.executeSql('SELECT id1, id2, COUNT(ROWID) AS hits from ibdsegs WHERE id1=? AND  id2=? AND chromosome < 150 ',[firstid, secondid], callBackSuccess, callBackFailed);
-		};
-	}
-	db_conlog( 4, `   dbREAD ${id1} vs ${id2}` );
-	db23.readTransaction(makeTransaction(id1, id2, upgradeIfNeeded, upgradeQueryFailed));
-}
-
 const sellist1_wasm = "ibdsegs.ROWID as ROWID,\
 	t1.name AS name1,\
 	t2.name AS name2,\
@@ -129,9 +104,9 @@ function getSegsFailed_wasm( trans, error ) {
 ** either as display on page or save to csv or gexf files.
 ** - in: id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
-** if limitDates it true then we only select those newer than previous save.
+** if limitDates is true then we only select those newer than previous save.
 */
-function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, includeChr100){
+function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates){
 
 	var lowerBound=0;
 	var upperBound=24;
@@ -140,7 +115,7 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 		lowerBound=chrNum-1;
 		upperBound=chrNum+1;
 	}
-	function makeTransaction(callback, limitDates, includeChr100){
+	function makeTransaction(callback, limitDates){
 		// create export table for entire DB
 		const qry_sel = 'SELECT \
 				ibdsegs.ROWID as ROWID, \
@@ -155,22 +130,16 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 			JOIN idalias t2 ON (t2.IDText=ibdsegs.id2)  WHERE ';
 		//const qry_build = ' build=?  AND ';
 		const qry_cond = '(chromosome>? AND chromosome<?) ';
-		const qry_cond100 = '((chromosome>? AND chromosome<?) OR chromosome >= 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
 		// convert to julianday to do a floating point comparison rather than string
 		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
-		var query;
-		if ( includeChr100 )
-			query = qry_sel + qry_cond100;
-		else
-			query = qry_sel + qry_cond;
+		var query = qry_sel + qry_cond;
 		if( limitDates )
 			query += qry_date;
 			
 		query += qry_order;
 		db_conlog(3, `query = ${query} with params ${lowerBound} and ${upperBound}`);
 		return function(transaction){
-			//transaction.executeSql( query, [build, lowerBound, upperBound], callback, getSegsFailed);
 			transaction.executeSql( query, [lowerBound, upperBound], callback, getSegsFailed);
 		};
 	}
@@ -191,15 +160,9 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 			WHERE ((ibdsegs.id1=?) OR (ibdsegs.id2=?)) ';
 		// const qyr_build = 'AND build=? ';
 		const qry_cond = 'AND chromosome>? AND chromosome<? ';
-		const qry_cond100 = 'AND ((chromosome>? AND chromosome<?) OR chromosome >= 100) ';
 		const qry_order = '	ORDER BY chromosome, start, end DESC, ibdsegs.ROWID, julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
 		const qry_date = 'AND julianday(ibdsegs.date) >= julianday((SELECT value from settings where setting = "lastCSVExportDate"))'
-		var query;
-
-		if ( includeChr100 )
-			query = qry_sel + qry_cond100;
-		else
-			query = qry_sel + qry_cond;
+		var query = qry_sel + qry_cond;
 		if( limitDates )
 			query += qry_date;
 			
@@ -224,17 +187,6 @@ function selectFromDatabase_wasm(callbackSuccess, id, chromosome, limitDates, in
 ********************************************************
 */
 
-
-// this is a kludge of webSQL callbacks and webworker message passing...
-function requestMigrateWebsql( evt ) {
-	
-	evt.stopPropagation();
-	evt.preventDefault();
-	document.getElementById("docBody").style.cursor="wait";
-	migration_started = secondsToday();
-
-	getWebsqlAliasTable();
-}
 
 function requestDeletionFromDatabase(){
 	if(confirm("Destroy your new 529Renew local database?\n(ALL saved content will be lost)") ){

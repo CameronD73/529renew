@@ -214,6 +214,35 @@ var DBwasm = {
         return rows;
     },
 
+    /*
+    ** check whether we already have all available data for match between id1 and id2
+    */
+    checkInDB: function( id1, id2 ){
+        let qry = "SELECT nsegs, havesegs from  DNAmatches  where ID1 = ? and ID2 = ? and ishidden = 0 ";
+		let firstid = id1;
+		let secondid = id2;
+		if(id1 > id2){
+			firstid = id2;
+			secondid = id1;
+		}
+        let rows = [];
+        try{
+            
+            DB529.exec( qry, {
+                    resultRows: rows,
+                    rowMode: 'object',
+                    bind: [firstid, secondid]
+                }
+            );
+        
+        } catch( e ) {
+            conerror( `DB checkInDB : ${e.message}`);
+            return( 0 );
+        }
+        //console.log( 'DB summary gave: ', rows);
+        return rows[0].hasSegs;
+    },
+
     updateDBSettings: function( data) {
         const update_qry =  "INSERT OR REPLACE INTO settings (setting, value) VALUES (?,?);";
         let rows = [];
@@ -232,7 +261,7 @@ var DBwasm = {
         return true;
     },
 
-    migrateAliasmap: function( aliasmap, hashap, useReplace ) {
+    insertAliasmap: function( aliasmap, hashap, useReplace ) {
         const today = formattedDate2();
         let update_qry_part = '';
         if( hashap ) {
@@ -245,13 +274,9 @@ var DBwasm = {
         let total_rows_updated = 0;
 
         try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of aliasmap ) {
-
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind: obj
                 } );
                 
@@ -260,16 +285,16 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB MigAlias: error: ${e.message}`);
+            conerror( `DB insertAlias: error: ${e.message}`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
-        conlog( 1, `DB MigAlias: finished; ${total_rows_updated} rows updated` );
+        conlog( 3, `DB insertAlias: finished; ${total_rows_updated} rows updated` );
         //logHtml( null, 'finished');
         return true;
     },
 
-    migrateSegmentMap: function( segmap, table, useReplace ) {
+    insertSegmentMap: function( segmap, table, useReplace ) {
         //logHtml( null, 'Storing segment pairs ...');
         // const today = formattedDate2();
         const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES '+
@@ -284,8 +309,7 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of segmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind: obj
                 } );
                 let rowsaffected = DB529.changes();
@@ -297,11 +321,11 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
+            conerror( `DB insertSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
-        conlog( 0, `DB migrateSegMap: finished; ${total_rows_updated} rows updated.` );
+        conlog( 0, `DB insertSegMap: finished; ${total_rows_updated} rows updated.` );
         //logHtml( null, 'finished');
         return true;
     },
@@ -309,7 +333,7 @@ var DBwasm = {
         /*
         ** this table is of pairs of testers where we have segment data
         */
-    migrateMatchMap: function( matmap, matchtype, useReplace ) {
+   insertMatchMap: function( matmap, matchtype, useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
         const update_qry_part =  ' (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, lastdate) '+
@@ -320,13 +344,10 @@ var DBwasm = {
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of matmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind:obj
-                } );
+                DB529.exec( update_qry, { bind:obj } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${ssret}`);
+                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${update_qry}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -339,7 +360,7 @@ var DBwasm = {
         return true;
     },
 
-    migrateDNArelatives: function( matmap,  useReplace ) {
+    insertDNArelatives: function( matmap,  useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
         const update_qry_part =  ' (IDprofile, IDrelative, comment, side) VALUES ($id1, $id2, $note, $side );';
@@ -381,13 +402,12 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of matmap ) {
                 conlog( 4, `DB MigrateMatchHidden:  insert key ${key}, name ${obj.name}`);
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind:[obj.id1, obj.id2, obj.ishidden ,obj.start ,obj.end ,obj.cM , obj.snps]
                 } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${ssret}`);
+                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${update_qry}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -628,10 +648,7 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of icwmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",     //pointless
-                    bind:obj
-                } );
+                DB529.exec( update_qry, { bind:obj } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
                 if ( ++loopcount % 10000 == 0 ) {

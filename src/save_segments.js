@@ -68,6 +68,7 @@ function handleMessageCatches( location, err ) {
 function run_query(personaId, personbId, personaName, personbName){
 	try {
 		chrome.runtime.sendMessage({mode: "checkIfInDatabase", indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, forceSegmentUpdate: rereadSegsRequested});
+		// passes a "returnNeedCompare" message back to this origin tab, with needToCompare set true/false
 	} catch( e ) {
 		handleMessageCatches( "in run_query", e );
 	}
@@ -87,11 +88,12 @@ chrome.runtime.onMessage.addListener(
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
+		let mat2 = request.matchpair;
 		q_debug_log( 1, `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
 		// sanity check...
-		if ( request.indexId != tset.id1  || request.matchId != tset.id2 ) {
-			let errmsg = `==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2} \n ` + 
-				`==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
+		if ( mat2.indexId != tset.id1  || mat2.matchId != tset.id2 ) {
+			let errmsg = `==== URK 529renew bug... ${mat2.indexId} != ${tset.id1} or ${mat2.matchId} != ${tset.id2} \n ` + 
+				`==== requested ${mat2.indexName} vs  ${mat2.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
 			alert( errmsg );
 			console.error( errmsg );
 		}
@@ -122,19 +124,27 @@ chrome.runtime.onMessage.addListener(
 					ids[0] = {id: indexId, name: indexName };
 					ids[1] = {id: matchId, name: matchName };
 
-					q_debug_log( 0, "    saving segments at " + new Date().toISOString() + " for " + ids[0].name + " and " + ids[1].name );
+					q_debug_log( 0, "    saving segments at " + formattedDate2() + " for " + ids[0].name + " and " + ids[1].name );
 					if(data!=null){
 						for(let j=0; j<data.length; j++){
+							let dat = data[j];
+							if ( indexId !== dat.human_id_1 || matchId !== dat.human_id_2 ) {
+								msg( `Ident mismatch: asked for${indexId}/${matchId} (${indexName}/${matchName}), but got ${dat.human_id_1}/${dat.human_id_2}`);
+								console.error( 'makeSegmentSaver: ' + msg );
+								alert( msg );
+								break;
+							}
 							var matchingSegment= {
-								name1: indexName,
+								name1: indexName,		// name and IDs seem redundant - or else IDs are.
 								uid1: indexId,
 								name2: matchName,
 								uid2: matchId,
-								chromosome: data[j].chromosome,
-								start: data[j].start,
-								end: data[j].end,
-								cM: data[j].seg_cm,
-								snps: data[j].num_snps,
+								chromosome: dat.chromosome,
+								start: dat.start,
+								end: dat.end,
+								cM: dat.seg_cm,
+								snps: dat.num_snps,
+								is_fullmatch: dat.is_full_ibd
 							};
 							if(matchingSegment.start==0)
 								matchingSegment.start=1;
@@ -153,7 +163,7 @@ chrome.runtime.onMessage.addListener(
 					}
 					// Submit for storage in local database
 					try {
-						chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments} );
+						chrome.runtime.sendMessage({mode: "storeSegments",  matchingSegments: matchingSegments} );
 					} catch( e ) {
 						handleMessageCatches( "in storeSegment", e );
 					}
@@ -173,19 +183,19 @@ chrome.runtime.onMessage.addListener(
 					return;
 				};
 			}
-			var compareURL="/tools/ibd/?human_id_1=" + request.indexId +"&human_id_2="+request.matchId;
+			var compareURL="/tools/ibd/?human_id_1=" + mat2.indexId +"&human_id_2="+mat2.matchId;
 
 			var oReq = new XMLHttpRequest();
 			oReq.withCredentials = true;
-			oReq.onload=makeSegmentSaver(request.indexName, request.indexId, request.matchName, request.matchId);
-			oReq.onerror=makeErrorHandler(request.indexName, request.matchName);
+			oReq.onload=makeSegmentSaver(mat2.indexName, mat2.indexId, mat2.matchName, mat2.matchId);
+			oReq.onerror=makeErrorHandler(mat2.indexName, mat2.matchName);
 			oReq.open("get", compareURL, true);
 
-			q_debug_log( 2, "    requesting segs after delay at " + new Date().toISOString() + " for " + request.indexName + " and " + request.matchName );
+			q_debug_log( 2, "    requesting segs after delay at " + formattedTime() + " for " + mat2.indexName + " and " + mat2.matchName );
 			setTimeout( () => oReq.send(), increment_ms );
 		}
 		else{
-			q_debug_log( 0,"No need to recompare " + request.indexName + " " + request.matchName);
+			q_debug_log( 0,"No need to recompare " + mat2.indexName + " " + mat2.matchName);
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
 		}
@@ -405,13 +415,14 @@ function get_icw_details( name_cell ) {
 ** this function is run to process a page of (up to 10) shared matches.
 ** The "primaryComparison" is that between the profile person and personA
 ** (the match against whom all the ICW/triangulations are being compared in this page)
-** This code reads the page and loads all required matches into teh processing queue
+** This code reads the page and loads all required matches into the processing queue
 */
 
 function runComparison(ranPrimaryComparison ){
 	var row_container=null;
 	// match data is array of objects, one per each ICW relative in the table
 	var match_data = [];
+	let any_hidden = false;
 
 	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
 	let sharedDNAPrimary = {pct:-1.0, cM:0};
@@ -475,6 +486,7 @@ function runComparison(ranPrimaryComparison ){
 		match_data[i].shared_pct_P2B = local_shared_pct;
 		match_data[i].name_profile = profileName;
 		match_data[i].name_match = matchName;
+		let hidden = false;
 
 		var ids=null;
 		var relative_in_common_name=null;
@@ -504,13 +516,14 @@ function runComparison(ranPrimaryComparison ){
 						} else {
 							overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
 						}
-						match_data[i].overlaps = overlap_status;		// just for logging
-						// I think the "share to see" was replaced by "connect to view" - can also get "Request sent"
-						// when a request to connect has been initiated
+						match_data[i].overlaps = overlap_status;
 						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text== "compare") {
 							foundData=true;
 						} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
+							// I think the "share to see" was replaced by "connect to view"
+							// can also get "Request sent"  when a request to connect has been initiated
 							foundData=true;
+							hidden = true;  // possibly redundant
 							continue;
 						}
 						if( yes_no_text=="yes" || loadAllRequested ) {
@@ -540,7 +553,8 @@ function runComparison(ranPrimaryComparison ){
 				}
 			}
 		}
-
+		match_data[i].is_hidden = (hidden || (overlap_status === "hidden"));
+		any_hidden = any_hidden || hidden || (overlap_status === "hidden"); 
 		match_data[i].name_icw_relative = relative_in_common_name;
 		if(relative_in_common_name==null) continue;
 		if(ids==null) continue;
@@ -598,11 +612,13 @@ function runComparison(ranPrimaryComparison ){
 	}
 
 	// save the chr 200 records...
-	let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
-	try {
-		chrome.runtime.sendMessage({mode: "store_chr_200", primary:primary_match, matchData:match_data } );
-	} catch( e ) {
-		handleMessageCatches( "saving chr 200", e );
+	if( any_hidden ) {
+		let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
+		try {
+			chrome.runtime.sendMessage({mode: "store_hidden", primary:primary_match, matchData:match_data } );
+		} catch( e ) {
+			handleMessageCatches( "saving hidden", e );
+		}
 	}
 	document.getElementById("c529r").innerHTML="Collecting DNA segments...";
 	launch_next_IBD_query();

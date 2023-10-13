@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta charset="utf-8" >
+    <title>What's new in 529Renew</title>
+  </head>
+  <body>
+    <h2>Changes between versions 1.2.x and 1.3 of 529Renew.</h2>
+    <h3>The page  appears only when 529renew is upgraded from version 1.2.x to 1.3</h3>
+    <p>
+      This significant change was required in September 2023, when 23andme changed the "Relatives in Common" table:
+      they 
+      removed the "yes" or "no" indication whether
+      DNA relatives in common shared an overlapping DNA segment and
+      replaced them by a single "Compare" button.
+      Now, 529renew code must examine the DNA segments between <i>all</i> matches, which will slow the acquisition progress even further.
+    </p>
+    <p>
+      To help this slightly, I have adapted the meaning of the <i>minimum shared DNA (pct)</i> option that previously applied
+      only when you chose to record non-overlapping matches.
+      This will <i>now apply to all matches</i>
+      (because the code can no longer tell beforehand whether there is any DNA overlap),
+      so you should ensure that it is not set at a value that is too high.
+    </p>
+    <h3>Implications for GDAT</h3>
+    <p><a href="https://dna-explained.com/2021/03/08/23andme-changes-triangulation-doesnt-work-the-same-way/">Roberta Estes wrote</a> that, in 2021, 23andme had  already changed the way the overlaps in shared matches were reported.
+      They were no longer true triangulations, matching each of 3 ways.
+      529 and You (and 529renew) also recorded the third pair of matching segments,
+      which would permit confirmation of the full triangulation,
+      but  as far as I can tell this has never been done within the code.
+    </p>
+    <p>
+      529 does not save or report <i>any</i> triangulation.
+      It does not even directly save the fact that the three testers are in common with each other.
+      It merely records matching segments, exports them, and leaves it up to GDAT to infer triangulation or ICW.
+      This is done (as far as I can tell) by identifying the 3-way segment matching.
+      Consequently, you should ensure the  <i>minimum shared DNA (pct)</i>  value is set no larger than
+      your preferred value for minimum cM in GDAT. Use the following table to match...
+    </p>
+   
+    <table border="1" cellpadding="5">
+        <tr>
+          <Th>cM</th><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+        </tr>
+        <tr>
+          <th>pct</TH><td>0.081</td><td>0.094</td><td>0.107</td><td>0.121</td><td>0.134</td>
+        </tr>
+    </table>
+    </div>
+  </body>
+</html>

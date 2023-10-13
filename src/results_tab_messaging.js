@@ -27,7 +27,11 @@ DBworker.onmessage = function ( msg ) {
   switch (data.reason) {
     case 'log':
       logHtml(data.payload.cssClass, ...data.payload.args);
-      break;
+	break;
+
+	case "return_DBcheck":
+		chrome.tabs.sendMessage(data.tabID, {mode: "returnNeedCompare", matchpair:data.matchpair, needToCompare: data.needToCompare});
+	break;
 
     case 'init_done':
       db_conlog( 0, 'DB worker init completed');
@@ -58,7 +62,6 @@ DBworker.onmessage = function ( msg ) {
 	  }
       console.log( 'profiles are: ', profile_list );
 	  createKitSelector();
-	  createWebsqlprofiles();
       chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
     break;
     
@@ -85,26 +88,13 @@ DBworker.onmessage = function ( msg ) {
 		}
 	break;
 
-	case 'webSQLAlias_return':
-		getWebsqlFULLSegsTable();
-	break;
-
-	case 'webSQLFULLSeg_return':
-		getWebsqlHALFSegsTable();
-	break;
-
-	case 'webSQLSeg_return':
-		getWebsqlchr200_rels();
-	break;
-
-	case 'webSQLchr200_return':
-		WebSQLMigrateDone();
-	break;
-
 	case 'migrationFinalised':
 		migrationFinalise_done( data.rowsadded );
 	break;
 
+	case 'restoredDB_return':
+		post_DB_init_setup();
+	break;
 
 	case 'migrate_529_done':
       CSV_loadDone( data.newsize );
@@ -131,8 +121,8 @@ chrome.runtime.onMessage.addListener(
 			storeSegments(request);
 		break;	
 
-		case  "store_chr_200" :
-			save_chr200_records( request.primary, request.matchData );
+		case  "store_hidden" :
+			save_hidden_records( request.primary, request.matchData );
 		break;
 
 		case  "updateSetting" :

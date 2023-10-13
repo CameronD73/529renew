@@ -5,7 +5,6 @@
 /*  eslint-disable no-unused-vars */
 "use strict";
 
-
 db_conlog( 1, "loading DB actions");
 
 function updateDNAtesterlist( results ) {
@@ -24,201 +23,156 @@ function updateDNAtesterlist( results ) {
 
 function checkIfInDatabase( request, sender ) {
 	db_conlog( 1, "InDB checking " + request.mode );
+	let matchpair={indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName};
 	if(request.forceSegmentUpdate){
 		// Skip database query
 		db_conlog( 2, `CheckIfInDB - forcing reread ${request.indexName} vs ${request.matchName}`);
-		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", indexId: request.indexId, matchId: request.matchId, indexName: request.indexName, matchName: request.matchName, needToCompare: true});
+		chrome.tabs.sendMessage(sender.tab.id, {mode: "returnNeedCompare", matchpair:matchpair, needToCompare: true});
 		return;
 	}
-	function makeMessageSender(tab_id, indexId, matchId, indexName, matchName){
-		return function(transaction, resultSet){
-			var myrow=null;
-			var needToCompare=true;
-			if(resultSet.rows.length==1) {
-				myrow=resultSet.rows.item(0);
-				db_conlog( 2, `   DBquery ${indexName} vs ${matchName} returned ${myrow.hits} hits, full return:`);
-			}
-			else
-				db_conlog( 2, `   DBquery ${indexName} vs ${matchName} returned ${resultSet.rows.length} rows` );
-			if(myrow!=null){
-				if(myrow.hits>0) needToCompare=false;
-			}
-			chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: needToCompare});
-		};
-	}
-	function makeMessageSenderForFailure(tab_id, indexId, matchId, indexName, matchName){
-		return function(error){
-			// Default is to just do comparison
-			db_conlog( 2, `   DBquery returned error ${error}` );
-			chrome.tabs.sendMessage(tab_id, {mode: "returnNeedCompare", indexId: indexId, matchId: matchId, indexName: indexName, matchName: matchName, needToCompare: true});
-		};
-	}
-	var messageSender=makeMessageSender(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
-	var messageSenderForFailure=makeMessageSenderForFailure(sender.tab.id, request.indexId, request.matchId, request.indexName, request.matchName);
 
-
-	countMatchingSegments(request.indexId, request.matchId, messageSender, messageSenderForFailure);
+	DBworker.postMessage( { reason: 'checkIfInDatabase', matchpair: matchpair, tabID: sender.tab.id });
 	return;
 }
-
-
 
 /*
 ** store a matching segment.
 ** This code works both for message passing and for local use, as it sends no messages back.
+** However I don't think the latter situation occurs now.
 ** The request is an object, with:
-** ids: an array of two objects, each has values:
-**			 "id" - the 16-digit UID and
-**			 "name" - the testers name or alias.
+** mode: "storeSegments",
 ** matchingSegments - an array of objects - each object has details about one matching segment
 */
-function insert_OK( ){
-	return;
-}
-function insertRowFail( error ) {
-	console.error( `Insert transaction failed: ${error.message}`);
-	alert( `INSERT FAILED: ${error.message}`);
-}
+
 function storeSegments(request) {
-
-	// Store the names and ids of the matches
-	function makeIdAliasTransaction(idobj){
-		return function(transaction){
-			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql('INSERT or IGNORE INTO idalias ( IDText, name, "date" ) VALUES(?, ?, date() );', [idobj.id, idobj.name]);
-		};
+	let profileIDs = new Array();	// an array of the ID string for quick lookup
+	for(let i=0; i<profile_summary.length; i++){
+		profileIDs[i] = profile_summary[i].IDprofile;
 	}
 
-	for(let i=0; i<request.ids.length; i++){
-		// Attempt to insert these two number, name combos
-		db_conlog( 2, `storeSeg: alias ${i} for ${request.ids[i].name}`)
-		db23.transaction(makeIdAliasTransaction(request.ids[i]),  insertRowFail, insert_OK);
+	const aliasToAdd = new Map();
+	const matchesMap = new Map();    // there should only be a single entry, but use a Map as it is required by the function in DBwasm
+	const DNArelsMap = new Map();
+	const segsMap = new Map();
+	const fullSegsMap = new Map();
+	let seg0 = matchingSegments[0];
+	let id1 = seg0.uid1;
+	let id2 = seg0.uid2;
+	if( ! DNAtesters.has( id1 ) ) {
+		aliasToAdd.set( id1, {$k:id1, $name:seg0.name1 });
+		DNAtesters.set( id1, {ID:id1, name:seg0.name1 });
+	}
+	if( ! DNAtesters.has( id2 ) ) {
+		aliasToAdd.set( id2, {$k:id2, $name:seg0.name2 });
+		DNAtesters.set( id1, {ID:id2, name:seg0.name2 });
 	}
 
-	// Store the matching segments
-	function makeMatchingSegmentTransaction(id1, id2, val){
-
-		if(id1 == id2) return; // Don't enter matches with self
-		let firstid = id1;
-		let secondid = id2;
-		if(id1 > id2){
-			firstid = id2;
-			secondid = id1;
-		}
-		let segstart = roundBaseAddress(val.start);
-		let segend = roundBaseAddress(val.end);
-		let segcM = round_cM(val.cM);
-
-		return function(transaction){
-			// Normally code will skip any matches we have already.
-			// if we have forced a reread then presumably we intend it to replace older value
-			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, ?, ?, ?, ?, ?,  date(),?);', 	[firstid, secondid, val.chromosome, segstart, segend, segcM, val.snps, current23andMeBuild]);
-		};
+	if ( id2 < id1 ) {
+		let temp = id2;
+		id2 = id1;
+		id1 = temp;
 	}
+	let matchkey = id1 + "_" + id2;
+	matchesMap.set( matchkey, {$id1: id1, $id2: id2, $ishidden: 0, $cMtotal : 0, $pctshared:0 , $nsegs: 0, $hasSegs: 0} );
+	// we should have caught all new DNArelatives elsewhere, but, just in case...
+	if ( profileIDs.indexOf(id1)) {
+		DNArelsMap.set( matchkey, {$id1: id1, $id2: id2, note:'unexpected addition via saveSegs'} );
+	}
+	if ( profileIDs.indexOf(id2)) {
+		let swapkey =  id2 + "_" + id1;
+		DNArelsMap.set( swapkey, {$id1: id2, $id2: id1, note:'unexpected addition via saveSegs'} );
+	}
+	
+	let cmtotal = 0.0;
+	let nsegs = 0;
 	for(let i=0; i<request.matchingSegments.length; i++){
-		 // Ignore matches to self
-		if(request.matchingSegments[i].uid1!==request.ids[0].id){
-			alert("StoreSegments: unexpected name mismatch: " + request.matchingSegments[i].name1 + " " + request.ids[0].name);
-			continue;
+		let thisSeg = matchingSegments[i];
+		let segkey = id1 + "_" + id2 + "_" + thisSeg.chromosome + "_" + thisSeg.start;
+		if ( thisSeg.is_fullmatch) {
+			fullSegsMap.set( segkey,  {$id1: id1, $id2: id2,
+								$chromosome: thisSeg.chromosome,
+								$cM: thisSeg.cM,
+								$snps: thisSeg.snps,
+								$start:thisSeg.start,
+								$end: thisSeg.end
+				} );
+		} else {
+			segsMap.set( segkey,  {$id1: id1, $id2: id2,
+								$chromosome: thisSeg.chromosome,
+								$cM: thisSeg.cM,
+								$snps: thisSeg.snps,
+								$start:thisSeg.start,
+								$end: thisSeg.end
+			} );
+			cmtotal += thisSeg.cM;
+			nsegs++;
 		}
-		let j=1;
-		for( ; j<request.ids.length; j++){
-			if(request.matchingSegments[i].uid2===request.ids[j].id){
-				db23.transaction(makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, request.matchingSegments[i]),  insertRowFail, insert_OK);
-				break;
-			}
+		if ( nsegs > 0 ) {
+			matchesMap.get( matchkey ).$cMtotal = round_cM( cmtotal);
+			matchesMap.get( matchkey ).$hasSegs = 1;
+			matchesMap.get( matchkey ).$nsegs = nsegs;
 		}
-		if(j==request.ids.length) alert("failed to find match for " + request.matchingSegments[i].name1);
 	}
 
-	// Create bogus 'chromosome 100' match to signify that comparison has been performed
-	for(let j=1; j<request.ids.length; j++){
-		db23.transaction( makeMatchingSegmentTransaction(request.ids[0].id, request.ids[j].id, { chromosome:100, start:-1, end:-1, cM:0, snps:0}),  insertRowFail, insert_OK);
-	}
-
+	DBworker.postMessage( { reason: 'insertNewAliasAndSegs', amap: aliasToAdd, smap: segsMap, fullsmap:fullSegsMap, mmap:matchesMap, rmap:DNArelsMap, useReplace: true });
 }
 
 /*
-** the bogus chromosome 200 values are to record percent shared between two people.
-** This is getting extra klutzy - should have done proper separate tables.
-** Note, uniqueness constraint is set to (IDs, chromosome, start, end & build).
-** chr: always 200 (means this is a shared % record)
-** SNPs : percent shared * 1000
-** 		The only floating pt column is cM, but we might want to use that later for a calculated value, so need to store the 
-** 		percentage in an integer (converted from thousandths of a percent.) - use SNPs column.
-** 		also record possible two separate records if user segment data was hidden or visible.
-** end : 0 for shown, or 1 for hidden. - doing this, we can save both values if the user changes their mind, or if they "connect".
-** start: always -1 (for now)
-**
 ** in:
 **  primary_pair : object with IDs and Names of profile person and DNA relative being viewed.
 **  page_rows : is array of objects detailing useful contents of ICW table.
-** 				 (it starts as a Maps array, but gets converted to objects in the message passing - I don't know why I bothered)
+**				each row will have a flag indicating if one of that pair has hidden results.
 */
 
-function save_chr200_records( primary_pair, page_rows ) {
-		// Store the names and ids of the matches - this will be 90% redundant, but the insert or ignore is the fastest way to 
-		// test whether or not it needs doing.
-	function makeIdAliasTransaction(id, name){
-		return function(transaction){
-			// you could REPLACE if duplicated - I suppose that should be a user option.
-			transaction.executeSql('INSERT or IGNORE INTO idalias ( IDText, name, "date" ) VALUES(?, ?, date() );', [id, name]);
-		};
-	}
-	if ( primary_pair.pct_shared > 0.0 ) {
-		// only available on first page so don't waste time later.
-		db23.transaction( makeIdAliasTransaction( primary_pair.profileID, primary_pair.profileName ),  insertRowFail, insert_OK);
-		db23.transaction( makeIdAliasTransaction( primary_pair.matchID, primary_pair.matchName ),  insertRowFail, insert_OK);
-	}
+function save_hidden_records( primary_pair, page_rows ) {
+
+	const aliasToAdd = new Map();
 	for(let i=0; i<page_rows.length; i++){
 		// Attempt to insert these two number, name combos
 		let pr=page_rows[i];		// is an object of the i'th row
-		db_conlog( 2, `save_chr200_records: alias ${i} for ${pr.name_icw_relative}}`)
-		db23.transaction( makeIdAliasTransaction( pr.ID_icw_relative, pr.name_icw_relative ),  insertRowFail, insert_OK);
-	}
-
-	// Store the percent shared value.
-	function makeChr200Transaction(id1, id2, pct_shared, is_hidden){
-
-		if(id1 == id2) return; // Don't enter matches with self
-		let firstid = id1;
-		let secondid = id2;
-		if(id1 > id2){
-			firstid = id2;
-			secondid = id1;
+		if( pr.is_hidden ) {
+			let id1 = pr.ID_icw_relative;
+			db_conlog( 2, `save_hidden_records: alias ${i} for ${pr.name_icw_relative}}`);
+			// there are 3 IDs in the match, but profile and match should have been stored already
+			if( ! DNAtesters.has( id1 ) ) {
+				aliasToAdd.set( id1, {$k:id1, $name:pr.name_icw_relative });
+				DNAtesters.set( id1, {ID:id1, name:pr.name_icw_relative});
+			}
 		}
-		let segend = (is_hidden ? 1 : 0 );
-		let segSNPs = 1000 * pct_shared;
-
-		return function(transaction){
-			// we cannot tell here if repeat readings are normal or from a forced reread.
-			// We just unconditionally update values in case they have been "improved"
-			transaction.executeSql('INSERT or REPLACE INTO ibdsegs (id1, id2, chromosome, start, end, cM, snps, "date", build) VALUES(?, ?, 200, -1, ?, 0, ?,  date(),?);', 	[firstid, secondid, segend, segSNPs, current23andMeBuild]);
-		};
 	}
-	// after the first page we don't determine primary pair data.
-	if ( primary_pair.pct_shared > 0.0 )
-		db23.transaction( makeChr200Transaction(primary_pair.profileID, primary_pair.matchID, primary_pair.pct_shared, 0 ),  insertRowFail, insert_OK);
+	let hiddenMap = new Map();
 
 	for(let i=0; i<page_rows.length; i++){
 		let pr=page_rows[i];
-		if ( pr.shared_pct_P2B > 0.0 ) {
-			db23.transaction( makeChr200Transaction( 
-					primary_pair.profileID, pr.ID_icw_relative, pr.shared_pct_P2B, (pr.overlaps === "hidden" )),
-					insertRowFail, insert_OK);
-		} else {
-			let msg = `Chr200 P2B, Bad pct shared: ${pr.shared_pct_P2B}, for ${pr.name_profile} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
-			console.error( msg );
-			alert( msg );
-		}
-		if ( pr.shared_pct_A2B > 0.0 ) {
-			db23.transaction( makeChr200Transaction( 
-					primary_pair.matchID, pr.ID_icw_relative, pr.shared_pct_A2B, (pr.overlaps === "hidden" )),
-					insertRowFail, insert_OK);
-		} else {
-			let msg = `Chr200 A2B, Bad pct shared: ${pr.shared_pct_A2B}, for ${pr.name_match} to ${pr.name_icw_relative} olap:${pr.overlaps}.`;
-			console.error( msg );
-			alert( msg );
+		if( pr.is_hidden ) {
+			if ( pr.shared_pct_P2B > 0.0 ) {
+				let id1 = pr.primary_pair.profileID;
+				let id2 = pr.ID_icw_relative;
+				if ( id2 < id1 ) {
+					let temp = id2;
+					id2 = id1;
+					id1 = temp;
+				}
+				let matchkey = id1 + "_" + id2;
+				let pctsh = pr.shared_pct_P2B;
+				let cMtotal = pctShared2cM( pctsh );
+				hiddenMap.set(matchkey, {$id1: id1, $id2: id2, $ishidden: 1, $cMtotal: cMtotal, $pctshared : pctsh, $nsegs: 0, $hasSegs: 0 });
+			}
+
+			if ( pr.shared_pct_A2B > 0.0 ) {
+				let id1 = pr.primary_pair.matchID;
+				let id2 = pr.ID_icw_relative;
+				if ( id2 < id1 ) {
+					let temp = id2;
+					id2 = id1;
+					id1 = temp;
+				}
+				let matchkey = id1 + "_" + id2;
+				let pctsh = pr.shared_pct_A2B;
+				let cMtotal = pctShared2cM( pctsh );
+				hiddenMap.set(matchkey, {$id1: id1, $id2: id2, $ishidden: 1, $cMtotal: cMtotal, $pctshared : pctsh, $nsegs: 0, $hasSegs: 0 });
+			}
 		}
 	}
+	DBworker.postMessage( { reason: 'insertHiddenMap', amap: aliasToAdd, hmap: segsMap, useReplace: true });
 }
