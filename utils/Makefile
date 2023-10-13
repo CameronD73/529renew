@@ -1,6 +1,6 @@
 # BUILDxxx represent the target directories in while to build the extension.
-BUILDDIR	= 529renew-V2
-BUILD_WEBSQL	= ${BUILDDIR}/websql
+BUILDDIR	= 529renew-V2-interim
+# BUILD_WEBSQL	= ${BUILDDIR}/websql
 BUILD_LOGOS	= ${BUILDDIR}/logos
 BUILD_IMAGES	= ${BUILDDIR}/images
 BUILD_UTIL	= ${BUILDDIR}/util
@@ -24,7 +24,6 @@ HTMLFILES= \
 	   ${BUILDDIR}/popup529.html 
 
 IMAGEFILES= \
-	${BUILD_WEBSQL}/529renew-results-startup.png \
 	${BUILD_IMAGES}/529-popup-button.png \
 	${BUILD_IMAGES}/529-popup-pin.png
 
@@ -37,19 +36,16 @@ JSFILES= \
 	${BUILD_DB}/database_IO.js \
 	${BUILD_DB}/db_actions.js \
 	${BUILD_DBWORKER}/dbcode.js \
-	${BUILD_DBWORKER}/websql_support.js \
 	${BUILD_DBWORKER}/worker.js \
-	${BUILD_WEBSQL}/database_actions.js \
-	${BUILD_WEBSQL}/database_init.js \
-	${BUILD_WEBSQL}/database_IO.js \
 	${BUILDDIR}/results_options.js \
 	${BUILDDIR}/results_tab.js \
 	${BUILDDIR}/results_tab_messaging.js \
 	${BUILDDIR}/popup529.js \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
+	${BUILDDIR}/whatsnew-2.html \
 	${BUILDDIR}/whatsnew-1_3.html \
-	${BUILDDIR}/whatsnew-2_0.html \
+	${BUILDDIR}/whatsnew-1_9.html \
 	${BUILDDIR}/service.js
 
 LOGOFILES= \
@@ -66,7 +62,7 @@ ADDONS= ${BUILD_UTIL}/FileSaver.js \
 
 CP	= cp -u
 
-master:	${BUILDDIR} ${BUILD_LOGOS} ${BUILD_IMAGES} ${BUILD_UTIL} ${BUILD_DB} ${BUILD_DBWORKER} ${BUILD_WEBSQL} \
+master:	${BUILDDIR} ${BUILD_LOGOS} ${BUILD_IMAGES} ${BUILD_UTIL} ${BUILD_DB} ${BUILD_DBWORKER} \
 		${LOGOFILES} ${IMAGEFILES} ${ADDONS} ${MANIFEST} ${CSSFILES} ${HTMLFILES} ${JSFILES} 
 
 ${BUILDDIR}:
@@ -77,9 +73,6 @@ ${BUILD_IMAGES}:
 
 ${BUILD_LOGOS}:
 	mkdir -p ${BUILD_LOGOS}
-
-${BUILD_WEBSQL}:
-	mkdir -p ${BUILD_WEBSQL}
 
 ${BUILD_UTIL}:
 	mkdir -p ${BUILD_UTIL}
@@ -132,24 +125,6 @@ ${BUILD_DBWORKER}/worker.js:	${V3SRC}/dbworker/worker.js
 ${BUILD_DBWORKER}/dbcode.js:	${V3SRC}/dbworker/dbcode.js 
 	${CP} $< $@
 
-${BUILD_DBWORKER}/websql_support.js:	${V3SRC}/dbworker/websql_support.js 
-	${CP} $< $@
-
-${BUILD_WEBSQL}/database_actions.js:	${V3SRC}/websql/database_actions.js 
-	${CP} $< $@
-
-${BUILD_WEBSQL}/database_init.js:	${V3SRC}/websql/database_init.js 
-	${CP} $< $@
-
-${BUILD_WEBSQL}/database_IO.js:	${V3SRC}/websql/database_IO.js 
-	${CP} $< $@
-
-${BUILD_WEBSQL}/database_results.js:	${V3SRC}/websql/database_results.js 
-	${CP} $< $@
-
-${BUILD_WEBSQL}/529renew-results-startup.png:	${V3SRC}/websql/529renew-results-startup.png 
-	${CP} $< $@
-
 ${BUILDDIR}/results_options.js:	${V3SRC}/results_options.js 
 	${CP} $< $@
 
@@ -171,7 +146,10 @@ ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js
 ${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 
 	${CP} $< $@
 
-${BUILDDIR}/whatsnew-2_0.html:	${V3SRC}/whatsnew-2_0.html 
+${BUILDDIR}/whatsnew-1_9.html:	${V3SRC}/whatsnew-1_9.html 
+	${CP} $< $@
+
+${BUILDDIR}/whatsnew-2.html:	${V3SRC}/whatsnew-2.html 
 	${CP} $< $@
 
 ${BUILDDIR}/service.js:	${V3SRC}/service.js
