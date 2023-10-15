@@ -12,6 +12,12 @@ div.fileupload {
 	width:0px; 
 	overflow:hidden;
 }
+
+div.error {
+	color:white;
+	background-color:rgb(141, 0, 54);
+}
+
 button.special {
 	height: 10px;
 	font: 8px Arial, Helvetica, sans-serif;

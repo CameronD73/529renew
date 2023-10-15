@@ -549,7 +549,8 @@ function createImport529Button(){
 
 function createDeleteWASMButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete 529renew New Database";
+	newButton.innerHTML="Delete 529Renew Database";
+	newButton.title='Delete all saved DNA data collected by 529Renew';
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', requestDeletionFromDatabase);
 	document.getElementById("buttonInRow").appendChild(newButton);

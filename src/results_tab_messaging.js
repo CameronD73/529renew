@@ -13,6 +13,9 @@ const logHtml = function (cssClass, ...args) {
   if (cssClass) ln.classList.add(cssClass);
   ln.append(document.createTextNode(args.join(' ')));
   document.body.append(ln);
+  if ( cssClass === 'error' ){
+	alert( ...args );
+  }
 };
 
 const DBworker = new Worker('dbworker/worker.js?sqlite3.dir=jswasm');

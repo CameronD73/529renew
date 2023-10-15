@@ -17,7 +17,7 @@ let debugLevel = 0;
 
 
 const log = (...args) => logHtml('', ...args);
-const warn = (...args) => logHtml('warning', ...args);
+//const warn = (...args) => logHtml('warning', ...args);
 const error = (...args) => logHtml('error', ...args);
 
 function conlog( level, ...args) {
@@ -110,6 +110,10 @@ self.onmessage = function processMessages( msg ) {
       logHtml( '', `Loading file into DB`);
       restoreDB( content.filecontents ).then( ()=>{
             logHtml( '', 'Restore done');
+            let dbtables = DBwasm.get_summary();
+            if( dbtables.length < 10) {
+              conerror( 'Looks like your file was not a 529Renew database - or it has been corrupted\nYou should delete it and identify the problem');
+            }
             postMessage( {reason: 'restoredDB_return' } );
           }); 
       
@@ -180,56 +184,6 @@ function processMigrations( content ) {
   }
 }
 
-// early version, using dir loop...
-const startbig = async function (sqlite3) {
-  const capi = sqlite3.capi; /*C-style API*/
-  conlog( 0,'sqlite3 version', capi.sqlite3_libversion());
-  if (! sqlite3.oo1.OpfsDb)  {
-    conerror('The OPFS is not available. Giving up!');
-    return;
-  }
-  try {
-    if ( DB529 !== undefined ) {
-      conlog( 0, 'DB already open?');
-      return;   // already opened.
-    }
-    const root = await navigator.storage.getDirectory();
-    const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
-    let found = false;
-    let dbsize = 0;
-    for await ( let [name, handle] of sdhandle ) {
-      if ( name === DBname ){
-        found = true;
-        let ahand = await handle.createSyncAccessHandle();
-        dbsize = ahand.getSize();
-        ahand.close();
-
-        if ( dbsize < 10 ) {
-          conlog( 0, `DB file is only  ${dbsize} bytes, recreating tables`);
-          DBwasm.create_db_tables();
-        }
-      } else {
-        conlog( 0, `other file: ${name}`);
-      }
-    }
-    if ( found ) {
-      DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'w' );
-      conlog( 0,`The DB is open. ${dbsize} bytes`);
-    } else {
-      conlog( 0, 'DB not found, trying to create...');
-      DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'c' );
-      conlog( 0,'The DB is created.');
-      DBwasm.create_db_tables();
-    }
-  } catch( e ){
-    let msg = `Failed to create DB: ${e.message}`;
-    alert( msg );
-    conerror( msg );
-    return;
-  }
-  conlog( 1,'db =', DB529.filename);
-
-};
 /* 
 ** open the DB, creating it if not already found
 */
@@ -247,20 +201,25 @@ const start = async function (sqlite3) {
     }
     const root = await navigator.storage.getDirectory();
     const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
+    let fhandle;
     let found = false;
     try {
-      const fhandle = await sdhandle.getFileHandle( DBname );
+      fhandle = await sdhandle.getFileHandle( DBname );
+      conlog( 4, `DB file found: ${fhandle.name}`);
       found = true;
     } catch( fe ) {
+      conlog( 4, `opening ${DBname}, error ${fe.name}, ${fe.message}`);
       if ( fe.name !== 'NotFoundError')  throw(fe);
     }
     if( found ) {
       let ahand = await fhandle.createSyncAccessHandle();
+      // how silly, you have to get an exclusive lock just to find the file size.
       let dbsize = ahand.getSize();
       ahand.close();
 
       if ( dbsize < 10 ) {
         conlog( 0, `DB file is only  ${dbsize} bytes, recreating tables`);
+        DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'w' );
         DBwasm.create_db_tables();
       }
       // open the file as a DB object
@@ -273,8 +232,7 @@ const start = async function (sqlite3) {
       DBwasm.create_db_tables();
     }
   } catch( e ){
-    let msg = `Failed to create DB: ${e.message}`;
-    alert( msg );
+    let msg = `Failed to open/create DB: ${e.message}`;
     conerror( msg );
     return;
   }
@@ -282,7 +240,8 @@ const start = async function (sqlite3) {
 
 };
 
-/* open the DB, creating it if not already found
+/* 
+** get the size of the DB (can only do this before it has been opened?)
 */
 const getDBSize = async function (  ) {
 
@@ -330,7 +289,6 @@ const restoreDB = async function ( filecontents ) {
     await _sqlite3.oo1.OpfsDb.importDb( DBpath, filecontents );
   } catch( e ) {
     let msg = `Failed to import DB: ${e.message}`;
-    alert( msg );
     conerror( msg );
   } finally {
     await start( _sqlite3 );    // reopen DB, or else create empty one on error
@@ -338,7 +296,10 @@ const restoreDB = async function ( filecontents ) {
   return 1;
 };
 
-const removeDBs = async function () {
+/*
+** test code - remove DBs with previous names 
+** - left here in case we need example code to reinstate this functionality
+const removeOldDBs = async function () {
   const root = await navigator.storage.getDirectory();
   const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
   let found = false;
@@ -355,6 +316,7 @@ const removeDBs = async function () {
     }
   }
 }
+*/
 
 const destroyDB = async function () {
   await closeDB();      // in case DB is locked...
@@ -399,7 +361,7 @@ self.sqlite3InitModule({
     try {
       _sqlite3 = sqlite3;
       await start(sqlite3);
-      //removeDBs();    // don't normally need this (except during development)
+      //removeOldDBs();    // don't normally need this (except during development)
     } catch (e) {
       conerror('DB worker Exception:', e.message);
     } finally {

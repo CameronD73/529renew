@@ -289,7 +289,7 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             return false;
         }
-        conlog( 3, `DB insertAlias: finished; ${total_rows_updated} rows updated` );
+        conlog( 1, `DB insertAlias: finished; ${total_rows_updated} rows updated` );
         //logHtml( null, 'finished');
         return true;
     },
