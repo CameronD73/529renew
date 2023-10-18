@@ -706,8 +706,7 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	alert( 'Not yet available with the new database format');
-	return;
+	//alert( 'Not yet available with the new database format'); 	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw "Page structure changed";
@@ -715,27 +714,12 @@ tr_el.onclick=function(evt){
 		for( let k=0; k < classlist.length; k++){
 			if ( classlist[k] === "hide") throw "Not clicked";
 		}
-		/*
-		for(let k=0; k<temp3.children.length; k++){
-			if(temp3.children[k].hasAttribute("class")){
-				var temp4=temp3.children[k].getAttribute("class");
-				if(temp4.indexOf("headers")>-1){
-					loaded=true;
-					break;
-				}
-			}
-		} */
 
 	}
 	catch(e){
 		alert( 'You need to click "Find relatives on common" first\n or else it has not finished loading');
 		return;
 	}
-	/*
-	if(!loaded){
-		alert("Please wait for Relatives in Common to finish loading");
-		return;
-	} */
 
 	if(tr_el.innerHTML=="Triangulation into 529Renew Completed") return;
 

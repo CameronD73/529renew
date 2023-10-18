@@ -215,10 +215,128 @@ var DBwasm = {
     },
 
     /*
+    ** select all the segments in the DB that match given criteria..
+    ** id: is the 16-digit ID text (for a specific tester), or else "All"
+    ** chromosome: either gives a specific chromosome number, or zero for "all"
+    ** dateLimit is either the empty string (return all) or a date such that only newer matching segments are returned.
+    */
+    selectFromDatabase( id, chromosome, dateLimit, incChr100 ) {
+        let qry_sel = "SELECT \
+                    s0.ROWID as ROWID, \
+                    t1.name AS name1, \
+                    t2.name AS name2, \
+                    t1.IDText AS id1, \
+                    t2.IDText AS id2, \
+                    chromosome, start, end, cM, snps, \
+                    m.lastdate as segdate \
+                FROM ibdsegs AS s0 \
+                JOIN idalias t1 ON (t1.IDText=s0.id1) \
+                JOIN idalias t2 ON (t2.IDText=s0.id2)  \
+                LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
+        const qry_condc = '(chromosome = ?) ';
+        const qry_condid =  '((s0.id1=?) OR (s0.id2=?))';
+        // convert to julianday to do a floating point comparison rather than string
+        const qry_date = ' julianday(m.lastdate) >= julianday(?)'
+        const qry_order =  ' ORDER BY chromosome, start, end DESC, s0.ROWID'
+        const extra_order = ', julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+        let query = qry_sel;
+        let needsand = false;
+        let chrNum=parseInt(chromosome);
+        if ( chrNum > 0 && chrNum < 24 ) {
+            query += `WHERE (chromosome = ${chrNum}) `;
+            needsand = true;
+        }
+        if ( id.length == 16 ) {
+            query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
+            needsand = true;
+        }
+        if( dateLimit.length> 100 ) {
+            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
+        }
+            
+        query += qry_order;
+        conlog(3, `query = ${query} with chr ${chrNum} and ID ${id}`);
+
+
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object'
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get_segments list: ${e.message}, from request ${query}`);
+            return( [ ] );
+        }
+        //console.log( 'DB summary gave: ', rows);
+        return rows;
+    },
+
+    /*
+    ** returns a table of all segment matches that overlap the one specified by
+    ** input parameter segmentId (which is a ROWID value in the ibdsegs table)
+    */
+    getOverlappingSegments: function( segmentRow, overlap ) {
+        
+    const sellist1 = "s0.ROWID as ROWID,\
+        t1.name AS name1,\
+        t2.name AS name2,\
+        t1.IDText AS id1,\
+        t2.IDText AS id2,\
+        s0.chromosome AS chromosome,\
+        s0.start AS start,\
+        s0.end AS end,\
+        s0.cM AS cM,\
+        s0.snps AS snps,\
+        m.lastdate AS segdate";
+
+    const joinlist = "ibdsegs as s0 \
+        JOIN idalias AS t1 ON (t1.IDText=s0.id1 ) \
+        JOIN idalias AS t2 ON (t2.IDText=s0.id2 ) \
+        JOIN ibdsegs AS s3 ON 	( \
+            s3.ROWID=? \
+            AND s3.chromosome=s0.chromosome \
+            AND s0.start<=(s3.end-?) \
+            AND s0.end>=(s3.start+?) \
+            AND (  \
+                   (s3.id1=s0.id1) \
+                OR (s3.id1=s0.id2 ) \
+                OR (s3.id2=s0.id1 )  \
+                OR (s3.id2=s0.id2 ) \
+                ) \
+            ) \
+        LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
+
+    const orderlist = "chromosome, \
+        s0.start, \
+        s0.end DESC, \
+        s0.ROWID, \
+        t1.ROWID+t2.ROWID;";
+    const query='SELECT ' + sellist1 + ' FROM ' + joinlist + ' ORDER BY ' + orderlist;
+
+    conlog(3, `getOverlappingSegments query = ${query} `);
+
+    let rows = [];
+    try{
+        DB529.exec( query, {
+                resultRows: rows,
+                rowMode: 'object',
+                bind:[segmentRow, overlap, overlap]
+            }
+        );
+    } catch( e ) {
+        conerror( `DB get_segment overlaps: ${e.message}, from request ${query}`);
+        return( [ ] );
+    }
+    //console.log( 'DB summary gave: ', rows);
+    return rows;
+    },
+    /*
     ** check whether we already have all available data for match between id1 and id2
     */
     checkInDB: function( id1, id2 ){
-        let qry = "SELECT nsegs, havesegs from  DNAmatches  where ID1 = ? and ID2 = ? and ishidden = 0 ";
+        let qry = "SELECT nsegs, hasSegs, cMtotal from  DNAmatches  where ID1 = ? and ID2 = ? and ishidden = 0 ";
 		let firstid = id1;
 		let secondid = id2;
 		if(id1 > id2){
@@ -239,8 +357,14 @@ var DBwasm = {
             conerror( `DB checkInDB : ${e.message}`);
             return( 0 );
         }
-        //console.log( 'DB summary gave: ', rows);
-        return rows[0].hasSegs;
+        if( rows.length > 1 ) {
+            console.log( 'DB checkInDB gave unecpected: ', rows);
+        }
+        if( rows.length > 0) {
+            return rows[0];
+        } else {
+            return( [{ nsegs:-1, hasSegs:0, cMtotal:0.0 }])
+        }
     },
 
     updateDBSettings: function( data) {
@@ -380,10 +504,10 @@ var DBwasm = {
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
-            logHtml('error', `DB MigrateDNSrels: error: ${e.message}`);
+            logHtml('error', `DB insertDNArels: error: ${e.message}`);
             return false;
         }
-        conlog( 4, `DB MigrateDNSrels: finished` );
+        conlog( 4, `DB insertDNArels: finished` );
         //logHtml( null, 'finished');
         return true;
     },

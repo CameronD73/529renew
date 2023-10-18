@@ -55,7 +55,7 @@ function storeSegments(request) {
 	const DNArelsMap = new Map();
 	const segsMap = new Map();
 	const fullSegsMap = new Map();
-	let seg0 = matchingSegments[0];
+	let seg0 = request.matchingSegments[0];
 	let id1 = seg0.uid1;
 	let id2 = seg0.uid2;
 	if( ! DNAtesters.has( id1 ) ) {
@@ -76,22 +76,22 @@ function storeSegments(request) {
 	matchesMap.set( matchkey, {$id1: id1, $id2: id2, $ishidden: 0, $cMtotal : 0, $pctshared:0 , $nsegs: 0, $hasSegs: 0} );
 	// we should have caught all new DNArelatives elsewhere, but, just in case...
 	if ( profileIDs.indexOf(id1)) {
-		DNArelsMap.set( matchkey, {$id1: id1, $id2: id2, note:'unexpected addition via saveSegs'} );
+		DNArelsMap.set( matchkey, {$id1: id1, $id2: id2, $note:'unexpected addition via saveSegs'} );
 	}
 	if ( profileIDs.indexOf(id2)) {
 		let swapkey =  id2 + "_" + id1;
-		DNArelsMap.set( swapkey, {$id1: id2, $id2: id1, note:'unexpected addition via saveSegs'} );
+		DNArelsMap.set( swapkey, {$id1: id2, $id2: id1, $note:'unexpected addition via saveSegs'} );
 	}
 	
 	let cmtotal = 0.0;
 	let nsegs = 0;
 	for(let i=0; i<request.matchingSegments.length; i++){
-		let thisSeg = matchingSegments[i];
+		let thisSeg = request.matchingSegments[i];
 		let segkey = id1 + "_" + id2 + "_" + thisSeg.chromosome + "_" + thisSeg.start;
 		if ( thisSeg.is_fullmatch) {
 			fullSegsMap.set( segkey,  {$id1: id1, $id2: id2,
 								$chromosome: thisSeg.chromosome,
-								$cM: thisSeg.cM,
+								$cM: round_cM(thisSeg.cM),
 								$snps: thisSeg.snps,
 								$start:thisSeg.start,
 								$end: thisSeg.end
@@ -99,14 +99,14 @@ function storeSegments(request) {
 		} else {
 			segsMap.set( segkey,  {$id1: id1, $id2: id2,
 								$chromosome: thisSeg.chromosome,
-								$cM: thisSeg.cM,
+								$cM: round_cM(thisSeg.cM),
 								$snps: thisSeg.snps,
 								$start:thisSeg.start,
 								$end: thisSeg.end
 			} );
-			cmtotal += thisSeg.cM;
 			nsegs++;
 		}
+		cmtotal += thisSeg.cM;		// 23 and me count each strand of full IDB, so we add one length for full.
 		if ( nsegs > 0 ) {
 			matchesMap.get( matchkey ).$cMtotal = round_cM( cmtotal);
 			matchesMap.get( matchkey ).$hasSegs = 1;
@@ -120,6 +120,8 @@ function storeSegments(request) {
 /*
 ** in:
 **  primary_pair : object with IDs and Names of profile person and DNA relative being viewed.
+**			You'd think primary_pair was redundant because hte same values are in each row, BUT
+**			this is only the case _except_ with hidden segments.
 **  page_rows : is array of objects detailing useful contents of ICW table.
 **				each row will have a flag indicating if one of that pair has hidden results.
 */
@@ -146,7 +148,7 @@ function save_hidden_records( primary_pair, page_rows ) {
 		let pr=page_rows[i];
 		if( pr.is_hidden ) {
 			if ( pr.shared_pct_P2B > 0.0 ) {
-				let id1 = pr.primary_pair.profileID;
+				let id1 = primary_pair.profileID;
 				let id2 = pr.ID_icw_relative;
 				if ( id2 < id1 ) {
 					let temp = id2;
@@ -160,7 +162,7 @@ function save_hidden_records( primary_pair, page_rows ) {
 			}
 
 			if ( pr.shared_pct_A2B > 0.0 ) {
-				let id1 = pr.primary_pair.matchID;
+				let id1 = primary_pair.matchID;
 				let id2 = pr.ID_icw_relative;
 				if ( id2 < id1 ) {
 					let temp = id2;
@@ -174,5 +176,5 @@ function save_hidden_records( primary_pair, page_rows ) {
 			}
 		}
 	}
-	DBworker.postMessage( { reason: 'insertHiddenMap', amap: aliasToAdd, hmap: segsMap, useReplace: true });
+	DBworker.postMessage( { reason: 'insertHiddenMap', amap: aliasToAdd, hmap: hiddenMap, useReplace: true });
 }

@@ -33,7 +33,7 @@ DBworker.onmessage = function ( msg ) {
 	break;
 
 	case "return_DBcheck":
-		chrome.tabs.sendMessage(data.tabID, {mode: "returnNeedCompare", matchpair:data.matchpair, needToCompare: data.needToCompare});
+		chrome.tabs.sendMessage(data.tabID, {mode: "returnNeedCompare", matchpair:data.matchpair, returnedData: data.returned, needToCompare: data.needToCompare});
 	break;
 
     case 'init_done':
@@ -49,10 +49,69 @@ DBworker.onmessage = function ( msg ) {
       // db_summary = data.payload.rows.map( (r) => [...r] );
       chrome.runtime.sendMessage( {mode:'pop_dbstatus', data:db_summary} );
     break;
- 
+
+    case 'selectFromDatabase_return':
+		let callback_datareturn = data.callback;
+		let getSegsResults = data.payload;
+		if ( getSegsResults.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		//console.log( 'select from DB: ', profile_status );
+		switch ( callback_datareturn ) {
+			case 'createCSV':
+				createCSV12( getSegsResults, false);
+			break;
+			case 'createCSV3':
+				createCSV12( getSegsResults, true);
+			break;
+			case 'createTable':
+				createTable12( getSegsResults, false);
+			break;
+			case 'createTable2':
+				createTable12( getSegsResults, true);
+			break;
+			case 'createGEXF':
+				createGEXF( getSegsResults );
+			break;
+			
+			default:
+				let errmsg = `get DB selection, unhandled callback: ${callback_datareturn}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
+    case 'overlappingSegments_return':
+		let callback_olap_return = data.callback;
+		let callback_olap_params = data.callbackParams;
+		let overlapResults = data.payload;
+		if ( overlapResults.length == 0 ){
+			alert( 'Empty result set returned from overlaps request');
+			return;
+		}
+		switch ( callback_olap_return ) {
+			case 'colorizeButton':
+				colorizeButton( overlapResults, callback_olap_params);
+			break;
+
+			case 'createSegmentTable':
+				createSegmentTable( overlapResults );
+			break;
+			
+			default:
+				let errmsg = `get overlaps, unhandled callback: ${callback_olap_return}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
     case 'insertProfiles_return':
       let profile_status = data.payload;
       console.log( 'profile inserted: ', profile_status );
+	  logHtml( 'profile load completed');
       document.getElementById("docBody").style.cursor="pointer";
       DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
     break;
@@ -109,8 +168,11 @@ DBworker.onmessage = function ( msg ) {
   }
 };
 
-DBworker.postMessage({reason: "setdebug", value: 2} );
-
+DBworker.onerror = function ( evt ) {
+	let msg = `DB worker error: in ${evt.filename}, line ${evt.lineno}: ${evt.message}.`;
+	logHtml( 'error', msg );
+	alert( msg );
+}
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -188,5 +250,7 @@ chrome.runtime.onMessage.addListener(
 chrome.tabs.onRemoved.addListener( ( tabID, remInfo) =>{
   DBworker.postMessage( {reason: "closing"});
 });
+
+DBworker.postMessage({reason: "setdebug", value: 2} );
 
 console.log( 'worker instantiation has been started');

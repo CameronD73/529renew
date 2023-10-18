@@ -37,10 +37,21 @@ function importProfileCSV(lineList, nFields ){
 			alert( errmsg );
 			continue;
 		}
-		const regex = /["']/g;		// strip out any quotes
-		let   ID=entry[0].replaceAll( regex, '');
-		let Name=entry[1].replaceAll( regex, '');
-		profilemap.set( ID, {name:Name });
+		const regex_quote = /["']/g;		// strip out any quotes
+		const regex_nonhex = /[^0-9a-fA-F]/
+		let   ID=entry[0].replaceAll( regex_quote, '').trim();
+		let Name=entry[1].replaceAll( regex_quote, '').trim();
+		if ( ID.search( regex_nonhex ) >= 0 ) {
+			let errmsg = `invalid character in profile ID ${ID} for ${Name} `;
+			logHtml( 'error', errmsg );
+			alert( errmsg );
+		} else if ( ID.length != 16 ) {
+			let errmsg = `Profile ID ${ID} for ${Name} must be exactly 16 characters`;
+			logHtml( 'error', errmsg );
+			alert( errmsg );
+		} else {
+			profilemap.set( ID, {name:Name });
+		}
 	}
 	db_conlog( 1, `  importCSV: adding ${profilemap.size} profile rows`);
 
@@ -193,12 +204,15 @@ function import529CSV(lineList, nFields ){
 	// DBworker.postMessage( { reason: 'migrateMatchMapHidden', amap: hiddenmap, useReplace: useReplace });
 
 	db_conlog( 1, `  adding ${aliasmap.size} alias rows`);
+	logHtml( '',  `  adding up to ${aliasmap.size} alias rows` );
 	// add all the unique keys and names to the alias table
 	// never replace existing, as 23 imports have more info.
 	DBworker.postMessage( { reason: 'migrateAliasmap529', amap: aliasmap, useReplace: false });
 
 	
-	db_conlog( 1, `adding ${lineList.length} segment rows. This may take a while...`);
+	let segmsg= `adding ${lineList.length} segment rows. This may take a while...`;
+	db_conlog( 1, segmsg); 
+	logHtml( '', segmsg );
 	// Now reprocess the list and save the matched segments
 	for(let i=1; i< lineList.length; i++){
 		var entry=lineList[i].split(',');
@@ -422,13 +436,13 @@ function import23CSV( kitID, kitName, lineList, nFields ){
 					console.log( `conflict: FULL IBD Segment key ${segkey} is not unique on start`);
 					let so = fullsegmentmap.get( segkey );
 					let conflict = {id1:kitID, id2:testerID, n1:firstName,  chr:e23segchr, 
-								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  so.$cM,
-								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  e23segcM	} ;
+								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  round_cM(so.$cM),
+								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  round_cM(e23segcM)	} ;
 					conflictsFull.push( conflict );
 				} else {
 					fullsegmentmap.set( segkey, {$id1: firstID, $id2: secondID,
 						$chromosome: e23segchr,
-						$cM: e23segcM,
+						$cM: round_cM(e23segcM),
 						$snps: e23segsnps,
 						$start:e23segstart,
 						$end: e23segend
@@ -439,14 +453,14 @@ function import23CSV( kitID, kitName, lineList, nFields ){
 					console.log( `conflict: Segment key ${segkey} is not unique on start`);
 					let so = segmentmap.get( segkey );
 					let conflict = {id1:kitID, id2:testerID, n1:firstName,  chr:e23segchr, 
-								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  so.$cM,
-								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  e23segcM	} ;
+								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  round_cM(so.$cM),
+								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  round_cM(e23segcM)	} ;
 					conflicts.push( conflict );
 
 				} else {
 					segmentmap.set( segkey, {$id1: firstID, $id2: secondID,
 										$chromosome: e23segchr,
-										$cM: e23segcM,
+										$cM: round_cM(e23segcM),
 										$snps: e23segsnps,
 										$start:e23segstart,
 										$end: e23segend
@@ -458,14 +472,14 @@ function import23CSV( kitID, kitName, lineList, nFields ){
 					//console.log( `conflict: Segment key ${segkeyHigh} is not unique on end`);
 					let so = segmentmapHigh.get( segkeyHigh );
 					let conflict = {id1:firstID, id2:secondID, n1:entry[0], n2: entry[1], chr:e23segchr, 
-								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  so.$cM,
-								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  e23segcM	} ;
+								start1: so.$start, 	end1: so.$end, snps1: so.$snps, cM1:  round_cM(so.$cM),
+								start2: e23segstart, end2: so.e23segend,  snps2: e23segsnps, cM2:  round_cM(e23segcM)	} ;
 					conflicts.push( conflict );
 
 				} else {
 					segmentmapHigh.set( segkeyHigh, {$id1: firstID, $id2: secondID,
 										$chromosome: e23segchr,
-										$cM: e23segcM,
+										$cM: round_cM(e23segcM),
 										$snps: e23segsnps,
 										$start:e23segstart,
 										$end: e23segend

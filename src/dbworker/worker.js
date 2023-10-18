@@ -51,29 +51,29 @@ self.onmessage = function processMessages( msg ) {
     break;
 
     case "insertNewAliasAndSegs":
-      if ( amap.size > 0 )
+      if ( content.amap.size > 0 )
         DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
-      if( smap.size > 0 )
+      if( content.smap.size > 0 )
         DBwasm.insertSegmentMap(content.smap, 'ibdsegs', content.useReplace); 
-      if( fullsmap.size > 0 )
+      if( content.fullsmap.size > 0 )
         DBwasm.insertSegmentMap(content.fullsmap, 'ibdsegsFull', content.useReplace); 
-      if ( mmap.size > 0 )
+      if ( content.mmap.size > 0 )
         DBwasm.insertMatchMap(content.mmap, 'Match', content.useReplace); 
-      if ( rmap.size > 0 )
+      if ( content.rmap.size > 0 )
         DBwasm.insertDNArelatives(content.rmap, 'Match', false);      // never overwrite 
     break;
 
     case "insertHiddenMap":
-      if ( amap.size > 0 )
+      if ( content.amap.size > 0 )
         DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
-      if( smap.size > 0 )
+      if( content.hmap.size > 0 )
         DBwasm.insertMatchMap(content.hmap, 'MatchHidden', content.useReplace); 
     break;
 
     case "checkIfInDatabase":
-      let hassegs = DBwasm.checkInDB( content.matchpair.indexId, content.matchpair.matchId);
-      let ntc = ! hassegs;
-      postMessssage( {reason:"return_DBcheck", tabID:content.tabID,  matchpair:content.matchpair, needToCompare: ntc});
+      let hassegsRow = DBwasm.checkInDB( content.matchpair.indexId, content.matchpair.matchId);
+      let ntc = ! hassegsRow.hasSegs;
+      postMessage( {reason:"return_DBcheck", tabID:content.tabID,  matchpair:content.matchpair, returned:hassegsRow, needToCompare: ntc});
     break;
 
     case "getMatchList":
@@ -84,8 +84,8 @@ self.onmessage = function processMessages( msg ) {
     break;
 
     case "getSummary":
-      let retval = DBwasm.get_summary();  // synchronous, so we can just send result back
-      postMessage( {reason: 'summary_return', payload: retval } );
+      let summary_return = DBwasm.get_summary();  // synchronous, so we can just send result back
+      postMessage( {reason: 'summary_return', payload: summary_return } );
     break;
 
     case "updateDBSettings":
@@ -97,6 +97,15 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'insertProfiles_return', payload: retvalpstat } );
     break;
 
+    case "selectFromDatabase":
+      let retvalsfD = DBwasm.selectFromDatabase(content.id, content.chr, content.dateLimit, content.incChr100);  // synchronous, so we can just send result back
+      postMessage( {reason: 'selectFromDatabase_return', callback:content.callback, payload: retvalsfD } );
+    break;
+
+    case "getOverlappingSegments":
+      let rowsGOS = DBwasm.getOverlappingSegments(content.segmentId, content.overlap);  // synchronous, so we can just send result back
+      postMessage( {reason: 'overlappingSegments_return', callback:content.callbackName, callbackParams:content.cbParams, payload: rowsGOS } );
+ 
     case "getProfiles":
       let retvalp = DBwasm.get_profile_list( );  // synchronous, so we can just send result back
       postMessage( {reason: 'profile_return', payload: retvalp } );
@@ -269,12 +278,12 @@ const dumpDB = async function (  ) {
   let ahand = await fhandle.createSyncAccessHandle();
   let sz = ahand.getSize();
   let dvbuf = new DataView( new ArrayBuffer(sz) );
-  let buf = new ArrayBuffer(sz);
+  //let buf = new ArrayBuffer(sz);
   try {
     // Moz docs say ArrayBuffer or ArrayBufferView, BUT chrome crashes, demanding ...View.
-    let retval = ahand.read(buf);
+    let retval = ahand.read(dvbuf);
     conlog( 0, `DBWorker: buffer loaded with ${retval} bytes, from ${sz}`);
-    self.postMessage( {reason: 'DBloaded_for_dump', payload:buf }, [buf]);
+    self.postMessage( {reason: 'DBloaded_for_dump', payload:dvbuf.buffer }, [dvbuf.buffer]);
   } catch( e ){
     conerror( 'failed to load DB: ', e.message);
   } finally {
