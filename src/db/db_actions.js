@@ -107,11 +107,11 @@ function storeSegments(request) {
 			nsegs++;
 		}
 		cmtotal += thisSeg.cM;		// 23 and me count each strand of full IDB, so we add one length for full.
-		if ( nsegs > 0 ) {
-			matchesMap.get( matchkey ).$cMtotal = round_cM( cmtotal);
-			matchesMap.get( matchkey ).$hasSegs = 1;
-			matchesMap.get( matchkey ).$nsegs = nsegs;
-		}
+	}
+	if ( nsegs > 0 ) {
+		matchesMap.get( matchkey ).$cMtotal = round_cM( cmtotal);
+		matchesMap.get( matchkey ).$hasSegs = 1;
+		matchesMap.get( matchkey ).$nsegs = nsegs;
 	}
 
 	DBworker.postMessage( { reason: 'insertNewAliasAndSegs', amap: aliasToAdd, smap: segsMap, fullsmap:fullSegsMap, mmap:matchesMap, rmap:DNArelsMap, useReplace: true });

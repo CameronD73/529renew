@@ -15,6 +15,7 @@
       "js" : [
         "util/basicQueue.js",
         "util/dates.js",
+        "util/validations.js",
         "save_segments.js"
       ],
       "run_at" : "document_idle",

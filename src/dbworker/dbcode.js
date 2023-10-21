@@ -121,6 +121,45 @@ var DBwasm = {
 
     },
 
+    /*
+    ** return a summary table for the count of overlapping segments under various categories:
+    ** 1: 3-way overlaps
+    ** 2: 2-way overlaps only
+    ** 3: same as 1, but excluding any match where two profiles are involved. (two kits are liekly to be closely related and so have lots of triangulations)
+    ** 4: same as 2, but excluding any match where two profiles are involved.
+    */
+    get_matchSummary: function( cmlimit ) {
+        let sel3 = "SELECT chromosome, count(*) as nmatches FROM ICWsets as s JOIN DNAmatches as m ON s.ID2 = m.ID1 and s.ID3 = m.ID2";
+        let sel2 = "SELECT chromosome, count(*) as nmatches FROM ICWSets2way as s JOIN DNAmatches as m ON s.ID2 = m.ID1 and s.ID3 = m.ID2";
+        let joinLimit = `m.cMtotal < ${cmlimit}`;
+            // condition where ICW excludes presence of two profiles in one ICW set.
+        let wherex2p = "(s.ID2 not in (select IDprofile from profiles) AND s.ID3  not in (select IDprofile from profiles))";
+            // condition where we consider only ICW sets that have at least 2 profiles in the set.
+        let whereinc2p = "(s.ID2 in (select IDprofile from profiles) OR s.ID3 in (select IDprofile from profiles))";
+        let sqlcode = `SELECT chromosome, w3.nmatches as tr, w2.nmatches as mx2, w3b.nmatches as trb, w2b.nmatches as mx2b FROM \
+                ( ${sel3} WHERE ${joinLimit} AND ${wherex2p} GROUP BY chromosome) as w3 \
+                LEFT JOIN \
+                ( ${sel2} WHERE ${joinLimit} AND  ${wherex2p} GROUP BY chromosome) as w2 USING( chromosome ) \
+                LEFT JOIN \
+                ( ${sel3} WHERE ${joinLimit} AND  ${whereinc2p} GROUP BY chromosome) as w3b USING( chromosome ) \
+                LEFT JOIN \
+                ( ${sel2} WHERE ${joinLimit} AND  ${whereinc2p} GROUP BY chromosome) as w2b USING( chromosome );`;
+
+        let rows = [];
+        let options = {
+            resultRows: rows,
+            rowMode: 'array'
+        };
+        try{
+            DB529.exec( sqlcode, options );
+        } catch( e ) {
+            conerror( `DB get_matchSummary: ${e.message}`);
+            return( [ ] );
+        }
+        return rows;
+
+    },
+
     get_profile_list: function() {
         let sqlcode = "SELECT *  from profiles;";
 
@@ -409,8 +448,8 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB insertAlias: error: ${e.message}`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
+            conerror( `DB insertAlias: error: ${e.message}`);
             return false;
         }
         conlog( 1, `DB insertAlias: finished; ${total_rows_updated} rows updated` );
@@ -445,8 +484,8 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB insertSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
+            conerror( `DB insertSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             return false;
         }
         conlog( 0, `DB insertSegMap: finished; ${total_rows_updated} rows updated.` );
@@ -456,12 +495,12 @@ var DBwasm = {
 
         /*
         ** this table is of pairs of testers where we have segment data
-        */
+        */ 
    insertMatchMap: function( matmap, matchtype, useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
         const update_qry_part =  ' (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, lastdate) '+
-                `VALUES ($id1,$id2,$ishidden,$pctshared,$cMtotal,$nsegs, $hasSegs,'${today}');`;
+                `VALUES ($id1,$id2,$ishidden,$pctshared,$cMtotal,$nsegs, $hasSegs, $lastdate);`;
         const update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO DNAmatches' + update_qry_part;
         let total_rows_updated = 0;
 
@@ -576,11 +615,11 @@ var DBwasm = {
     },
 
     identify_icw: function() {
-        logHtml( '' , 'Looking for 3-way segment overlaps.');
+        logHtml( '' , 'Looking for 3-way segment overlaps. This will take a long time');
         const profiles = DBwasm.get_profile_list();
         const matchList = DBwasm.get_DNAmatch_list();
         if ( matchList.length < 1) {
-            alert( 'no matches found');
+            conerror( 'identify_ICW: no matches in database');
             return;
         }
         const icwmap = new Map();       // 3-way overlap
@@ -592,7 +631,7 @@ var DBwasm = {
             let key = nr.ID1 + "_" + nr.ID2;
             matchmap.set( key, nr );
         }
-        let sumICW = {'unknown': 0, 'hidden':0, 'no_overlap':0, 'triang':0, 'twoway':0 };
+        let sumICW = {'compared': 0, 'unknown': 0, 'hidden':0, 'no_overlap':0, 'triang':0, 'twoway':0 };
 
         for( let p = 0 ; p < profiles.length; p++ ) {
         //let p=0; {
@@ -601,13 +640,14 @@ var DBwasm = {
             logHtml( '' , `Looking for segment overlaps for ${pr.pname}`);
             const skiplist = [];
             for( let pp = 0 ; pp < p; pp++) {
-                skiplist[pp] = profiles[pp].IDprofile
+                skiplist[pp] = profiles[pp].IDprofile   // to avoid duplicating matches where two  are profile people.
             }
 
-            const relList = DBwasm.get_DNArel_list( P1id );
+            const relList = DBwasm.get_DNArel_list( P1id );     // already sorted by ID
             const rlsize = relList.length;
             const maxChecks = 0.5 * rlsize * ( rlsize - 1);
             const checkInterval = Math.floor(maxChecks/10);
+            sumICW.compared += (maxChecks * 0.000001);
             let checksdone = 0;
             // We need an inner loop descending from one below the outer element, so a numerical index is easiest to handle
             for( let i = 0; i < rlsize; i++ ) {
@@ -633,39 +673,42 @@ var DBwasm = {
                     // we already know M1 and M2 match the profile person, so existence of a some sort of M1-M2 match proves 3-way ICW.
                     if ( ! matchmap.has( key3 ) )
                         continue;
-                    const P1M1 = DBwasm.get_match_2way( matchmap, P1id, M2id );
-                    const P1M2 = DBwasm.get_match_2way( matchmap, P1id, M3id );
+                    const P1M2 = DBwasm.get_match_2way( matchmap, P1id, M2id );
+                    const P1M3 = DBwasm.get_match_2way( matchmap, P1id, M3id );
                     const M1M2 = matchmap.get( key3 );
                     let icwkey = P1id + "_" + M2id + "_" + M3id;
-                    if ( P1M1.ishidden != 0 ||  P1M2.ishidden != 0 ||  M1M2.ishidden != 0 ) {
+                    if ( P1M2.ishidden != 0 ||  P1M3.ishidden != 0 ||  M1M2.ishidden != 0 ) {
                         // ignore if any are hidden.
+                        icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -2, $st: 0, $end: 0} ); // chr = -2 means hidden
                         sumICW.hidden++;
-                    } else if ( P1M1.hasSegs == 0 ||  P1M2.hasSegs == 0 ||  M1M2.hasSegs == 0 ) {
+                    } else if ( P1M2.hasSegs == 0 ||  P1M3.hasSegs == 0 ||  M1M2.hasSegs == 0 ) {
                             // is ICW, but we cannot tell how - this key is good enough for this pass, but not enough for the entire db
-                            if ( P1M1.hasSegs != 0 &&  P1M2.hasSegs != 0 ) {
+                            if ( P1M2.hasSegs != 0 &&  P1M3.hasSegs != 0 ) {
                                 // we can do a 2-way check.
                                 const overlaps = DBwasm.get_icw_overlaps( P1id, M2id, M3id, false );
                                 DBwasm.saveOverlaps_2way(overlaps[0], icwmap2, icwkey, sumICW, P1id, M2id, M3id  );
                             }
-                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -1, $st: 0, $end: 0} );
+                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -1, $st: 0, $end: 0} ); // chr = -1 means "don't know"
                             sumICW.unknown++;
                     } else {
 
-                        // we have icw - the question now is, is there any overlap == triangulation
+                        // we have icw - the question now is: is there any overlap ==> triangulation
                         const overlaps = DBwasm.get_icw_overlaps( P1id, M2id, M3id, true );
                         if ( overlaps[1].length === 0 ) {
-                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: 0, $st: 0, $end: 0} );      // we know there is zero full overlap
+                            // chr=0 means we know there is zero full overlap
+                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: 0, $st: 0, $end: 0} );
                             if ( overlaps[0].length > 0){
                                 DBwasm.saveOverlaps_2way(overlaps[0], icwmap2, icwkey, sumICW, P1id, M2id, M3id  );
                             } else {
                                 sumICW.no_overlap++;
                             }
                         } else {
-                            // I'm not sure we need this, rather than just rescan icwmap.
-                            icwxrefmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:overlaps[0].chr, $st:overlaps[0].startolap, $end:overlaps[0].endolap}) ;
-                            sumICW.triang++;
-                            for( let r = 0 ; r < overlaps.length; r++) {
-                                let ol = overlaps[r];
+                            // I'm not sure we need icwxrefmap, rather than just rescan icwmap.
+                            let olap3way = overlaps[1];
+                            icwxrefmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:olap3way[0].chr, $st:olap3way[0].startolap, $end:olap3way[0].endolap}) ;
+                            for( let r = 0 ; r < olap3way.length; r++) {
+                                let ol = olap3way[r];
+                                sumICW.triang++;
                                 icwmap.set( icwkey + "_" + r.toString(),
                                                 {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:ol.chr, $st:ol.startolap, $end:ol.endolap} );
                             }
@@ -723,7 +766,7 @@ var DBwasm = {
         }
         let rows2 = [];
         let rows3 = [];
-        // a giant join is just too complicated for me to understand - if it is even possible.  Just split into 3x two-way matches and compare.
+        // a giant join is just too complicated for me to understand and get right (if it is even possible).  Just split into 3x two-way matches and compare.
         try {
             DB529.exec( 'DROP TABLE IF EXISTS wab;DROP TABLE IF EXISTS wac;DROP TABLE IF EXISTS wbc;DROP TABLE IF EXISTS ww;', {} );
             DB529.exec( 'CREATE temporary table wab as SELECT * from ibdsegs where id1 = ? and id2 = ?;', {bind:[olist[0], olist[1]]} );
@@ -741,19 +784,7 @@ var DBwasm = {
                     FROM ww JOIN wbc ON chr = wbc.chromosome \
                             AND (wbc.start between ww.startolap and ww.endolap or wbc.start between ww.startolap and ww.endolap)',
                     { resultRows: rows3, rowMode: 'object' } );     
-            }    
-            /*
-            // this does the 3-way triang in one hit.
-            DB529.exec( 'SELECT ww.chr as chr,  case when ww.startolap < wbc.start then wbc.start else ww.startolap end as startolap,\
-                                    case when ww.endolap < wbc.end then ww.endolap else wbc.end end as endolap \
-                FROM \
-                    ( SELECT wab.chromosome as chr,  case when wab.start < wac.start then wac.start else wab.start end as startolap, \
-                                                     case when wab.end < wac.end then wab.end else wac.end end as endolap \
-                    FROM wab JOIN wac ON wab.chromosome = wac.chromosome AND (wab.start between wac.start and wac.end or wac.start between wab.start and wab.end) \
-                    ) as ww \
-                    JOIN wbc ON chr = wbc.chromosome AND (wbc.start between ww.startolap and ww.endolap or wbc.start between ww.startolap and ww.endolap)',
-                 { resultRows: rows3, rowMode: 'object' } );
-                 */
+            } 
 
         } catch( e ) {
             logHtml( 'error', `Find triangulation failed with ${e.message}, for ${olist[0]},  ${olist[1]},  ${olist[2]}`);
@@ -765,7 +796,7 @@ var DBwasm = {
     insertICW: function( icwmap, tablename ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
-        const update_qry = `INSERT OR IGNORE INTO ${tablename} (IDprofile, ID2, ID3, chromosome, start, end) VALUES ($IDp, $ID2, $ID3, $chr, $st, $end );`;
+        const update_qry = `INSERT OR REPLACE INTO ${tablename} (IDprofile, ID2, ID3, chromosome, start, end) VALUES ($IDp, $ID2, $ID3, $chr, $st, $end );`;
         let total_rows_updated = 0;
 
         try{
@@ -785,7 +816,6 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             let msg = `DB insertICW ${tablename}: error: ${e.message}`;
             conerror( msg );
-            logHtml('error', msg );
             return false;
         }
         conlog( 4, `DB insertICW ${tablename}: finished` );
@@ -814,10 +844,30 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             let msg = `DB updateICW ${tablename}: error: ${e.message}`;
             conerror( msg );
-            logHtml('error', msg );
             return false;
         }
         return true;
     },
-    
+
+    /*
+    ** sanity-check function to determine if any matches are missing the segment count when we know we have them
+    */
+    check_segCount: function( ) {
+        let qry = 'SELECT * FROM DNAmatches as m JOIN ibdsegs as s USING(ID1,ID2) WHERE m.hasSegs = 0 and m.ishidden = 0;';
+        // TODO - finish the code
+    },
+
+    /*
+    ** fix any missing segment counts in DNAmatches table.
+    */
+    fix_segCount: function() {
+        let qry = "UPDATE DNAmatches as m set nsegs=nsegments, hasSegs=1 FROM \
+	    	( SELECT ID1, ID2, count(*) as nsegments \
+				FROM  DNAmatches as m JOIN ibdsegs as s USING(ID1,ID2) \
+				WHERE (m.hasSegs = 0 OR m.nsegs is null) and m.ishidden = 0 \
+				GROUP BY ID1, ID2 \
+            ) as sj\
+		WHERE m.ID1 = sj.ID1 and m.ID2 = sj.ID2;";
+        // TODO - finish the code
+    },
 }

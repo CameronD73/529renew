@@ -39,6 +39,10 @@ let profileID = null;		// UUID string of the profile person ("You")
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
 let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
 
+let profileMatches = new Map();		// all segment matches to profile person we know about so far.
+let matchMatches = new Map();		// all the matches we already have 
+let sharedSegMap = new Map();	// all known 3-way comparisons including parofil+ match person.
+
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
   e.initEvent.apply(e, Array.prototype.slice.call(arguments, 1));
@@ -442,9 +446,9 @@ function runComparison(ranPrimaryComparison ){
 			// DIV - "shared-dna" - whether there is overlap: yes/no/connect
 			// Sept 2023 the last column changed to 'DNA Overlap' and just says "Compare" instead of yes/no
 		let rows=document.getElementsByClassName("js-rows");
-		if(rows.length<1) throw "Wrong row length";
+		if(rows.length<1) throw new Error("Wrong row length");
 		let container=document.getElementsByClassName("js-relatives-table");
-		if(container.length!=1) throw "Wrong container length";
+		if(container.length!=1) throw new Error("Wrong container length");
 		container=container[0];
 		let row_index=-1;
 		for(let i=0; i<rows.length; i++){
@@ -452,11 +456,11 @@ function runComparison(ranPrimaryComparison ){
 				if(rows[i].hasAttribute("class")){
 					if(rows[i].getAttribute("class").indexOf("hide-for-mobile")<0) continue;
 				}
-				if(row_index!=-1) throw "Too many rows in container";
+				if(row_index!=-1) throw new Error("Too many rows in container");
 				row_index=i;
 			}
 		}
-		if(row_index==-1) throw "No valid rows";
+		if(row_index==-1) throw new Error("No valid rows");
 		row_container=rows[row_index];
 
 	}
@@ -709,10 +713,10 @@ tr_el.onclick=function(evt){
 	//alert( 'Not yet available with the new database format'); 	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
-		if(temp3 == null) throw "Page structure changed";
+		if(temp3 == null) throw new Error("Page structure changed");
 		let classlist = temp3.classList;
 		for( let k=0; k < classlist.length; k++){
-			if ( classlist[k] === "hide") throw "Not clicked";
+			if ( classlist[k] === "hide") throw new Error("Not clicked");
 		}
 
 	}
@@ -832,4 +836,55 @@ if(ric_parent!=null && modules!=null){
 		if(ric_parent.contains(modules[i])) modules[i].appendChild(div);
 	}
 }
+let thisurl = document.URL;
+console.log( `This tabs URL is "${thisurl}"`);
+if ( thisurl.length > 0 ) {
+	const sstr = "23andme.com/profile/";
+	let urlpos =  thisurl.indexOf( sstr );
+	if ( urlpos > 0 ) {
+		let stpos = urlpos+sstr.length;
+		let endpos = stpos + 16;
+		let newID = thisurl.substring( stpos, endpos );
+		if ( newID.length == 16 ) {
+			matchID = newID;
+		} else {
+			msg = `error finding match ID from url: ${thisurl} gives ${newID}, length ${newID.length}`;
+			console.error( msg );
+			alert( msg );
+		}
+	}
+}
 
+	// now find the profile (kit) person from the research menu A record. (there are 3 on a normal page).
+const researchElems = document.getElementsByClassName("research");
+
+for( let i=0; i < researchElems.length; i++ ) {
+	let href = researchElems[i].getAttribute( 'href');
+	if ( href.length < 18 ) {
+		continue;
+	}
+	const sstr = "/p/";
+	let urlpos =  href.indexOf( sstr );
+
+	if ( urlpos >= 0 ) {
+		let stpos = urlpos+sstr.length;
+		let endpos = stpos + 16;
+		profileID = href.substring( stpos, endpos );
+		break;
+	}
+}
+console.log( `Found profile ${profileID} and match ${matchID}` );
+try {
+	validate_ID( profileID );
+	validate_ID( matchID );
+} catch( e )  {
+	let errmsg = `Invalid ID code found: ${e.message}`;
+	alert( errmsg );
+	console.error( errmsg );
+}
+
+/* profile appears here (3 times similarly):
+<a class="research" href="/p/0915e7ec12ea0c21/research/" data-nav-id="research" data-mdv-id="nav-research-link" data-ga-click-event-bool="true" data-ga-click-event-category="youdot_navigation" data-ga-click-event-action="header_click" data-ga-click-event-label="menu_research" data-ga-click-event-value="0" aria-expanded="false">
+<span class="menu-name" aria-label="Press escape to close the menu">Research</span>
+</a>
+*/

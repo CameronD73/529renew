@@ -88,6 +88,12 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'summary_return', payload: summary_return } );
     break;
 
+    case "getMatchSummary":
+      let matchsum_return = DBwasm.get_matchSummary( 500 ); 
+      postMessage( {reason: 'match_summary_return', payload: matchsum_return } );
+    break;
+
+
     case "updateDBSettings":
       DBwasm.updateDBSettings(content.newsetting); 
     break;

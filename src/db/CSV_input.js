@@ -41,16 +41,16 @@ function importProfileCSV(lineList, nFields ){
 		const regex_nonhex = /[^0-9a-fA-F]/
 		let   ID=entry[0].replaceAll( regex_quote, '').trim();
 		let Name=entry[1].replaceAll( regex_quote, '').trim();
-		if ( ID.search( regex_nonhex ) >= 0 ) {
-			let errmsg = `invalid character in profile ID ${ID} for ${Name} `;
-			logHtml( 'error', errmsg );
-			alert( errmsg );
-		} else if ( ID.length != 16 ) {
-			let errmsg = `Profile ID ${ID} for ${Name} must be exactly 16 characters`;
-			logHtml( 'error', errmsg );
-			alert( errmsg );
-		} else {
+		try {
+			validate_ID( ID );
 			profilemap.set( ID, {name:Name });
+		} catch ( e ) {
+
+		}
+		if ( ID.search( regex_nonhex ) >= 0 ) {
+			let errmsg = `Error for ${Name}: ${e.message}`;
+			logHtml( 'error', errmsg );
+			alert( errmsg );
 		}
 	}
 	db_conlog( 1, `  importCSV: adding ${profilemap.size} profile rows`);
@@ -105,6 +105,9 @@ function import529CSV(lineList, nFields ){
 		let secondName=entry[1];
 		let secondID=entry[8];
 		let cmnt = (nFields == 14 ? entry[13] : "");
+		let acqdate = (nFields == 9 ? entry[9] : today );
+		if ( acqdate.length < 8 )  acqdate = today;
+
 		// add to alias name table, including space for the autoincrement ID to be determined later. (unused?)
 		if( !aliasmap.has(firstID)) {
 			aliasmap.set(firstID, {$k:firstID, $name:firstName });
@@ -156,7 +159,7 @@ function import529CSV(lineList, nFields ){
 		let matchkey = firstID + "_" + secondID;
 		if( !matchesmap.has( matchkey ) ) {
 			matchesmap.set( matchkey,
-				 {$id1: firstID, $id2: secondID, $ishidden: undefined, $cMtotal : 0.0, $pctshared:0.0 , $nsegs: 0, $hasSegs: 0} );
+				 {$id1: firstID, $id2: secondID, $ishidden: undefined, $cMtotal : 0.0, $pctshared:0.0 , $nsegs: 0, $hasSegs: 0, $lastdate:acqdate} );
 		}
 		let chr;
 		if( entry[2] == "X" ) {
@@ -285,7 +288,7 @@ function import529CSV(lineList, nFields ){
 	if (fullsegmentmap.length > 0 )
 		 DBworker.postMessage( { reason: 'migrateSegmentMapFull', amap: fullsegmentmap, useReplace: useReplace });
 
-	db_conlog( 1, `adding ${matchesmap.size} DMA matches rows`);
+	db_conlog( 1, `adding ${matchesmap.size} DNA matches rows`);
 	for( const[key, obj] of matchesmap ) {
 		let cM = round_cM(obj.$cMtotal);
 		obj.$cMtotal = cM;
@@ -420,7 +423,7 @@ function import23CSV( kitID, kitName, lineList, nFields ){
 		let matchkey = firstID + secondID;
 		if( !matchesmap.has( matchkey ) ) {
 			matchesmap.set( matchkey,
-				 {$id1: firstID, $id2: secondID, $ishidden: ishidden, $cMtotal : e23cMtotal, $pctshared:e23pctshared , $nsegs: e23nsegs, $hasSegs: hassegs} );
+				 {$id1: firstID, $id2: secondID, $ishidden: ishidden, $cMtotal : e23cMtotal, $pctshared:e23pctshared , $nsegs: e23nsegs, $hasSegs: hassegs, $lastdate: today} );
 		}
 		let DNArelskey = kitID + testerID;
 		if( !DNArelsmap.has( DNArelskey ) ) {

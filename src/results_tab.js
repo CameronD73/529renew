@@ -817,13 +817,6 @@ function colorizeButton( resultRows, buttondata ) {
 	button.style.background='darkgreen';
 }
 
-// The createTable and createCSV.. functions were sql transaction callbacks
-function createTable(transaction, results){
-	createTable12( results, false);
-}
-function createTable2(transaction, results){
-	createTable12( results, true);
-}
 /*
 ** createTable12
 ** does the bulk of the processing after the big join
@@ -1153,7 +1146,8 @@ function downloadSVG(){
 	var blob = new Blob(svgArray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529renew.svg");
 }
-function createGEXF(transaction, resultRows){
+
+function createGEXF(resultRows){
 
 	var gexfarray=new Array();
 	gexfarray.push('<?xml version="1.0" encoding="UTF-8"?>\n');
@@ -1213,7 +1207,7 @@ function createGEXF(transaction, resultRows){
 		if(row.chromosome==23) label="X:";
 		else label=row.chromosome+":";
 
-		label=label+ row.start + "-" + row.end;
+		label += row.start + "-" + row.end;
 
 		if(expectedIdStr==row.id2){
 			gexfarray.push('      <edge source="' + row.id1 +'" target="' + row.id2 + '" weight="' + row.cM/20 + '" label="'+label+'"/>\n');
@@ -1248,7 +1242,7 @@ function get_cM( val ){
 	
 
 /*
-** createSegmentTable - db transaction callback, with results of query for matching segments
+** createSegmentTable - db pseudo-callback, with results of query for matching segments
 ** - creates html table of segment overlaps between testing pairs
 */
 
@@ -1808,7 +1802,7 @@ function CSV_loadDone( newSize ){
 
 function migrationFinalise_done( s ) {
 	let elapsed = secondsToday() - migration_started;
-	let elapsed_min = elapsed / 60.0;
+	let elapsed_min = (elapsed / 60.0).toFixed(1);
 	let str = '';
 	if ( elapsed > 100) {
 		str = `${elapsed_min} minutes`;
@@ -1816,8 +1810,9 @@ function migrationFinalise_done( s ) {
 		str = `${elapsed} seconds`;
 	}
 	document.getElementById("docBody").style.cursor="pointer";
-
-	alert(`ICW sets analysed in ${str}.\n${s.triang} triangulate; ${s.twoway} overlaps 2-way only; ${s.no_overlap} have no overlap;\n${s.hidden} are hidden; ${s.unknown} have status uncertain.`);
+	//let MC = 0.1*Math.floor( * 10+ 0.5);
+	let MC = (s.compared).toFixed( 2 );
+	alert(`ICW sets analysed in ${str}.\n${s.triang} triangulate; ${s.twoway} overlaps 2-way only; ${s.no_overlap} have no overlap;\n${s.hidden} are hidden; ${s.unknown} have status uncertain.\nOut of ${MC} million comparisons`);
 }
 
 function requestImportProfiles(evt){

@@ -50,6 +50,13 @@ DBworker.onmessage = function ( msg ) {
       chrome.runtime.sendMessage( {mode:'pop_dbstatus', data:db_summary} );
     break;
 
+    case 'match_summary_return':
+      // payload rows is an array of arrays...
+      console.log( 'match summary returned ', data.payload );
+      db_match_summary = data.payload;   // this seems good enough
+      chrome.runtime.sendMessage( {mode:'pop_dbstatusMatches', data:db_match_summary} );
+    break;
+
     case 'selectFromDatabase_return':
 		let callback_datareturn = data.callback;
 		let getSegsResults = data.payload;
@@ -209,6 +216,7 @@ chrome.runtime.onMessage.addListener(
 			
 			msg_conlog( 0, `   getDBStatus: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getSummary"} );
+			DBworker.postMessage( {reason:"getMatchSummary"} );
 		break;
 
 		case  "getProfiles4pop" :

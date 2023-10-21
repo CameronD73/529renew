@@ -40,7 +40,7 @@ function base2Mbase( addr ) {
 
 /*
 * convert between 23 and Me's percent value and centiMorgans.
-* A conversion of 74.40cM/pct seems to apply, no matter whether testers are male or female.
+* A conversion of approx 74.40cM/pct seems to apply, no matter whether testers are male or female.
 */
 function pctShared2cM( pct ) {
 	return (pct * 74.4 );

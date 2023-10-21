@@ -192,6 +192,23 @@
             <h4>Status of new database</h4>
             <div id="status_table">                
             </div>
+            <h4>Status of ICW matching</h4>
+            <p>This table shows the number of ICW sets on each chromosome.
+                The counts exclude segments when the other two matches are close relatives (>500cM to each other);
+                Multiple kit profiles are often of close relatives, and will have many ICW overlaps, so the table is divided into:
+            </p>
+            <ul>
+                <li><i>x2p:</i> a count excluding ICW sets where more than one match is a profile person.</li>
+                <li><i>i2p:</i> counts only ICW sets where two or more matches include your managed profiles.</li>
+            </ul>
+            <ol>
+                <li>"No check" means that 528renew has seen a triangulation but not scanned the other match.</li>
+                <li>A 2-way overlap means 529Renew has determined that, while there two pairs of the ICW who overlap on a chromosome segment,
+                the third pair does not overlap in the same place, so there is no (or low) likelihood of triangulation.</li>
+            </ol>
+            </p>
+            <div id="match_status_table">                
+            </div>
             <h4>Status of profiles</h4>
             <div id="profile_table">                
             </div>
