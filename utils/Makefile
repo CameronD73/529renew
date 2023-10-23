@@ -30,6 +30,7 @@ IMAGEFILES= \
 
 JSFILES= \
 	${BUILD_UTIL}/basicQueue.js \
+	${BUILD_UTIL}/page_23_utils.js \
 	${BUILD_UTIL}/rounding.js \
 	${BUILD_UTIL}/dates.js \
 	${BUILD_UTIL}/validations.js \
@@ -44,7 +45,8 @@ JSFILES= \
 	${BUILDDIR}/popup529.js \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
-	${BUILDDIR}/whatsnew-2.html \
+	${BUILDDIR}/scan_relatives.js \
+	${BUILDDIR}/whatsnew-2_0.html \
 	${BUILDDIR}/whatsnew-1_3.html \
 	${BUILDDIR}/whatsnew-1_9.html \
 	${BUILDDIR}/service.js
@@ -105,6 +107,9 @@ ${BUILDDIR}/popup529.html: ${V3SRC}/popup529.html
 ${BUILD_UTIL}/basicQueue.js:	${V3SRC}/util/basicQueue.js 
 	${CP} $< $@
 
+${BUILD_UTIL}/page_23_utils.js:	${V3SRC}/util/page_23_utils.js 
+	${CP} $< $@
+
 ${BUILD_UTIL}/rounding.js:	${V3SRC}/util/rounding.js 
 	${CP} $< $@
 
@@ -147,13 +152,16 @@ ${BUILDDIR}/start_db_tab.js:	${V3SRC}/start_db_tab.js
 ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js 
 	${CP} $< $@
 
+${BUILDDIR}/scan_relatives.js:	${V3SRC}/scan_relatives.js 
+	${CP} $< $@
+
 ${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 
 	${CP} $< $@
 
 ${BUILDDIR}/whatsnew-1_9.html:	${V3SRC}/whatsnew-1_9.html 
 	${CP} $< $@
 
-${BUILDDIR}/whatsnew-2.html:	${V3SRC}/whatsnew-2.html 
+${BUILDDIR}/whatsnew-2_0.html:	${V3SRC}/whatsnew-2_0.html 
 	${CP} $< $@
 
 ${BUILDDIR}/service.js:	${V3SRC}/service.js

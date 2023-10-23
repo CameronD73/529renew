@@ -39,9 +39,9 @@ let profileID = null;		// UUID string of the profile person ("You")
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
 let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
 
-let profileMatches = new Map();		// all segment matches to profile person we know about so far.
-let matchMatches = new Map();		// all the matches we already have 
-let sharedSegMap = new Map();	// all known 3-way comparisons including parofil+ match person.
+let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
+let matchMatchesMap = new Map();		// all the matches we already have 
+let sharedSegMapMap = new Map();	// all known 3-way comparisons including parofil+ match person.
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -78,7 +78,7 @@ function run_query(personaId, personbId, personaName, personbName){
 	}
 }
 
-/* this listener handles the return from run_query()
+/* this listener handles the return from run_query() and other messages
 ** The message will set needToCompare to true if we need
 ** to get the results from 23 and me for inclusion in local DB.
 */
@@ -88,7 +88,7 @@ chrome.runtime.onMessage.addListener(
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
 
-	if(request.mode == "returnNeedCompare"){
+	if(request.mode === "returnNeedCompare"){
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
@@ -204,11 +204,68 @@ chrome.runtime.onMessage.addListener(
 			launch_next_IBD_query();
 		}
 		return ;
-	}
-	else
-		return false;			// not handled here
-  });
+	} else if( request.mode === "ICWPrelude_return") {
+		const origpair = request.data.pair;
+		const profileMatchesArr = request.data.profileMatches;
+		const DNArelMatchesArr = request.data.DNArelMatches;
+		const ICWsetArr = request.data.ICWset;
+		// unpack the data that has been returned.
+		try {
+			verifyMatchIDs( profileID, profileName, origpair.pid, origpair.pname);
+			verifyMatchIDs( matchID, matchName, origpair.mid, origpair.mname);
+		} catch( e ) {
+			console.error( e.message );
+			alert( e.message );
+			return;
+		}
+		profileMatchesMap.clear();
+		for( let i = 0 ; i < profileMatchesArr.length; i++ ) {
+			const nr = profileMatchesArr[i];
+			let mkey = nr.ID1;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID1 === profileID ) {
+				mkey = nr.ID2;
+			}
+			profileMatchesMap.set(mkey, nr);
+		}
+		matchMatchesMap.clear();
+		for( let i = 0 ; i < DNArelMatchesArr.length; i++ ) {
+			const nr = DNArelMatchesArr[i];
+			let mkey = nr.ID1;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID1 === matchID ) {
+				mkey = nr.ID2;
+			}
+			matchMatchesMap.set(mkey, nr);
+		}
+		sharedSegMapMap.clear();
+		for( let i = 0 ; i < ICWsetArr.length; i++ ) {
+			const nr = ICWsetArr[i];
+			let mkey = nr.ID2;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID2 === matchID ) {
+				mkey = nr.ID3;
+			}
+			sharedSegMapMap.set(mkey, nr);
+		}
+		if( debug_msg > 0){
+			console.log(  `Initial setup with ${profileMatchesMap.size} matches to ${profileName}; ` +
+						`${matchMatchesMap.size} matches to ${matchName}; ${sharedSegMapMap.size} saved ICW summaries`);
+		}
 
+	} else
+		return false;			// message not handled here
+  }
+);
+
+  /* confirm that the returned ID matches the one originally sent...
+  */
+function verifyMatchIDs( id1, n1, id2, n2 ) {
+	if( id1 === id2 )
+		return;
+	let msg = `Unexpected ID values ${id1}(${n1}) and ${id2}(${n2}) should be the same`;
+	throw new Error( msg );
+}
 /*
 ** callback function to initiate processing the next IBD segment collection
 ** from the queue
@@ -774,6 +831,25 @@ tr_el.onclick=function(evt){
 
 function process_settings_then_compare( response ) {
 	settingsProcessed = true;
+	if ( response.hasOwnProperty('qDelay') ) {
+		increment_ms = response.qDelay * 1000.0;
+	}
+	if ( response.hasOwnProperty('minSharedNonOverlap') ) {
+		minSharedNonOverlap = response.minSharedNonOverlap;
+	}
+	if ( response.hasOwnProperty('alwaysIncludeNonOverlap') ) {
+		alwaysIncludeNonOverlap = (response.alwaysIncludeNonOverlap == 0 ? false : true);
+	}
+	if ( response.hasOwnProperty('closeTabImmediate') ) {
+		closeTabImmediate = (response.closeTabImmediate == 0 ? false : true);
+	}
+	if ( response.hasOwnProperty('debug_q') ) {
+		debug_q = response.debug_q;
+	}
+	if ( response.hasOwnProperty('debug_msg') ) {
+		debug_msg = response.debug_msg;
+	}
+	/*
 	if ( Object.keys( response ).includes('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
 	}
@@ -792,6 +868,7 @@ function process_settings_then_compare( response ) {
 	if ( Object.keys( response ).includes('debug_msg') ) {
 		debug_msg = response.debug_msg;
 	}
+	*/
 	failedInSomeWay = false;		// reset just in case.
 	runComparison(false);
 };
@@ -836,6 +913,7 @@ if(ric_parent!=null && modules!=null){
 		if(ric_parent.contains(modules[i])) modules[i].appendChild(div);
 	}
 }
+// extract the match ID from the page URL...
 let thisurl = document.URL;
 console.log( `This tabs URL is "${thisurl}"`);
 if ( thisurl.length > 0 ) {
@@ -855,25 +933,16 @@ if ( thisurl.length > 0 ) {
 	}
 }
 
-	// now find the profile (kit) person from the research menu A record. (there are 3 on a normal page).
-const researchElems = document.getElementsByClassName("research");
+//  find the match person' name
+const matchNameElems = document.getElementsByClassName("basic-info-name-title");
+matchName = matchNameElems[0].innerText;
 
-for( let i=0; i < researchElems.length; i++ ) {
-	let href = researchElems[i].getAttribute( 'href');
-	if ( href.length < 18 ) {
-		continue;
-	}
-	const sstr = "/p/";
-	let urlpos =  href.indexOf( sstr );
+// now get the profile person's ID and name
+[profileID, profileName] =  get_profile_from_header();
 
-	if ( urlpos >= 0 ) {
-		let stpos = urlpos+sstr.length;
-		let endpos = stpos + 16;
-		profileID = href.substring( stpos, endpos );
-		break;
-	}
-}
-console.log( `Found profile ${profileID} and match ${matchID}` );
+
+console.log( `Found profile ${profileID} (${profileName}) and match ${matchID} (${matchName})` );
+
 try {
 	validate_ID( profileID );
 	validate_ID( matchID );
@@ -882,9 +951,9 @@ try {
 	alert( errmsg );
 	console.error( errmsg );
 }
-
-/* profile appears here (3 times similarly):
-<a class="research" href="/p/0915e7ec12ea0c21/research/" data-nav-id="research" data-mdv-id="nav-research-link" data-ga-click-event-bool="true" data-ga-click-event-category="youdot_navigation" data-ga-click-event-action="header_click" data-ga-click-event-label="menu_research" data-ga-click-event-value="0" aria-expanded="false">
-<span class="menu-name" aria-label="Press escape to close the menu">Research</span>
-</a>
-*/
+// 
+try {
+	chrome.runtime.sendMessage({mode: "get_ICW_prelude",  matchpair: {pid: profileID, pname: profileName, mid:matchID, mname:matchName}} );
+} catch( e ) {
+	handleMessageCatches( "in storeSegment", e );
+}
