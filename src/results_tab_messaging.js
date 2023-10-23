@@ -116,38 +116,43 @@ DBworker.onmessage = function ( msg ) {
     break;
 
     case 'insertProfiles_return':
-      let profile_status = data.payload;
-      console.log( 'profile inserted: ', profile_status );
-	  logHtml( 'profile load completed');
-      document.getElementById("docBody").style.cursor="pointer";
-      DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
+		let profile_status = data.payload;
+		console.log( 'profile inserted: ', profile_status );
+		logHtml( '', 'profile load completed');
+		document.getElementById("docBody").style.cursor="pointer";
+		DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
     break;
  
     case 'profile_return':		// returns complete table: DB.profiles 
-      let profile_list = data.payload;   // try a shallow copy
-	  if ( profile_list.length > 0 ){
-		// only copy over profile identities when we have some. Otherwise, leave the placeholder in place.
-		profile_summary = [...profile_list];
-	  }
-      console.log( 'profiles are: ', profile_list );
-	  createKitSelector();
-      chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
+		let profile_list = data.payload;   // try a shallow copy
+		if ( profile_list.length > 0 ){
+			// only copy over profile identities when we have some. Otherwise, leave the placeholder in place.
+			profile_summary = [...profile_list];
+		}
+		console.log( 'profiles are: ', profile_list );
+		createKitSelector();
+		chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
     break;
     
     case 'DBloaded_for_dump':
-      db_conlog( 1, `received ${data.payload.byteLength} bytes data : ` );
-      dumpSqlite3DB( data.payload);
+		db_conlog( 1, `received ${data.payload.byteLength} bytes data : ` );
+		dumpSqlite3DB( data.payload);
     break;
      
     case 'return_matchlist':
-      db_conlog( 1, `received ${data.payload.length} records for ${data.purpose}. ` );
-	  if ( data.purpose == 'select') {
-		createNameSelector( data.payload );
-	  } else {
-		updateDNAtesterlist( data.payload );
-	  }
-    break;
-   
+		db_conlog( 1, `received ${data.payload.length} records for ${data.purpose}. ` );
+		if ( data.purpose == 'select') {
+			createNameSelector( data.payload );
+		} else {
+			updateDNAtesterlist( data.payload );
+		}
+	break;
+	 
+	case 'ICWPrelude_return':
+			// send results back to requesting tab 
+		chrome.tabs.sendMessage( data.tabID, {mode:'ICWPrelude_return', data:data.payload} );
+	break;
+
 	case 'import_23_done':
 	  	// this can select and process multiple files, so go again if we have more files to process.
 		if ( CSV23Store.filelist.length > 0 ) {
@@ -198,13 +203,13 @@ chrome.runtime.onMessage.addListener(
 		break;
 
 		case  "updateSetting" :
-			msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
+			msg_conlog( 3, `   DBactions updating ${request.item} to ${request.value}` );
 			setSetting(request.item, request.value);
 		break;
 
 		case  "getSettingObj" :
 			( async() => {
-				msg_conlog( 0, `   getSettingObj: DBactions returning all settings ` );
+				msg_conlog( 2, `   getSettingObj: DBactions returning all settings ` );
 				wait4Settings( 2 );
 				sendResponse( settings529 );
 			})();
@@ -214,20 +219,26 @@ chrome.runtime.onMessage.addListener(
 		case  "getDBStatus" :
 				// message from popup - need to forward to worker. will return via messaging
 			
-			msg_conlog( 0, `   getDBStatus: dbmessaging to worker  ` );
+			msg_conlog( 3, `   getDBStatus: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getSummary"} );
 			DBworker.postMessage( {reason:"getMatchSummary"} );
+		break;
+
+		case  "get_ICW_prelude" :
+			// message from content script - need to forward to worker. will return via messaging with requested data objects
+			// BUT, we have to record the sender tab that it needs to be returned to!
+			DBworker.postMessage( {reason:"get_ICW_prelude", matchpair:request.matchpair, tabID: sender.tab.id } );
 		break;
 
 		case  "getProfiles4pop" :
 				// message from popup - need to forward to worker. will return via messaging
 				// we could just return stored array. but for the moment just ask again...
-			msg_conlog( 0, `   getProfiles4pop: dbmessaging to worker  ` );
+			msg_conlog( 3, `   getProfiles4pop: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getProfiles"} );
 		break;
 		
 		case  "getDebugSettings" :
-			msg_conlog( 2, `   DBactions returning debug settings ` );
+			msg_conlog( 3, `   DBactions returning debug settings ` );
 			sendResponse( {	debug_q: settings529["debug_q"],
 							debug_db: settings529["debug_db"],
 							debug_msg: settings529["debug_msg"] }  );

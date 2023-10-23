@@ -38,16 +38,12 @@ function importProfileCSV(lineList, nFields ){
 			continue;
 		}
 		const regex_quote = /["']/g;		// strip out any quotes
-		const regex_nonhex = /[^0-9a-fA-F]/
 		let   ID=entry[0].replaceAll( regex_quote, '').trim();
 		let Name=entry[1].replaceAll( regex_quote, '').trim();
 		try {
 			validate_ID( ID );
 			profilemap.set( ID, {name:Name });
 		} catch ( e ) {
-
-		}
-		if ( ID.search( regex_nonhex ) >= 0 ) {
 			let errmsg = `Error for ${Name}: ${e.message}`;
 			logHtml( 'error', errmsg );
 			alert( errmsg );

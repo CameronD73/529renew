@@ -152,6 +152,20 @@ var DBwasm = {
         };
         try{
             DB529.exec( sqlcode, options );
+            let sum2wayx2p = 0;
+            let sum2wayi2p = 0;
+            for( let i = 0 ; i < rows.length; i++){
+                if ( rows[i][0] == 0) {
+                    // have found cell for chr 0
+                    for( let j = i+1; j < rows.length; j++ ){
+                        sum2wayx2p += rows[j][2];
+                        sum2wayi2p += rows[j][4];
+                    }
+                    rows[i][2] = sum2wayx2p;
+                    rows[i][4] = sum2wayi2p;
+                    break;
+                }
+            }
         } catch( e ) {
             conerror( `DB get_matchSummary: ${e.message}`);
             return( [ ] );
@@ -217,7 +231,7 @@ var DBwasm = {
         return rows;
     },
 
-    get_matches_list( filter, purpose ) {
+    get_matches_list_for_dropdown( filter, purpose ) {
         // the select is slightly tricky as we want to exclude any hidden DNA matches
         let qry = "SELECT name, IDText from  DNAmatches join idalias on (IDText = ID1 OR IDText = ID2) where ishidden = 0 ";
         if ( filter ) {
@@ -289,7 +303,7 @@ var DBwasm = {
             query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
             needsand = true;
         }
-        if( dateLimit.length> 100 ) {
+        if( dateLimit.length> 10 ) {
             query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
         }
             
@@ -404,6 +418,58 @@ var DBwasm = {
         } else {
             return( [{ nsegs:-1, hasSegs:0, cMtotal:0.0 }])
         }
+    },
+
+    /*
+    ** routine to return tables of known information about a profile and the chosen relative.
+    ** in: pairobj: object with name and ID of the profile persoinn and the matching relative
+    ** returns:
+    **      arrays of objects with ICW comparisons and segment match summaries.
+    ** side-effect: adds to profile table if this profile person is not there already.
+    */
+    getICWPrelude: function( pairobj ) {
+        const profileID = pairobj.pid;
+        const profileName = pairobj.pname;
+        const matchID = pairobj.mid;
+        //const matchName = pairobj.mname;
+        // the GROUPing is in case we have a hidden and unhidden record (ignore hidden)
+        const qry_DNAmatch = 'SELECT ID1, ID2, min(ishidden) as ishidden, nsegs, hasSegs from DNAmatches \
+                            WHERE ID1 = ? or ID2 = ? GROUP BY ID1, ID2;';
+        const qry_ICW = 'SELECT * FROM ICWsets WHERE IDprofile = ? and (ID2 = ? OR ID3 = ?)'
+        let rowsprofile = [];
+        let rowsmatch = [];
+        let rowsICW = [];
+        let nrows = 0;
+        try {     
+            DB529.exec( 'INSERT or IGNORE INTO profiles (IDprofile, pname) VALUES (?, ? )', 
+                { bind: [profileID, profileName] }
+            );
+            DB529.exec( qry_DNAmatch, 
+                { resultRows: rowsprofile, rowMode: 'object', bind: [profileID, profileID] }
+            );
+            nrows = rowsprofile.length;
+            conlog( 2, `profmatches returned ${nrows} items`);
+            logHtml( '', `profmatches for ${profileID} returned ${nrows} items` );
+
+            DB529.exec( qry_DNAmatch, 
+                { resultRows: rowsmatch, rowMode: 'object', bind: [matchID, matchID] }
+            );
+            nrows = rowsmatch.length;
+            conlog( 2, `rowsmatch returned ${nrows} items`);
+            logHtml( '', `rowsmatch for ${matchID} returned ${nrows} items` );
+            DB529.exec( qry_ICW, 
+                { resultRows: rowsICW, rowMode: 'object', bind: [profileID, matchID, matchID] }
+            );
+            nrows = rowsICW.length;
+            conlog( 2, `rowsICW returned ${nrows} items`);
+            logHtml( '', `rowsICW returned ${nrows} items` );
+        
+        } catch( e ) {
+            conerror( `DB preparing for ICW checks : ${e.message}`);
+            return( 0 );
+        }
+
+        return {pair:pairobj, profileMatches:rowsprofile, DNArelMatches: rowsmatch, ICWset: rowsICW};
     },
 
     updateDBSettings: function( data) {
@@ -695,7 +761,7 @@ var DBwasm = {
                         // we have icw - the question now is: is there any overlap ==> triangulation
                         const overlaps = DBwasm.get_icw_overlaps( P1id, M2id, M3id, true );
                         if ( overlaps[1].length === 0 ) {
-                            // chr=0 means we know there is zero full overlap
+                            // chr=0 means we know there is not 3-way overlap
                             icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: 0, $st: 0, $end: 0} );
                             if ( overlaps[0].length > 0){
                                 DBwasm.saveOverlaps_2way(overlaps[0], icwmap2, icwkey, sumICW, P1id, M2id, M3id  );
@@ -736,7 +802,7 @@ var DBwasm = {
     },
 
     get_match_2way: function( matchmap, id1, id2 ) {
-        // return the match list object that corresponds to id1-id2
+        // return the match list object that corresponds to id1 cf id2
         let m1 = id1;
         let m2 = id2;
         if ( id2 < id1 ){

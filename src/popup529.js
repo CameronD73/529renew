@@ -196,7 +196,7 @@ function showDBMatchStatusTable( db_status ) {
 		let value = (db_status[i][0]).toString();
 		if( value === '-1' ) cell.innerHTML = "No check";
 		else if( value === '-2' ) cell.innerHTML = "hidden";
-		else if( value === '0' ) cell.innerHTML = "2-way o'lap";
+		else if( value === '0' ) cell.innerHTML = "3-way false";
 		else if( value === '23' ) cell.innerHTML = "X";
 		else cell.innerHTML = value;
 		cell.setAttribute( 'class', 'dbstatus');

@@ -13,7 +13,7 @@ let DB529 = undefined;
 let DBsize = 0;
 let _sqlite3 = undefined;
 
-let debugLevel = 0;
+let debugLevel = 3;
 
 
 const log = (...args) => logHtml('', ...args);
@@ -78,7 +78,7 @@ self.onmessage = function processMessages( msg ) {
 
     case "getMatchList":
       conlog( 0, 'getMatchList rcvd by worker');
-      let matchList = DBwasm.get_matches_list( content.filter, content.purpose );
+      let matchList = DBwasm.get_matches_list_for_dropdown( content.filter, content.purpose );
       conlog(0, `matchlist returned ${matchList.length} rows, for ${content.purpose}`);
       postMessage( {reason:'return_matchlist', payload: matchList, purpose:content.purpose});
     break;
@@ -115,6 +115,11 @@ self.onmessage = function processMessages( msg ) {
     case "getProfiles":
       let retvalp = DBwasm.get_profile_list( );  // synchronous, so we can just send result back
       postMessage( {reason: 'profile_return', payload: retvalp } );
+    break;
+
+    case "get_ICW_prelude":
+      let rowsICWP = DBwasm.getICWPrelude(content.matchpair);  // synchronous, so we can just send result back
+      postMessage( {reason: 'ICWPrelude_return', tabID:content.tabID, payload: rowsICWP } );
     break;
 
     case "dumpDB":
