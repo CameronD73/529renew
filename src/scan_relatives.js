@@ -11,6 +11,7 @@ let debug_msg = 3;			// if nonzero, add debugging console output re message pass
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 
 let settingsProcessed = false;		// used by watchdog timeout
+let settings529 = {};		// get all settings as one block (used by rounding functions)
 
 const ajQueue = new Queue();
 let current_ajax = '';
@@ -71,11 +72,17 @@ function run_query(personaId, personbId, personaName, personbName){
 
 function startAjax() {
 	ajQueue.enqueue( {datatype:'annotations', pid:profileID, urltail:'/family/relatives/annotations/'});
-	//ajQueue.enqueue( {datatype:'relatives', pid:profileID, urltail:'/family/relatives/ajax/'});
+	ajQueue.enqueue( {datatype:'relatives', pid:profileID, urltail:'/family/relatives/ajax/'});
 	current_ajax = '';
 	launch_next_ajax_query();
 
 }
+
+function finishAjax () {
+	fill_relative_details();
+	return;	
+}
+
 /* this listener handles the return from - don't know yet.
 */
 chrome.runtime.onMessage.addListener(
@@ -122,13 +129,13 @@ function launch_next_ajax_query() {
 				launch_next_ajax_query();
 				return;
 			}
-			const data=JSON.parse(this.responseText);
+			const resp=JSON.parse(this.responseText);
 			switch( datatype ) {
 				case 'annotations':
-					load_ajax_notes( data );
+					load_ajax_notes( resp.data );
 				break;
 				case 'relatives':
-					load_ajax_relatives( data );
+					load_ajax_relatives( resp );
 				break;
 				default:
 					let errmsg = `unprogrammed datatype in Ajax queue ${datatype}`;
@@ -155,24 +162,24 @@ function launch_next_ajax_query() {
 	oReq.onload=makeSegmentSaver( tset.datatype );
 	oReq.onerror=makeErrorHandler( tset.datatype );
 	oReq.open("get", ajaxURL, true);
-	oReq.setRequestHeader('X-Requested-With', 'XMLHttpRequest'  );
+	oReq.setRequestHeader('X-Requested-With', 'XMLHttpRequest'  );		// returns 404 without this
 
-	oReq.send();	// no need for timeout - these are permitted simultaneously
+	oReq.send();	// no need for time delay - these are permitted simultaneously
 }
 
-function load_ajax_notes( resp ) {
+function load_ajax_notes( resparray ) {
 	notesMap.clear();
-	for( let i = 0 ; i < resp.data.length; i++ ) {
-		let nobj = resp.data[i];
+	for( let i = 0 ; i < resparray.length; i++ ) {
+		let nobj = resparray[i];
 		notesMap.set( nobj.relative_profile_id, {note:nobj.note } );
 	}
 }
 
-function load_ajax_relatives( resp ) {
+function load_ajax_relatives( resparray ) {
 	relativesMap.clear();
-	for( let i = 0 ; i < resp.data.length; i++ ) {
+	for( let i = 0 ; i < resparray.length; i++ ) {
+		let nobj = resparray[i];
 		let relID = nobj.relative_profile_id;
-		let nobj = resp.data[i];
 		let pctshared = nobj.ibd_proportion * 100.0;
 		let totcM = round_cM( pctShared2cM(pctshared ) );
 		let shared = nobj.is_open_sharing;		// whether results are publicly shared
@@ -184,6 +191,7 @@ function load_ajax_relatives( resp ) {
 			}
 		}
 		let side = nobj.is_maternal_side ? (nobj.is_paternal_side ? "b" : "M") :  (nobj.is_paternal_side ? "P" : "n");
+		let largest_seg = round_cM( nobj.max_segment_length );
 
 		relativesMap.set( relID, {
 				name: nobj.first_name + ' ' + nobj.last_name,
@@ -191,7 +199,7 @@ function load_ajax_relatives( resp ) {
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
 				totalcM: totcM, 
-				max_seg: round_cM( nobj.max_segment_length ),
+				max_seg: largest_seg,
 				side: side,
 				sex: nobj.sex,
 				messagex: nobj.has_exchanged_message,
@@ -202,8 +210,12 @@ function load_ajax_relatives( resp ) {
 		if (notesMap.has( relID ) && (notesMap.get(relID).note.length > 0) ) {
 			relativesMap.get( relID ).note = notesMap.get(relID).note;
 		} else {
+			let maxseg = '';
 			// lets make up a fake one for display
-			relativesMap.get( relID ).note = `${totcM}cM/${nobj.num_segments} side: ${side} DNA ${(shared?'shared':'hidden')}`;
+			if ( nobj.num_segments > 1 ) {
+				maxseg = `max:${largest_seg.toFixed(0)} cM`;
+			}
+			relativesMap.get( relID ).note = `---${totcM.toFixed(0)}cM/${nobj.num_segments} ${maxseg}; side: ${side} DNA ${(shared?'shared':'hidden')}`;
 		}
 	}
 }
@@ -217,6 +229,35 @@ function watchdogTimer() {
 	}
 }
 
+function fill_relative_details() {
+	const rels = document.getElementsByClassName("dna-relatives-list-item");
+	for( let i=0; i < rels.length; i++ ){
+		let nextbox = rels[i];
+		let pid = '';
+		let note = '';
+		nextbox.style.paddingBottom = `${settings529.relativePixelPadding}px`;
+		nextbox.style.paddingTop =  `${settings529.relativePixelPadding}px`;
+		let namebox = nextbox.getElementsByClassName( 'relative-link' );
+		if ( namebox.length <= 0 )
+			continue;
+		const href = namebox[0].href;
+		pid = get_profileID_from_url( "profile/", href );
+		if ( relativesMap.has( pid )) {
+			note = relativesMap.get( pid ).note;
+		}
+		let notelen = settings529.displayNotesLength;
+		if( notelen  > 0) {
+			// I tried class="small-detail" but that does not seem to apply to this class, so give style directly
+			// the line-height seems to get ignored, based on largest char in entire text block.
+			if ( note.length > notelen ) {
+				let noteshort = note.substring( 0, notelen-3 ) + "...";
+				note = noteshort;
+			}
+			namebox[0].innerHTML += '<span style="font-size:0.8rem; font-weight:normal" > ' + note + '</span>';
+		}
+	}
+
+}
 
 /*
 ** this creates the button to collect relatives info
@@ -257,6 +298,7 @@ tr_el.onclick=function(evt){
 
 function process_settings( response ) {
 	settingsProcessed = true;
+	Object.assign(settings529, response );
 	if ( response.hasOwnProperty('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
 	}
@@ -275,21 +317,9 @@ msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 
 let b529r=document.createElement('button');
 b529r.id="b529r";
-b529r.innerHTML="Open";
+b529r.innerHTML="pad";
 b529r.style.marginLeft='10px';
-b529r.onclick=function(){
-
-	try {
-		//chrome.runtime.sendMessage({mode: "displayPage", url:chrome.runtime.getURL('results_tab.html')+query} );
-		alert( 'does nothing');
-	} catch( e ) {
-		handleMessageCatches( "opening results tab", e );
-	}
-};
-let img=document.createElement('img');
-img.src=chrome.runtime.getURL("logos/529renew-48.png");
-img.style.verticalAlign='middle';
-b529r.appendChild(img);
+b529r.onclick= fill_relative_details;
 
 div529.appendChild(b529r);
 
@@ -306,7 +336,7 @@ function add529Button() {
 	let rd_parent=document.getElementsByClassName("js-dna-relatives-download");
 	let pag_parent=document.getElementsByClassName("dna-relatives-pagination");
 	buttoncount++;
-	msg_debug_log( 1,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}.`);
+	//msg_debug_log( 4,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}.`);
 	if( rd_parent.length < 1 || pag_parent.length< 1 ) {
 		if ( rd_parent.length > 0 && ( !settingsProcessed )) {
 			// button is ready first, so load settings while we wait
@@ -327,7 +357,7 @@ function add529Button() {
 				handleMessageCatches( "getting options", e );
 			}
 		}
-		setTimeout( add529Button, 1000);
+		setTimeout( add529Button, 500);
 		return;
 	}
 	if(rd_parent[0]!=null ){

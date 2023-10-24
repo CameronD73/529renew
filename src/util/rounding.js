@@ -10,10 +10,13 @@
 ** returns - the number rounded as required (or not)
 */
 function roundBaseAddress( addr ) {
+	return addr;		// no  longer do any rounding. pointless.
+	/*
 	let baseAddressRounding = settings529.baseAddressRounding;	// the order of magnitude - must be a power of 10
 	if ( baseAddressRounding == 0 )
 		return addr;
 	return (Math.floor(addr/baseAddressRounding))*baseAddressRounding;
+	*/
 }
 
 function round_cM(  cMvalue ) {

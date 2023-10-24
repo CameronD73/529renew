@@ -8,18 +8,9 @@ var settings529 = {};
 var db_status_test = [
 	['DB Version', 1],
 	['no data', 0],
-	['yet', 0],
-	['again', 55],
-	['blob', 4321]
+	['yet', 0]
 ];
 
-function setBPRoundingSelector(){
-	var widget=document.getElementById("roundingBP");
-	widget.value=getSetting( "baseAddressRounding" ).toString();
-	widget.onchange=function(){
-		setSetting( "baseAddressRounding", parseInt(widget.value));
-	};
-}
 function setcMRoundingSelector(){
 	var widget=document.getElementById("roundingcM");
 	widget.value=getSetting( "cMRounding" ).toString();
@@ -32,6 +23,21 @@ function setDelaySelector(){
 	widget.value=getSetting( "delay" );
 	widget.onchange=function(){
 		setSetting( "delay", widget.value);
+	};
+}
+function setRelPaddingSelector(){
+	var widget=document.getElementById("relativePadding");
+	widget.value=getSetting( "relativePixelPadding" ).toString();
+	widget.onchange=function(){
+		setSetting( "relativePixelPadding", parseInt(widget.value));
+	};
+}
+
+function setNoteLengthSelector(){
+	var widget=document.getElementById("maxNoteLength");
+	widget.value=getSetting( "displayNotesLength" ).toString();
+	widget.onchange=function(){
+		setSetting( "displayNotesLength", parseInt(widget.value));
 	};
 }
 function setOverlapValue(){
@@ -288,7 +294,6 @@ function installSettings( settingsObj ) {
     Object.assign(settings529, settingsObj);
     //console.log( `installSettings called with ${Object.keys(settingsObj).length} items`);
 
-    setBPRoundingSelector();
 	setcMRoundingSelector();
 	setDelaySelector();
 	setMinSharedInput();
@@ -296,6 +301,8 @@ function installSettings( settingsObj ) {
 	setReplaceSelector();
     setOverlapValue();
 	setNonOverlapSelector();
+	setRelPaddingSelector();
+	setNoteLengthSelector();
 
 	setCSVSaveDate();
     setDebugDBSelector();

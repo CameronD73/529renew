@@ -25,7 +25,6 @@ changes between v1.1.0 and v1.2
     Save all percentage shared DNA values listed in the relatives-in-common table. Not used in any way yet, but may have value later.
     
 V 1.2.1  submitted to  Chrome store - 2023-01-11
-
 changes between V1.2.1 and 1.2.5
     changed layout of tables with matching segments and overlapping segments. Start and End addresses are displayed in Mbase (to 2 d.p.)
     added date of segment read.
@@ -33,7 +32,6 @@ changes between V1.2.1 and 1.2.5
     Fix code that detected user trying to triangulate before loading relatives in common table
     
 V 1.2.5 submitted to Chrome store 2023-01-16
-
 significant changes between 1.2.5 and 1.2.6
     fixed problem with upper/lower case confusion in icon files, for situations where the filesystem is case-sensitive.
 
@@ -49,3 +47,11 @@ V1.9.0  submitted to Chrome store  11-Oct-2023
 
 V2.0.0   submission to Chrome store  expected late October 2023.
     Will have no webSQL code.
+    Bug in V1.9.x fixed = "finalise" button did not do what was expected.
+    Most functionality restored, some new features.
+    Sqlite DB file can be backed up and restored.
+    Some code to manipulate the page appearance depending on DB information.
+    Settings/Options changed:
+	BaseAddressRounding - has been removed - always zero.
+	RelativesPixelPadding - change the padding above and below each person on the relatives list
+	NotesLength - display Notes on DNARelatives list page.

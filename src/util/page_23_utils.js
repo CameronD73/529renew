@@ -2,6 +2,19 @@
 ** utility functions fopr getting data from 23andme.com origin pages
 */
 
+function get_profileID_from_url( prefix, urlstring ) {
+    let pid = '';
+    let urlpos =  urlstring.indexOf( prefix );
+
+    if ( urlpos >= 0 ) {
+        let stpos = urlpos+prefix.length;
+        let endpos = stpos + 16;
+        pid = urlstring.substring( stpos, endpos );
+        return pid;
+    }
+    return pid;
+}
+
 // the current profile person has details in the header menu...
 function get_profile_from_header() {
     let pid = '';
@@ -11,16 +24,8 @@ function get_profile_from_header() {
 
     for( let i=0; i < researchElems.length; i++ ) {
         let href = researchElems[i].getAttribute( 'href');
-        if ( href.length < 18 ) {
-            continue;
-        }
-        const sstr = "/p/";
-        let urlpos =  href.indexOf( sstr );
-
-        if ( urlpos >= 0 ) {
-            let stpos = urlpos+sstr.length;
-            let endpos = stpos + 16;
-            pid = href.substring( stpos, endpos );
+        if ( href.length >= 18 ) {
+            pid = get_profileID_from_url( "/p/", href  );
             break;
         }
     }

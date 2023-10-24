@@ -38,6 +38,7 @@
                 Its only effect is to make displayed values neater and exported csv files smaller.
             </p>
             
+            <!--
             <h3>Basepair address rounding:
             <select id="roundingBP" >
                 <option value="0">0</option>
@@ -48,6 +49,35 @@
             <p>To round off Basepair address values. Use zero unless you really need it to be otherwise, because meaningful information is lost.
                 This option is only here to maintain backward-compatibility with 529 and You,
                 which used a high value to maintain backward compatibility with very old 23 and Me results.
+            </p> -->
+
+            <h3>Padding on DNA Relatives list:
+                <select id="relativePadding" >
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="13">12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                    <option value="20">20</option>
+                </select> pixels</h3>
+                <p> This is the number of pixels of blank space used to pad out the top and bottom of each person on the DNA relatives list. 
+                    The default used by 23andMe was 16.
+                </p>
+                
+            <h3>Maximum Note length:
+                <input type="number", min="0" max="200" step="10" id="maxNoteLength" >
+            </h3>
+            <p>
+                If this number is greater than zero then any <i>Notes</i> you have added to the DNA relative will be displayed
+                after the name. No more than this number of characters will be displayed in the  relatives list -
+                the full number will always  be shown in the original Notes section on the relative's individual profile page.
             </p>
 
             <h3>Minimum segment overlap:
