@@ -1,3 +1,4 @@
+console.log( `${Date.now()}: LOADED scan_relatives.js` );
 /*
 ** this content script extracts the lists of relatives, and hopefully,
 ** at some later stage adds a few extra bits of info
@@ -11,6 +12,7 @@ let debug_msg = 3;			// if nonzero, add debugging console output re message pass
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 
 let settingsProcessed = false;		// used by watchdog timeout
+let settingsRequested = false;      // flag to limit outgoing settings requests to 1 per instance
 let settings529 = {};		// get all settings as one block (used by rounding functions)
 
 const ajQueue = new Queue();
@@ -35,12 +37,12 @@ var dispatchMouseEvent = function(target, var_args) {
 
 function q_debug_log( level, msg ) {
 	if ( debug_q > level )
-		console.log( msg );
+		console.log( `${Date.now()}: ${msg}` );
 }
 
 function msg_debug_log( level, msg ) {
 	if ( debug_msg > level )
-		console.log( 1,  msg );
+		console.log( `${Date.now()}: ${msg}` );
 }
 
 /*
@@ -130,6 +132,7 @@ function launch_next_ajax_query() {
 				return;
 			}
 			const resp=JSON.parse(this.responseText);
+			msg_debug_log( 1,  `saving data for type: '${datatype}'` );
 			switch( datatype ) {
 				case 'annotations':
 					load_ajax_notes( resp.data );
@@ -176,6 +179,7 @@ function load_ajax_notes( resparray ) {
 }
 
 function load_ajax_relatives( resparray ) {
+	msg_debug_log( 4,  `trace start 'load_ajax_relatives'` );
 	relativesMap.clear();
 	for( let i = 0 ; i < resparray.length; i++ ) {
 		let nobj = resparray[i];
@@ -215,9 +219,12 @@ function load_ajax_relatives( resparray ) {
 			if ( nobj.num_segments > 1 ) {
 				maxseg = `max:${largest_seg.toFixed(0)} cM`;
 			}
-			relativesMap.get( relID ).note = `---${totcM.toFixed(0)}cM/${nobj.num_segments} ${maxseg}; side: ${side} DNA ${(shared?'shared':'hidden')}`;
+			relativesMap.get( relID ).note = '';
+			relativesMap.get( relID ).noteextra = `---${totcM.toFixed(0)}cM/${nobj.num_segments} ${maxseg}; side: ${side} DNA ${(shared?'shared':'hidden')}`;
 		}
 	}
+	msg_debug_log( 1,  `Populated ${relativesMap.size} entries into 'relativesMap'` );
+	msg_debug_log( 4,  `trace end 'load_ajax_relatives'` );
 }
 
 // A timeout routine to trap situations where the results tab is not running.
@@ -230,33 +237,64 @@ function watchdogTimer() {
 }
 
 function fill_relative_details() {
+	msg_debug_log( 4,  `trace start 'fill_relative_details'` );
 	const rels = document.getElementsByClassName("dna-relatives-list-item");
+	msg_debug_log( 4,  `relatives: ${rels.length}.` );
 	for( let i=0; i < rels.length; i++ ){
 		let nextbox = rels[i];
 		let pid = '';
-		let note = '';
+		let note2show = '';
 		nextbox.style.paddingBottom = `${settings529.relativePixelPadding}px`;
 		nextbox.style.paddingTop =  `${settings529.relativePixelPadding}px`;
 		let namebox = nextbox.getElementsByClassName( 'relative-link' );
 		if ( namebox.length <= 0 )
 			continue;
 		const href = namebox[0].href;
-		pid = get_profileID_from_url( "profile/", href );
+		try {
+			pid = get_profileID_from_url( "profile/", href );
+			validate_ID( pid );
+		} catch( e ) {
+			alert( e.message );
+			continue;	// skip this one - try next
+		}
+		
+		let fullNote = '';
 		if ( relativesMap.has( pid )) {
-			note = relativesMap.get( pid ).note;
+			note2show = relativesMap.get( pid ).note;
+			fullNote = note2show;
+			if ( note2show.length <= 0 ){
+				note2show = relativesMap.get( pid ).noteextra;
+			}
+
 		}
 		let notelen = settings529.displayNotesLength;
 		if( notelen  > 0) {
-			// I tried class="small-detail" but that does not seem to apply to this class, so give style directly
+			// I tried class="small-detail" but that does not seem to apply to this class heirarchy, so give style directly
 			// the line-height seems to get ignored, based on largest char in entire text block.
-			if ( note.length > notelen ) {
-				let noteshort = note.substring( 0, notelen-3 ) + "...";
-				note = noteshort;
+			if ( note2show.length > notelen ) {
+				let noteshort = note2show.substring( 0, notelen-3 ) + "...";
+				note2show = noteshort;
 			}
-			namebox[0].innerHTML += '<span style="font-size:0.8rem; font-weight:normal" > ' + note + '</span>';
+			// namebox[0].innerHTML += '<span style="font-size:0.8rem; font-weight:normal" > ' + note2show + '</span>';
+			
+			const check  = namebox[0].querySelectorAll('[data-note529]');
+
+			if( ! (check&& check.length > 0)){
+				const noteElement = document.createElement('p');
+				noteElement.dataset['note529'] = '';
+				noteElement.style['font-size'] = '0.8rem';
+				noteElement.style['font-weight'] = 'normal';
+				noteElement.style['margin'] = '0';
+				noteElement.style['z-index'] = '100';
+				noteElement.style['position'] = 'relative';
+				noteElement.title=fullNote
+				noteElement.innerText = note2show;
+				namebox[0].appendChild(noteElement);
+			}
 		}
 	}
 
+	msg_debug_log( 4,  `trace end 'fill_relative_details'` );
 }
 
 /*
@@ -266,37 +304,35 @@ function fill_relative_details() {
 let div529=document.createElement('div');
 div529.id="div529r";
 div529.role="button";
+div529.style['display'] = 'flex';
+div529.style['justify-content'] = 'flex-end';
 
 let tr_el=document.createElement('button');
 tr_el.innerHTML="529-Gather";
 tr_el.id="c529r";
 tr_el.title="Click to collect the list of relatives";
+tr_el.style['height'] = '100%';
 
 div529.appendChild(tr_el);
 
 /*
 ** this function handles the "gather relatives data" button.
-** It reads the result of various Ajax calls.
+** It sends the result of various Ajax calls to the DB and gets an amended (more detailed) list back.
 */
 tr_el.onclick=function(evt){
-	var loaded=false;
 	try{
-		let temp3=document.getElementsByClassName("js-relatives-table")[0];
-		if(temp3 == null) throw new Error("Page structure changed");
-		let classlist = temp3.classList;
-		for( let k=0; k < classlist.length; k++){
-			if ( classlist[k] === "hide") throw new Error("Not clicked");
-		}
-
+		// don't use a callback, as we cannot pass it through the worker... Just rely on the returned message
+		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relativesMap: relativesMap } )
+	} catch( e ) {
+		// never catches anything!?
+		handleMessageCatches( "process relatives list ", e );
 	}
-	catch(e){
-		alert( 'This bit of code does nothing yet');
-		return;
-	}
+	
 }
 
 
 function process_settings( response ) {
+	console.log( `${Date.now()}: trace start 'process_settings'` );
 	settingsProcessed = true;
 	Object.assign(settings529, response );
 	if ( response.hasOwnProperty('qDelay') ) {
@@ -308,6 +344,7 @@ function process_settings( response ) {
 	if ( response.hasOwnProperty('debug_msg') ) {
 		debug_msg = response.debug_msg;
 	}
+	msg_debug_log( 4,  `trace end 'process_settings'` );
 };
 
 // now get the profile person's ID and name
@@ -318,51 +355,129 @@ msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 let b529r=document.createElement('button');
 b529r.id="b529r";
 b529r.innerHTML="pad";
-b529r.style.marginLeft='10px';
 b529r.onclick= fill_relative_details;
+b529r.style.marginLeft='10px';
+b529r.style['height'] = '100%';
 
 div529.appendChild(b529r);
 
-/*
-** the place I want to install the button does not exist until all the data has been loaded
-** So, we need to wait a few seconds...
-** studies show the "download" button div takes nearly 4 seconds to appear, and the paginator takes nearly 8 seconds.
-** So wait for paginator before triggering repeat ajax calls.
-** Initially they are run in parallel by 23andMe , but we will run in series...
-*/
+let paginationHasObserver = false;
+/**
+ * Helper logic to attempt to re-attach the pagination observer if this has been removed by the list,
+ * shrinking to less than that which would be shown on a single page.
+ */
+function reattachPaginationObserver(){
+	let pag_parent=document.getElementsByClassName("dna-relatives-pagination");
+	if (pag_parent[0] === null || pag_parent.length < 1){
+		paginationHasObserver = false;
+		return;
+	}
+	if (paginationHasObserver){
+		return;
+	}
+
+	if (pag_parent[0] != null){
+		pag_parent[0].addEventListener('click', ()=> {
+			msg_debug_log( 3,  `New page selected, re-injecting notes` );
+			setTimeout(() => {
+				fill_relative_details();
+			}, 500);
+		});
+		paginationHasObserver = true;
+	}
+}
+
+/**
+ * Helper to attach listeners / reactionary logic to both filters and ordering toggles
+ * @param {HTMLELemet} rl_parent the header element of the listings
+ */
+function attachObserversToHeader(rl_parent){
+	const resultList_config = { attributes: true, childList: true, subtree: true, characterData: true };
+	const resultList_callback = () => { 
+		msg_debug_log( 3,  `Result-set has been filtered, re-injecting notes` );
+		setTimeout(() => {
+			fill_relative_details();
+			reattachPaginationObserver();
+		}, 500);
+	};
+	const resultList_observer = new MutationObserver(() => resultList_callback());
+	const resultCountElement = rl_parent.getElementsByClassName('relative-count');    // filtered result count
+	
+	const select_callback = () => { 
+		msg_debug_log( 3,  `Sort-By order has been altered, re-injecting notes` );
+		setTimeout(() => {
+			fill_relative_details()
+			reattachPaginationObserver();
+		}, 500);
+	};
+	const sortByElement = rl_parent.querySelectorAll('#dna-relatives-sort');          // sortBy dropdown
+
+	if (sortByElement && sortByElement.length > 0){
+		sortByElement[0].addEventListener('change', () => select_callback())
+	}
+
+	if (resultCountElement && resultCountElement.length > 0){
+		resultList_observer.observe(resultCountElement[0], resultList_config);
+	}
+}
+
+
 let buttoncount = 0;
+/**
+ * the place I want to install the button does not exist until all the data has been loaded 
+ * So, we need to wait a few seconds...
+ * studies show the "download" button div takes nearly 4 seconds to appear, and the paginator takes nearly 8 seconds.
+ * So wait for paginator before triggering repeat ajax calls.
+ * Initially they are run in parallel by 23andMe , but we will run in series...
+ */
 function add529Button() {
+	console.log( `${Date.now()}: trace start 'add529Button'` );
 		
 	let rd_parent=document.getElementsByClassName("js-dna-relatives-download");
 	let pag_parent=document.getElementsByClassName("dna-relatives-pagination");
-	buttoncount++;
-	//msg_debug_log( 4,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}.`);
-	if( rd_parent.length < 1 || pag_parent.length< 1 ) {
-		if ( rd_parent.length > 0 && ( !settingsProcessed )) {
-			// button is ready first, so load settings while we wait
-			try {
-				setTimeout( watchdogTimer, 5000 );
-				chrome.runtime.sendMessage({mode: "getSettingObj" }, ( resp ) => {
-						msg_debug_log( 3,  `getSettings callback with ${resp}`);
+	let rl_parent =  document.getElementsByClassName("dna-relatives-summary-row"); // results list
 
-						if ( resp === undefined ) {
-							handleMessageCatches( "getting settings", chrome.runtime.lastError );
-						} else {
-							process_settings( resp );
-						}
+	buttoncount++;
+	console.log( `${Date.now()}: Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}, settingsProcessed: ${settingsProcessed}.` );
+	// msg_debug_log( 3,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}.`);
+	if ( !settingsProcessed && !settingsRequested) {
+		// button is ready first, so load settings while we wait
+		settingsRequested = true;
+		try {
+			setTimeout( watchdogTimer, 5000 );
+			chrome.runtime.sendMessage({mode: "getSettingObj" }, ( resp ) => {
+					msg_debug_log( 3,  `getSettings callback with ${resp}`);
+
+					if ( resp === undefined ) {
+						handleMessageCatches( "getting settings", chrome.runtime.lastError );
+					} else {
+						process_settings( resp );
 					}
-				);
-			} catch( e ) {
-				// never catches anything!?
-				handleMessageCatches( "getting options", e );
-			}
+				}
+			);
+		} catch( e ) {
+			// never catches anything!?
+			handleMessageCatches( "getting options", e );
+			settingsRequested = false;
 		}
-		setTimeout( add529Button, 500);
-		return;
 	}
+	if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
+		setTimeout( add529Button, 500);
+		console.log( `${Date.now()}: trace RESTART 'add529Button'` );
+		return;
+	} 
 	if(rd_parent[0]!=null ){
 		rd_parent[0].appendChild(div529);
+		rd_parent[0].style['display'] = 'grid';
+		rd_parent[0].style['grid'] = 'auto-flow dense / 4fr 40px 3fr';
 		startAjax();
 	}
+	if (pag_parent[0] != null){
+		reattachPaginationObserver();
+	}
+	if (rl_parent[0] != null){
+		attachObserversToHeader(rl_parent[0]);
+	}
+	console.log( `${Date.now()}: trace end 'add529Button'` );
 }
 add529Button();

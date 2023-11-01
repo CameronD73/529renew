@@ -420,6 +420,12 @@ var DBwasm = {
         }
     },
 
+    /* process the relatives list from the main page.
+    */
+    processRelatives: function ( profile, relativesMap ) {
+    },
+    
+
     /*
     ** routine to return tables of known information about a profile and the chosen relative.
     ** in: pairobj: object with name and ID of the profile persoinn and the matching relative

@@ -122,6 +122,10 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'ICWPrelude_return', tabID:content.tabID, payload: rowsICWP } );
     break;
 
+    case "process_relatives":
+      let rowsRelatives = DBwasm.processRelatives(content.profile, content.relativesMap);  // synchronous, so we can just send result back
+    break;
+
     case "dumpDB":
       dumpDB(); 
     break;

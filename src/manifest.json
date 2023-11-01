@@ -31,6 +31,7 @@
         "util/basicQueue.js",
         "util/page_23_utils.js",
         "util/rounding.js",
+        "util/validations.js",
         "start_db_tab.js",
         "scan_relatives.js"
       ],

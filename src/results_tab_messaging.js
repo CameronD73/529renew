@@ -224,6 +224,12 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"getMatchSummary"} );
 		break;
 
+		case "process_relatives":
+			// we have a list of relatives from the front page...
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relativesMap:request.relativesMap } ); 
+
+		break;
+
 		case  "get_ICW_prelude" :
 			// message from content script - need to forward to worker. will return via messaging with requested data objects
 			// BUT, we have to record the sender tab that it needs to be returned to!
