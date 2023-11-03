@@ -1,4 +1,3 @@
-console.log( `${Date.now()}: LOADED scan_relatives.js` );
 /*
 ** this content script extracts the lists of relatives, and hopefully,
 ** at some later stage adds a few extra bits of info
@@ -7,8 +6,8 @@ console.log( `${Date.now()}: LOADED scan_relatives.js` );
 'use strict';
 
 
-let debug_q = 3;			// if nonzero, add debugging console output relating to Q processing
-let debug_msg = 3;			// if nonzero, add debugging console output re message passing
+let debug_q = 4;			// if nonzero, add debugging console output relating to Q processing
+let debug_msg = 4;			// if nonzero, add debugging console output re message passing
 let increment_ms = 2 * 1000;	// timer delay in milliseconds
 
 let settingsProcessed = false;		// used by watchdog timeout
@@ -35,14 +34,16 @@ var dispatchMouseEvent = function(target, var_args) {
   target.dispatchEvent(e);
 };
 
+let timed_debug = false;
+
 function q_debug_log( level, msg ) {
-	if ( debug_q > level )
-		console.log( `${Date.now()}: ${msg}` );
+	if ( debug_q >= level )
+		console.log( timed_debug? `${Date.now()}: ${msg}`: msg );
 }
 
 function msg_debug_log( level, msg ) {
-	if ( debug_msg > level )
-		console.log( `${Date.now()}: ${msg}` );
+	if ( debug_msg >= level )
+	console.log( timed_debug? `${Date.now()}: ${msg}`: msg );
 }
 
 /*
@@ -210,7 +211,7 @@ function load_ajax_relatives( resparray ) {
 				fav:nobj.is_favorite,
 				known_rel: nobj.overridden_relationship_id 
 			}
-		);
+		); 
 		if (notesMap.has( relID ) && (notesMap.get(relID).note.length > 0) ) {
 			relativesMap.get( relID ).note = notesMap.get(relID).note;
 		} else {
@@ -305,12 +306,13 @@ let div529=document.createElement('div');
 div529.id="div529r";
 div529.role="button";
 div529.style['display'] = 'flex';
-div529.style['justify-content'] = 'flex-end';
+div529.style['column-gap'] = '1rem';
+div529.style['justify-content'] = 'flex-start';
 
 let tr_el=document.createElement('button');
 tr_el.innerHTML="529-Gather";
 tr_el.id="c529r";
-tr_el.title="Click to collect the list of relatives";
+tr_el.title="Click to update database with any changes to relatives list";
 tr_el.style['height'] = '100%';
 
 div529.appendChild(tr_el);
@@ -332,7 +334,6 @@ tr_el.onclick=function(evt){
 
 
 function process_settings( response ) {
-	console.log( `${Date.now()}: trace start 'process_settings'` );
 	settingsProcessed = true;
 	Object.assign(settings529, response );
 	if ( response.hasOwnProperty('qDelay') ) {
@@ -344,7 +345,6 @@ function process_settings( response ) {
 	if ( response.hasOwnProperty('debug_msg') ) {
 		debug_msg = response.debug_msg;
 	}
-	msg_debug_log( 4,  `trace end 'process_settings'` );
 };
 
 // now get the profile person's ID and name
@@ -355,6 +355,7 @@ msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 let b529r=document.createElement('button');
 b529r.id="b529r";
 b529r.innerHTML="pad";
+b529r.title="debug code to apply padding and notes";
 b529r.onclick= fill_relative_details;
 b529r.style.marginLeft='10px';
 b529r.style['height'] = '100%';
@@ -431,17 +432,15 @@ let buttoncount = 0;
  * Initially they are run in parallel by 23andMe , but we will run in series...
  */
 function add529Button() {
-	console.log( `${Date.now()}: trace start 'add529Button'` );
 		
-	let rd_parent=document.getElementsByClassName("js-dna-relatives-download");
+	let rd_parent=document.getElementsByClassName("dna-relatives-main-panel");
 	let pag_parent=document.getElementsByClassName("dna-relatives-pagination");
-	let rl_parent =  document.getElementsByClassName("dna-relatives-summary-row"); // results list
+	let rl_parent =  document.getElementsByClassName("dna-relatives-summary-row"); // results count list
 
 	buttoncount++;
-	console.log( `${Date.now()}: Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}, settingsProcessed: ${settingsProcessed}.` );
-	// msg_debug_log( 3,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}.`);
-	if ( !settingsProcessed && !settingsRequested) {
-		// button is ready first, so load settings while we wait
+	msg_debug_log( 3,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}, settingsProcessed: ${settingsProcessed}.`);
+	if ( buttoncount > 2 &&  !settingsProcessed && !settingsRequested) {
+		// load settings while we wait (but wait for first loop otherwise results tab not ready.)
 		settingsRequested = true;
 		try {
 			setTimeout( watchdogTimer, 5000 );
@@ -461,15 +460,20 @@ function add529Button() {
 			settingsRequested = false;
 		}
 	}
+	// if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
 	if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
+		if (buttoncount > 100){
+			msg_debug_log( 4,  `$trace ABORT 'add529Button' 100 tries eclipsed` );
+			return;
+		}
 		setTimeout( add529Button, 500);
-		console.log( `${Date.now()}: trace RESTART 'add529Button'` );
+		msg_debug_log( 4,  `$trace RESTART 'add529Button'` );
 		return;
 	} 
 	if(rd_parent[0]!=null ){
 		rd_parent[0].appendChild(div529);
-		rd_parent[0].style['display'] = 'grid';
-		rd_parent[0].style['grid'] = 'auto-flow dense / 4fr 40px 3fr';
+		// rd_parent[0].style['display'] = 'grid';
+		// rd_parent[0].style['grid'] = 'auto-flow dense / 4fr 40px 3fr';
 		startAjax();
 	}
 	if (pag_parent[0] != null){
@@ -478,6 +482,6 @@ function add529Button() {
 	if (rl_parent[0] != null){
 		attachObserversToHeader(rl_parent[0]);
 	}
-	console.log( `${Date.now()}: trace end 'add529Button'` );
+	msg_debug_log( 4, `trace end 'add529Button'` );
 }
 add529Button();

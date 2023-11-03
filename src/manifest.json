@@ -28,11 +28,21 @@
       	"https://you.23andme.com/p/*/family/relatives/*"
       ],
       "js" : [
+        "start_db_tab.js"
+      ],
+      "run_at" : "document_start",
+      "all_frames" : false
+    },
+    {
+      "matches" : [
+      	"https://you.23andme.com/family/relatives/*",
+      	"https://you.23andme.com/p/*/family/relatives/*"
+      ],
+      "js" : [
         "util/basicQueue.js",
         "util/page_23_utils.js",
         "util/rounding.js",
         "util/validations.js",
-        "start_db_tab.js",
         "scan_relatives.js"
       ],
       "run_at" : "document_idle",

@@ -110,6 +110,15 @@
                     <li><i>Replace</i>: overwrite the data in the database with the value in the file.</li>
                 </ul>
             </p>
+            <h3>Star means have triangulated
+                 <select id="favouritesScanned" >
+                <option value="0">no</option>
+                <option value="1">yes</option>
+            </select></h3>
+            <p>If you only applied the yellow star to a relative who had been previously triangulated,
+                then set this to yes and 529Renew will change displays accordingly.
+                It has no other meaning and is only useful transitioning data from before version 2.
+            </p>
             
             <h3>Minimum shared DNA (pct):
                 <input type="number", min="0" max="1.0" step="0.02" id="minSharedNonOverlap" >

@@ -56,6 +56,14 @@ function setReplaceSelector(){
 	};
 }
 
+function setFavouriteSelector(){
+	var widget=document.getElementById("favouritesScanned");
+	widget.value=(getSetting( "favouritesAreScanned" ) == 0? "0" : "1" );
+	widget.onchange=function(){
+		setSetting( "favouritesAreScanned", widget.value);
+	};
+}
+
 function setMinSharedInput() {
 	var widget=document.getElementById("minSharedNonOverlap");
 	widget.value=getSetting( "minSharedNonOverlap" );
@@ -299,6 +307,7 @@ function installSettings( settingsObj ) {
 	setMinSharedInput();
 	setCloseTabSelector();
 	setReplaceSelector();
+	setFavouriteSelector();
     setOverlapValue();
 	setNonOverlapSelector();
 	setRelPaddingSelector();

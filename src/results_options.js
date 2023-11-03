@@ -60,7 +60,8 @@ const settings_upgrade_0to1 = {
 	"debug_msg": "0",
 	"minSharedNonOverlap": 0.08,  // 0.08 will allow all
 	"closeTabImmediate": "0",
-	"alwaysIncludeNonOverlap": "0"
+	"alwaysIncludeNonOverlap": "0",
+	"favouritesAreScanned": "0"
 };
 
 const settings_upgrade_1to2 = {
@@ -70,7 +71,8 @@ const settings_upgrade_1to2 = {
 const settings_upgrade_2to3 = {
 	"relativePixelPadding": "16",		// how many pixels padding for each relative list
 	"displayNotesLength": "0",			// how many chars to show notes next to relative name.
-	"autoLoadICW": "0"					// if we should auto-click the "load relatives in common" button.
+	"autoLoadICW": "0",					// if we should auto-click the "load relatives in common" button.
+	"favouritesAreScanned": "0"
 };
 
 // in-page cache of settings
