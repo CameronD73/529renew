@@ -41,7 +41,7 @@ let rereadSegsRequested = null;	// if alt   key was held when "triangulate" butt
 
 let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
 let matchMatchesMap = new Map();		// all the matches we already have 
-let sharedSegMapMap = new Map();	// all known 3-way comparisons including parofil+ match person.
+let sharedSegMapMap = new Map();	// all known 3-way comparisons including profile match person.
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");

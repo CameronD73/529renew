@@ -52,14 +52,14 @@ function msg_debug_log( level, msg ) {
 */
 
 function handleMessageCatches( location, err ) {
-	let msg =  ` failed to send message ${location}\n Message was "${err.message}"`;
+	let msg =  ` failed to send message ${location}\n Reply was "${err.message}"`;
 	console.error( msg );
-	alert( msg + "\nTry closing all tabs or restarting" );
+	alert( msg + "\nTry closing all tabs or refreshing" );
 	return;
 }
 /* run_query
 ** Start the process to run the query to ...
-*/
+
 function run_query(personaId, personbId, personaName, personbName){
 	try {
 		chrome.runtime.sendMessage({mode: "checkIfInDatabase", indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, forceSegmentUpdate: rereadSegsRequested});
@@ -67,7 +67,7 @@ function run_query(personaId, personbId, personaName, personbName){
 	} catch( e ) {
 		handleMessageCatches( "in run_query", e );
 	}
-}
+}*/
 
 /*
 ** prepare the set of ajax calls to get the useful information...
@@ -90,9 +90,6 @@ function finishAjax () {
 */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-	/* this callback is made when the query made via run_query() returns with the required details
-	** and decision as to whether ibd data needs to be requested from the 23 and me server.
-	*/
 
 	if(request.mode === "returnSaveData"){
 
@@ -197,9 +194,16 @@ function load_ajax_relatives( resparray ) {
 		}
 		let side = nobj.is_maternal_side ? (nobj.is_paternal_side ? "b" : "M") :  (nobj.is_paternal_side ? "P" : "n");
 		let largest_seg = round_cM( nobj.max_segment_length );
+		// relative may give either first or last name as null, or both. It seems initials are never null.
+		let namelast = (nobj.last_name === null || nobj.last_name.length < 1) ? nobj.last_initial  : nobj.last_name;
+		let namefirst = (nobj.first_name === null || nobj.first_name.length < 1) ? nobj.first_initial  : nobj.first_name;
+		let namefull = namefirst + ' ' + namelast;
+		if ( namefull.length < 2 ) {
+			namefull = nobj.initials;		// should not need this, but...?
+		}
 
 		relativesMap.set( relID, {
-				name: nobj.first_name + ' ' + nobj.last_name,
+				name: namefull,
 				shared: shared,
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
@@ -324,7 +328,9 @@ div529.appendChild(tr_el);
 tr_el.onclick=function(evt){
 	try{
 		// don't use a callback, as we cannot pass it through the worker... Just rely on the returned message
-		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relativesMap: relativesMap } )
+		// and we cannot pass a Map, so convert...
+		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
+		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } )
 	} catch( e ) {
 		// never catches anything!?
 		handleMessageCatches( "process relatives list ", e );

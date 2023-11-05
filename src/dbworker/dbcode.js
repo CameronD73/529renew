@@ -421,8 +421,118 @@ var DBwasm = {
     },
 
     /* process the relatives list from the main page.
+    ** 1. is this a newly seen profile? - if so then insert new values
+    ** 2. check DNARelative - potentially add side and note/comment - potentially update note or maybe side.
+    ** 3. check DNAmatches - can add ishidden, pctshared, cMtotal, nsegs, hasSegs
     */
-    processRelatives: function ( profile, relativesMap ) {
+    processRelatives: function ( profile, relativesArr, settings ) {
+
+        function show_updated( o, txt ) {
+            let msg =  `${txt}:  for ${o.name}, s:${o.side}, fav:${o.fav?'y':'n'}, n:${o.note.length} chars`;
+            conlog( 1, msg);
+            logHtml( '', msg);
+        };
+        
+        const today = formattedDate2();
+        const qry_profile = 'INSERT or IGNORE INTO profiles (IDProfile, pname) VALUES (?, ?);'; 
+        const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?, ?);'; 
+        const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side) VALUES (?, ?, ?, ? );';
+        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWScanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
+        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
+        const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
+        const qry_upd_date = 'UPDATE DNARelatives SET ICWScanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWScanned is NULL or ICWScanned = 0 );';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs ) VALUES (?, ?, ?,  ?, ?, ?, 0 );';
+        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? (ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
+        let total_updates = 0;
+        let use_fave = false;
+        if (Object.keys(settings).includes( "favouritesAreScanned") ) {
+            use_fave  = settings.favouritesAreScanned;
+        }
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            DB529.exec( qry_profile, { bind:[profile.id, profile.name] } );
+            DB529.exec( qry_alias_update, { bind:[profile.id, profile.name, today] } );
+            // now, for each relative, check/update their presence in the various tables
+            for ( let i = 0; i < relativesArr.length; i++ ){
+            //for( const[relkey, obj] of relativesArr ) {
+                relkey = relativesArr[i].key;
+                obj = relativesArr[i].val;
+                // if new, add to alias table...
+                DB529.exec( qry_alias_update, { bind:[relkey, obj.name, today] } );
+                //  now process the relatives table...
+                if ( use_fave && obj.fav ) {
+                    DB529.exec( qry_rel_ins_full, {bind:[profile.id, relkey, 1, today, obj.note, obj.side]} );
+                } else {
+                    DB529.exec( qry_rel_ins, {bind:[profile.id, relkey, obj.note, obj.side]} );
+                }
+                let rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+                if ( rowsaffected < 1 ) {
+                    // we already had this record, so do conditional updates, otherwise it will have just been inserted
+                    if ( obj.side != 'n') {
+                        DB529.exec( qry_upd_side, {bind:[obj.side, profile.id, relkey ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'side updated');
+                            total_updates += ra;
+                        }
+                    }
+                    if ( obj.note.length > 0 ) {
+                        DB529.exec( qry_upd_note, {bind:[obj.note, profile.id, relkey, obj.note ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'note updated');
+                            total_updates += ra;
+                        }
+                    }
+                    if ( use_fave && obj.fav  ) {
+                        DB529.exec( qry_upd_date, {bind:[today, profile.id, relkey ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'date updated');
+                            total_updates += ra;
+                        }
+                    }
+                } else {
+                    show_updated( obj, 'added');
+                }
+                // and repeat for the matches table
+                let is_hidden = obj.shared ? 0 : 1;
+                let id1 = profile.id;
+                let id2 = relkey;
+                if ( id2 < id1 ) {
+                    id2 = profile.id;
+                    id1 = relkey;
+                }
+                DB529.exec( qry_match_insert, {bind:[id1, id2, is_hidden, obj.pctshared, obj.totalcM, obj.nseg]} );
+
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+                if ( rowsaffected < 1 ) {
+                    // we already had this record, but there are some circumstances where nsegs in DB was null.
+                    // This is usually (always??) when neither match is a profile person.
+                    if ( obj.nsegs > 0 ) {
+                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2, is_hidden ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'numSegments updated');
+                            total_updates += ra;
+                        }
+                    }
+                } else {
+                    show_updated( obj, 'Match added');
+                }
+            }
+
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch ( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml( 'error', `DB processRelatives: error: ${e.message}`);
+            return 0;
+
+        }
+        return total_updates;
     },
     
 
@@ -658,7 +768,7 @@ var DBwasm = {
     insertProfiles: function( profilemap ) {
         logHtml( null, 'Storing  profile (kit) IDs ...');
         const today = formattedDate2();
-        const update_qry =  `INSERT OR REPLACE INTO profiles (IDProfile, pname) VALUES (?,?);`;
+        const update_qry =  'INSERT OR REPLACE INTO profiles (IDProfile, pname) VALUES (?,?);';
         let total_rows_updated = 0;
         //conlog( 0,'DB MigrateMatchHidden: skipped 4');
         //return;
@@ -667,8 +777,7 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of profilemap ) {
                 conlog( 4, `DB ProfileTable:  insert key ${key}, name ${obj.name}`);
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind:[key, obj.name]
                 } );
                 let rowsaffected = DB529.changes();

@@ -226,7 +226,7 @@ chrome.runtime.onMessage.addListener(
 
 		case "process_relatives":
 			// we have a list of relatives from the front page...
-			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relativesMap:request.relativesMap } ); 
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, settings:settings529 } ); 
 
 		break;
 
@@ -272,10 +272,19 @@ chrome.runtime.onMessage.addListener(
  	return ; // either we replied synchronously, or nothing to say yet.
 });
 
-chrome.tabs.onRemoved.addListener( ( tabID, remInfo) =>{
-  DBworker.postMessage( {reason: "closing"});
+//  do I need this at all?  Killing this tab might close the worker anyway since it is no longer in scope.
+// in any case we probably need to use the beforeunload event.
+/* - yep - waste of time.
+chrome.tabs.onRemoved.addListener( async ( tabID, remInfo) =>{
+	let thisTab = await chrome.tabs.getCurrent();
+	if( thisTab.id == tabID ) {
+		DBworker.postMessage( {reason: "closing"});
+		alert( 'killed db worker');
+	} else {
+		alert( ' different tab removed' );
+	}
 });
-
+*/
 DBworker.postMessage({reason: "setdebug", value: 2} );
 
 console.log( 'worker instantiation has been started');

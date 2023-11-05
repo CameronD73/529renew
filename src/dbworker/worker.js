@@ -123,7 +123,7 @@ self.onmessage = function processMessages( msg ) {
     break;
 
     case "process_relatives":
-      let rowsRelatives = DBwasm.processRelatives(content.profile, content.relativesMap);  // synchronous, so we can just send result back
+      let rowsRelatives = DBwasm.processRelatives(content.profile, content.relatives, content.settings);  // synchronous, so we can just send result back
     break;
 
     case "dumpDB":
