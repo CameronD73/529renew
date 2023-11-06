@@ -767,7 +767,6 @@ var DBwasm = {
             return false;
         }
         conlog( 4, `DB insertDNArels: finished` );
-        //logHtml( null, 'finished');
         return true;
     },
     
