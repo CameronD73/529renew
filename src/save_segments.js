@@ -8,8 +8,8 @@
 /* eslint no-unused-vars: "off"*/
 'use strict';
 
-let div=document.createElement('div');
-div.id="div529r";
+let div529=document.createElement('div');
+div529.id="div529r";
 
 let tr_el=document.createElement('button');
 tr_el.innerHTML="Triangulate into 529Renew";
@@ -38,6 +38,10 @@ let matchID = null;			// the UUID string for this dna relative (scraped from url
 let profileID = null;		// UUID string of the profile person ("You")
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
 let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
+
+let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
+let matchMatchesMap = new Map();		// all the matches we already have 
+let sharedSegMapMap = new Map();	// all known 3-way comparisons including profile match person.
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -68,12 +72,13 @@ function handleMessageCatches( location, err ) {
 function run_query(personaId, personbId, personaName, personbName){
 	try {
 		chrome.runtime.sendMessage({mode: "checkIfInDatabase", indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, forceSegmentUpdate: rereadSegsRequested});
+		// passes a "returnNeedCompare" message back to this origin tab, with needToCompare set true/false
 	} catch( e ) {
 		handleMessageCatches( "in run_query", e );
 	}
 }
 
-/* this listener handles the return from run_query()
+/* this listener handles the return from run_query() and other messages
 ** The message will set needToCompare to true if we need
 ** to get the results from 23 and me for inclusion in local DB.
 */
@@ -83,15 +88,16 @@ chrome.runtime.onMessage.addListener(
 	** and decision as to whether ibd data needs to be requested from the 23 and me server.
 	*/
 
-	if(request.mode == "returnNeedCompare"){
+	if(request.mode === "returnNeedCompare"){
 			// this is the match triangulation set that was just requested to
 			// see what we need to do with it.
 		let tset = qQueue.dequeue();
+		let mat2 = request.matchpair;
 		q_debug_log( 1, `        dequeued part${tset.part},  ${tset.pn1} cf ${tset.pn2}; remaining q=${qQueue.length}`);
 		// sanity check...
-		if ( request.indexId != tset.id1  || request.matchId != tset.id2 ) {
-			let errmsg = `==== URK 529renew bug... ${request.indexId} != ${tset.id1} or ${request.matchId} != ${tset.id2} \n ` + 
-				`==== requested ${request.indexName} vs  ${request.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
+		if ( mat2.indexId != tset.id1  || mat2.matchId != tset.id2 ) {
+			let errmsg = `==== URK 529renew bug... ${mat2.indexId} != ${tset.id1} or ${mat2.matchId} != ${tset.id2} \n ` + 
+				`==== requested ${mat2.indexName} vs  ${mat2.matchName}, got ${tset.pn1} vs ${tset.pn2}`;
 			alert( errmsg );
 			console.error( errmsg );
 		}
@@ -122,19 +128,27 @@ chrome.runtime.onMessage.addListener(
 					ids[0] = {id: indexId, name: indexName };
 					ids[1] = {id: matchId, name: matchName };
 
-					q_debug_log( 0, "    saving segments at " + new Date().toISOString() + " for " + ids[0].name + " and " + ids[1].name );
+					q_debug_log( 0, "    saving segments at " + formattedDate2() + " for " + ids[0].name + " and " + ids[1].name );
 					if(data!=null){
 						for(let j=0; j<data.length; j++){
+							let dat = data[j];
+							if ( indexId !== dat.human_id_1 || matchId !== dat.human_id_2 ) {
+								msg( `Ident mismatch: asked for${indexId}/${matchId} (${indexName}/${matchName}), but got ${dat.human_id_1}/${dat.human_id_2}`);
+								console.error( 'makeSegmentSaver: ' + msg );
+								alert( msg );
+								break;
+							}
 							var matchingSegment= {
-								name1: indexName,
+								name1: indexName,		// name and IDs seem redundant - or else IDs are.
 								uid1: indexId,
 								name2: matchName,
 								uid2: matchId,
-								chromosome: data[j].chromosome,
-								start: data[j].start,
-								end: data[j].end,
-								cM: data[j].seg_cm,
-								snps: data[j].num_snps,
+								chromosome: dat.chromosome,
+								start: dat.start,
+								end: dat.end,
+								cM: dat.seg_cm,
+								snps: dat.num_snps,
+								is_fullmatch: dat.is_full_ibd
 							};
 							if(matchingSegment.start==0)
 								matchingSegment.start=1;
@@ -153,7 +167,7 @@ chrome.runtime.onMessage.addListener(
 					}
 					// Submit for storage in local database
 					try {
-						chrome.runtime.sendMessage({mode: "storeSegments", ids: ids, matchingSegments: matchingSegments} );
+						chrome.runtime.sendMessage({mode: "storeSegments",  matchingSegments: matchingSegments} );
 					} catch( e ) {
 						handleMessageCatches( "in storeSegment", e );
 					}
@@ -173,28 +187,85 @@ chrome.runtime.onMessage.addListener(
 					return;
 				};
 			}
-			var compareURL="/tools/ibd/?human_id_1=" + request.indexId +"&human_id_2="+request.matchId;
+			var compareURL="/tools/ibd/?human_id_1=" + mat2.indexId +"&human_id_2="+mat2.matchId;
 
 			var oReq = new XMLHttpRequest();
 			oReq.withCredentials = true;
-			oReq.onload=makeSegmentSaver(request.indexName, request.indexId, request.matchName, request.matchId);
-			oReq.onerror=makeErrorHandler(request.indexName, request.matchName);
+			oReq.onload=makeSegmentSaver(mat2.indexName, mat2.indexId, mat2.matchName, mat2.matchId);
+			oReq.onerror=makeErrorHandler(mat2.indexName, mat2.matchName);
 			oReq.open("get", compareURL, true);
 
-			q_debug_log( 2, "    requesting segs after delay at " + new Date().toISOString() + " for " + request.indexName + " and " + request.matchName );
+			q_debug_log( 2, "    requesting segs after delay at " + formattedTime() + " for " + mat2.indexName + " and " + mat2.matchName );
 			setTimeout( () => oReq.send(), increment_ms );
 		}
 		else{
-			q_debug_log( 0,"No need to recompare " + request.indexName + " " + request.matchName);
+			q_debug_log( 0,"No need to recompare " + mat2.indexName + " " + mat2.matchName);
 			if(pendingComparisons>0) pendingComparisons--;
 			launch_next_IBD_query();
 		}
 		return ;
-	}
-	else
-		return false;			// not handled here
-  });
+	} else if( request.mode === "ICWPrelude_return") {
+		const origpair = request.data.pair;
+		const profileMatchesArr = request.data.profileMatches;
+		const DNArelMatchesArr = request.data.DNArelMatches;
+		const ICWsetArr = request.data.ICWset;
+		// unpack the data that has been returned.
+		try {
+			verifyMatchIDs( profileID, profileName, origpair.pid, origpair.pname);
+			verifyMatchIDs( matchID, matchName, origpair.mid, origpair.mname);
+		} catch( e ) {
+			console.error( e.message );
+			alert( e.message );
+			return;
+		}
+		profileMatchesMap.clear();
+		for( let i = 0 ; i < profileMatchesArr.length; i++ ) {
+			const nr = profileMatchesArr[i];
+			let mkey = nr.ID1;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID1 === profileID ) {
+				mkey = nr.ID2;
+			}
+			profileMatchesMap.set(mkey, nr);
+		}
+		matchMatchesMap.clear();
+		for( let i = 0 ; i < DNArelMatchesArr.length; i++ ) {
+			const nr = DNArelMatchesArr[i];
+			let mkey = nr.ID1;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID1 === matchID ) {
+				mkey = nr.ID2;
+			}
+			matchMatchesMap.set(mkey, nr);
+		}
+		sharedSegMapMap.clear();
+		for( let i = 0 ; i < ICWsetArr.length; i++ ) {
+			const nr = ICWsetArr[i];
+			let mkey = nr.ID2;
+			// these will be in alpha order, so pick the non-profile ID as the map key
+			if ( nr.ID2 === matchID ) {
+				mkey = nr.ID3;
+			}
+			sharedSegMapMap.set(mkey, nr);
+		}
+		if( debug_msg > 0){
+			console.log(  `Initial setup with ${profileMatchesMap.size} matches to ${profileName}; ` +
+						`${matchMatchesMap.size} matches to ${matchName}; ${sharedSegMapMap.size} saved ICW summaries`);
+		}
 
+	} else
+		return false;			// message not handled here
+  }
+);
+
+  /* confirm that the returned ID matches the one originally sent...
+  */
+function verifyMatchIDs( id1, n1, id2, n2 ) {
+	if( id1 === id2 )
+		return;
+	let msg = `Unexpected ID values ${id1}(${n1}) and ${id2}(${n2}) should be the same`;
+	throw new Error( msg );
+}
 /*
 ** callback function to initiate processing the next IBD segment collection
 ** from the queue
@@ -405,13 +476,14 @@ function get_icw_details( name_cell ) {
 ** this function is run to process a page of (up to 10) shared matches.
 ** The "primaryComparison" is that between the profile person and personA
 ** (the match against whom all the ICW/triangulations are being compared in this page)
-** This code reads the page and loads all required matches into teh processing queue
+** This code reads the page and loads all required matches into the processing queue
 */
 
 function runComparison(ranPrimaryComparison ){
 	var row_container=null;
 	// match data is array of objects, one per each ICW relative in the table
 	var match_data = [];
+	let any_hidden = false;
 
 	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
 	let sharedDNAPrimary = {pct:-1.0, cM:0};
@@ -431,9 +503,9 @@ function runComparison(ranPrimaryComparison ){
 			// DIV - "shared-dna" - whether there is overlap: yes/no/connect
 			// Sept 2023 the last column changed to 'DNA Overlap' and just says "Compare" instead of yes/no
 		let rows=document.getElementsByClassName("js-rows");
-		if(rows.length<1) throw "Wrong row length";
+		if(rows.length<1) throw new Error("Wrong row length");
 		let container=document.getElementsByClassName("js-relatives-table");
-		if(container.length!=1) throw "Wrong container length";
+		if(container.length!=1) throw new Error("Wrong container length");
 		container=container[0];
 		let row_index=-1;
 		for(let i=0; i<rows.length; i++){
@@ -441,11 +513,11 @@ function runComparison(ranPrimaryComparison ){
 				if(rows[i].hasAttribute("class")){
 					if(rows[i].getAttribute("class").indexOf("hide-for-mobile")<0) continue;
 				}
-				if(row_index!=-1) throw "Too many rows in container";
+				if(row_index!=-1) throw new Error("Too many rows in container");
 				row_index=i;
 			}
 		}
-		if(row_index==-1) throw "No valid rows";
+		if(row_index==-1) throw new Error("No valid rows");
 		row_container=rows[row_index];
 
 	}
@@ -475,6 +547,7 @@ function runComparison(ranPrimaryComparison ){
 		match_data[i].shared_pct_P2B = local_shared_pct;
 		match_data[i].name_profile = profileName;
 		match_data[i].name_match = matchName;
+		let hidden = false;
 
 		var ids=null;
 		var relative_in_common_name=null;
@@ -504,13 +577,14 @@ function runComparison(ranPrimaryComparison ){
 						} else {
 							overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
 						}
-						match_data[i].overlaps = overlap_status;		// just for logging
-						// I think the "share to see" was replaced by "connect to view" - can also get "Request sent"
-						// when a request to connect has been initiated
+						match_data[i].overlaps = overlap_status;
 						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text== "compare") {
 							foundData=true;
 						} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
+							// I think the "share to see" was replaced by "connect to view"
+							// can also get "Request sent"  when a request to connect has been initiated
 							foundData=true;
+							hidden = true;  // possibly redundant
 							continue;
 						}
 						if( yes_no_text=="yes" || loadAllRequested ) {
@@ -540,7 +614,8 @@ function runComparison(ranPrimaryComparison ){
 				}
 			}
 		}
-
+		match_data[i].is_hidden = (hidden || (overlap_status === "hidden"));
+		any_hidden = any_hidden || hidden || (overlap_status === "hidden"); 
 		match_data[i].name_icw_relative = relative_in_common_name;
 		if(relative_in_common_name==null) continue;
 		if(ids==null) continue;
@@ -598,11 +673,13 @@ function runComparison(ranPrimaryComparison ){
 	}
 
 	// save the chr 200 records...
-	let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
-	try {
-		chrome.runtime.sendMessage({mode: "store_chr_200", primary:primary_match, matchData:match_data } );
-	} catch( e ) {
-		handleMessageCatches( "saving chr 200", e );
+	if( any_hidden ) {
+		let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
+		try {
+			chrome.runtime.sendMessage({mode: "store_hidden", primary:primary_match, matchData:match_data } );
+		} catch( e ) {
+			handleMessageCatches( "saving hidden", e );
+		}
 	}
 	document.getElementById("c529r").innerHTML="Collecting DNA segments...";
 	launch_next_IBD_query();
@@ -690,36 +767,21 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	alert( 'Not yet available with the new database format');
+	alert( 'Not yet available until I can test that it works with potentially modified 23andMe pages');
 	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
-		if(temp3 == null) throw "Page structure changed";
+		if(temp3 == null) throw new Error("Page structure changed");
 		let classlist = temp3.classList;
 		for( let k=0; k < classlist.length; k++){
-			if ( classlist[k] === "hide") throw "Not clicked";
+			if ( classlist[k] === "hide") throw new Error("Not clicked");
 		}
-		/*
-		for(let k=0; k<temp3.children.length; k++){
-			if(temp3.children[k].hasAttribute("class")){
-				var temp4=temp3.children[k].getAttribute("class");
-				if(temp4.indexOf("headers")>-1){
-					loaded=true;
-					break;
-				}
-			}
-		} */
 
 	}
 	catch(e){
 		alert( 'You need to click "Find relatives on common" first\n or else it has not finished loading');
 		return;
 	}
-	/*
-	if(!loaded){
-		alert("Please wait for Relatives in Common to finish loading");
-		return;
-	} */
 
 	if(tr_el.innerHTML=="Triangulation into 529Renew Completed") return;
 
@@ -770,22 +832,22 @@ tr_el.onclick=function(evt){
 
 function process_settings_then_compare( response ) {
 	settingsProcessed = true;
-	if ( Object.keys( response ).includes('qDelay') ) {
+	if ( response.hasOwnProperty('qDelay') ) {
 		increment_ms = response.qDelay * 1000.0;
 	}
-	if ( Object.keys( response ).includes('minSharedNonOverlap') ) {
+	if ( response.hasOwnProperty('minSharedNonOverlap') ) {
 		minSharedNonOverlap = response.minSharedNonOverlap;
 	}
-	if ( Object.keys( response ).includes('alwaysIncludeNonOverlap') ) {
+	if ( response.hasOwnProperty('alwaysIncludeNonOverlap') ) {
 		alwaysIncludeNonOverlap = (response.alwaysIncludeNonOverlap == 0 ? false : true);
 	}
-	if ( Object.keys( response ).includes('closeTabImmediate') ) {
+	if ( response.hasOwnProperty('closeTabImmediate') ) {
 		closeTabImmediate = (response.closeTabImmediate == 0 ? false : true);
 	}
-	if ( Object.keys( response ).includes('debug_q') ) {
+	if ( response.hasOwnProperty('debug_q') ) {
 		debug_q = response.debug_q;
 	}
-	if ( Object.keys( response ).includes('debug_msg') ) {
+	if ( response.hasOwnProperty('debug_msg') ) {
 		debug_msg = response.debug_msg;
 	}
 	failedInSomeWay = false;		// reset just in case.
@@ -798,7 +860,7 @@ The process is:
 **	 1 send a message to the service worker script
 **   2. it decides whether to create new tab or load ID into existing one.
 */
-div.appendChild(tr_el);
+div529.appendChild(tr_el);
 
 let b529r=document.createElement('button');
 b529r.id="b529r";
@@ -822,14 +884,57 @@ img.src=chrome.runtime.getURL("logos/529renew-48.png");
 img.style.verticalAlign='middle';
 b529r.appendChild(img);
 
-div.appendChild(b529r);
+div529.appendChild(b529r);
 
 let ric_parent=document.getElementsByClassName("js-profile-relatives-in-common")[0];
 let modules=document.getElementsByClassName("module-content");
 if(ric_parent!=null && modules!=null){
 	var i;
 	for(i=0; i<modules.length; i++){
-		if(ric_parent.contains(modules[i])) modules[i].appendChild(div);
+		if(ric_parent.contains(modules[i])) modules[i].appendChild(div529);
+	}
+}
+// extract the match ID from the page URL...
+let thisurl = document.URL;
+console.log( `This tabs URL is "${thisurl}"`);
+if ( thisurl.length > 0 ) {
+	const sstr = "23andme.com/profile/";
+	let urlpos =  thisurl.indexOf( sstr );
+	if ( urlpos > 0 ) {
+		let stpos = urlpos+sstr.length;
+		let endpos = stpos + 16;
+		let newID = thisurl.substring( stpos, endpos );
+		if ( newID.length == 16 ) {
+			matchID = newID;
+		} else {
+			msg = `error finding match ID from url: ${thisurl} gives ${newID}, length ${newID.length}`;
+			console.error( msg );
+			alert( msg );
+		}
 	}
 }
 
+//  find the match person' name
+const matchNameElems = document.getElementsByClassName("basic-info-name-title");
+matchName = matchNameElems[0].innerText;
+
+// now get the profile person's ID and name
+[profileID, profileName] =  get_profile_from_header();
+
+
+console.log( `Found profile ${profileID} (${profileName}) and match ${matchID} (${matchName})` );
+
+try {
+	validate_ID( profileID );
+	validate_ID( matchID );
+} catch( e )  {
+	let errmsg = `Invalid ID code found: ${e.message}`;
+	alert( errmsg );
+	console.error( errmsg );
+}
+// 
+try {
+	chrome.runtime.sendMessage({mode: "get_ICW_prelude",  matchpair: {pid: profileID, pname: profileName, mid:matchID, mname:matchName}} );
+} catch( e ) {
+	handleMessageCatches( "in storeSegment", e );
+}

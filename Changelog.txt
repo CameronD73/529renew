@@ -25,7 +25,6 @@ changes between v1.1.0 and v1.2
     Save all percentage shared DNA values listed in the relatives-in-common table. Not used in any way yet, but may have value later.
     
 V 1.2.1  submitted to  Chrome store - 2023-01-11
-
 changes between V1.2.1 and 1.2.5
     changed layout of tables with matching segments and overlapping segments. Start and End addresses are displayed in Mbase (to 2 d.p.)
     added date of segment read.
@@ -33,8 +32,29 @@ changes between V1.2.1 and 1.2.5
     Fix code that detected user trying to triangulate before loading relatives in common table
     
 V 1.2.5 submitted to Chrome store 2023-01-16
-
 significant changes between 1.2.5 and 1.2.6
     fixed problem with upper/lower case confusion in icon files, for situations where the filesystem is case-sensitive.
 
 V 1.2.6  submitted to Chrome store 2023-04-13
+
+V 1.3.0  submitted to Chrome store mid-September 2023
+    23 and Me changed the way ICW matches were displayed, removing the yes/no indicator of overlap.  This release was required to enable 529renew to continue to work.  The "minimum pct shared" parameter became meaningless due to the 23andMe changes, and so was altered slightly to any available ICW matches
+
+V1.9.0  submitted to Chrome store  11-Oct-2023
+    major changes, to permit migration of WebSQL database to an sqlite API based on sqlite-WASM.  In the 1.9 series, both database interfaces are included.
+    Normal functionality is not available in the V1.9 series, as those most of those routines still use the webSQL api.
+    The opportunity was taken to substantially modify the DB schema.
+
+V2.0.0   submission to Chrome store around 7 November 2023.
+    Has no webSQL code.
+    _Does not work fully_ because 23andMe have disabled segment display.
+    Bug in V1.9.x fixed = "finalise" button did not do what was expected, also set ICWscanned to too many relatives.
+    Most functionality restored, some new features.
+    Sqlite DB file can be backed up and restored.
+    Some code to manipulate the page appearance depending on DB information.
+    Settings/Options changed:
+	BaseAddressRounding - has been removed - always zero.
+	RelativesPixelPadding - change the padding above and below each person on the relatives list
+	NotesLength - display Notes on DNARelatives list page.
+    Star means have-triangulated - If you previously use the star to indicate that you had triangulated.
+    Action for duplicate imports - whether csv imports update older values or not.

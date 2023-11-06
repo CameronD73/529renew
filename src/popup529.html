@@ -38,6 +38,7 @@
                 Its only effect is to make displayed values neater and exported csv files smaller.
             </p>
             
+            <!--
             <h3>Basepair address rounding:
             <select id="roundingBP" >
                 <option value="0">0</option>
@@ -48,6 +49,35 @@
             <p>To round off Basepair address values. Use zero unless you really need it to be otherwise, because meaningful information is lost.
                 This option is only here to maintain backward-compatibility with 529 and You,
                 which used a high value to maintain backward compatibility with very old 23 and Me results.
+            </p> -->
+
+            <h3>Padding on DNA Relatives list:
+                <select id="relativePadding" >
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="13">12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                    <option value="20">20</option>
+                </select> pixels</h3>
+                <p> This is the number of pixels of blank space used to pad out the top and bottom of each person on the DNA relatives list. 
+                    The default used by 23andMe was 16.
+                </p>
+                
+            <h3>Maximum Note length:
+                <input type="number", min="0" max="200" step="10" id="maxNoteLength" >
+            </h3>
+            <p>
+                If this number is greater than zero then any <i>Notes</i> you have added to the DNA relative will be displayed
+                after the name. No more than this number of characters will be displayed in the  relatives list -
+                the full number will always  be shown in the original Notes section on the relative's individual profile page.
             </p>
 
             <h3>Minimum segment overlap:
@@ -79,6 +109,15 @@
                     <li><i>Ignore</i>: retain the old values, or</li> 
                     <li><i>Replace</i>: overwrite the data in the database with the value in the file.</li>
                 </ul>
+            </p>
+            <h3>Star means have triangulated
+                 <select id="favouritesScanned" >
+                <option value="0">no</option>
+                <option value="1">yes</option>
+            </select></h3>
+            <p>If you only applied the yellow star to a relative who had been previously triangulated,
+                then set this to yes and 529Renew will change displays accordingly.
+                It has no other meaning and is only useful transitioning data from before version 2.
             </p>
             
             <h3>Minimum shared DNA (pct):
@@ -191,6 +230,24 @@
         <div id="status_info">
             <h4>Status of new database</h4>
             <div id="status_table">                
+            </div>
+            <h4>Status of ICW matching</h4>
+            <p>This table shows the number of ICW sets on each chromosome.
+                The counts <i>exclude segments when the other two matches are close relatives</i> (>500cM to each other);
+                Multiple kit profiles are often of close relatives, and will have many ICW overlaps, so the table is divided into two mutually exclusive sets:
+            </p>
+            <ul>
+                <li><i>x2p:</i> a count excluding ICW sets where more than one match is a profile person.</li>
+                <li><i>i2p:</i> counts only ICW sets where two or more matches include your managed profiles.</li>
+            </ul>
+            <ol>
+                <li>"No check" is a count of every ICW set that 529Renew has seen but not scanned the other match.</li>
+                <li>"3-way false" means that we have confirmed there is not triangulation (this includes two-way overlaps and those with no overlap).</li>
+                <li>A 2-way overlap means 529Renew has determined that, while the profile kit overlaps the two ICW DNA relatives on the same chromosome segment,
+                the third pair does not overlap in the same place, so there is no (or low) likelihood of triangulation.</li>
+            </ol>
+            </p>
+            <div id="match_status_table">                
             </div>
             <h4>Status of profiles</h4>
             <div id="profile_table">                

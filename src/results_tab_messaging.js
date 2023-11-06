@@ -13,6 +13,9 @@ const logHtml = function (cssClass, ...args) {
   if (cssClass) ln.classList.add(cssClass);
   ln.append(document.createTextNode(args.join(' ')));
   document.body.append(ln);
+  if ( cssClass === 'error' ){
+	alert( ...args );
+  }
 };
 
 const DBworker = new Worker('dbworker/worker.js?sqlite3.dir=jswasm');
@@ -27,7 +30,11 @@ DBworker.onmessage = function ( msg ) {
   switch (data.reason) {
     case 'log':
       logHtml(data.payload.cssClass, ...data.payload.args);
-      break;
+	break;
+
+	case "return_DBcheck":
+		chrome.tabs.sendMessage(data.tabID, {mode: "returnNeedCompare", matchpair:data.matchpair, returnedData: data.returned, needToCompare: data.needToCompare});
+	break;
 
     case 'init_done':
       db_conlog( 0, 'DB worker init completed');
@@ -42,40 +49,110 @@ DBworker.onmessage = function ( msg ) {
       // db_summary = data.payload.rows.map( (r) => [...r] );
       chrome.runtime.sendMessage( {mode:'pop_dbstatus', data:db_summary} );
     break;
- 
+
+    case 'match_summary_return':
+      // payload rows is an array of arrays...
+      console.log( 'match summary returned ', data.payload );
+      db_match_summary = data.payload;   // this seems good enough
+      chrome.runtime.sendMessage( {mode:'pop_dbstatusMatches', data:db_match_summary} );
+    break;
+
+    case 'selectFromDatabase_return':
+		let callback_datareturn = data.callback;
+		let getSegsResults = data.payload;
+		if ( getSegsResults.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		//console.log( 'select from DB: ', profile_status );
+		switch ( callback_datareturn ) {
+			case 'createCSV':
+				createCSV12( getSegsResults, false);
+			break;
+			case 'createCSV3':
+				createCSV12( getSegsResults, true);
+			break;
+			case 'createTable':
+				createTable12( getSegsResults, false);
+			break;
+			case 'createTable2':
+				createTable12( getSegsResults, true);
+			break;
+			case 'createGEXF':
+				createGEXF( getSegsResults );
+			break;
+			
+			default:
+				let errmsg = `get DB selection, unhandled callback: ${callback_datareturn}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
+    case 'overlappingSegments_return':
+		let callback_olap_return = data.callback;
+		let callback_olap_params = data.callbackParams;
+		let overlapResults = data.payload;
+		if ( overlapResults.length == 0 ){
+			alert( 'Empty result set returned from overlaps request');
+			return;
+		}
+		switch ( callback_olap_return ) {
+			case 'colorizeButton':
+				colorizeButton( overlapResults, callback_olap_params);
+			break;
+
+			case 'createSegmentTable':
+				createSegmentTable( overlapResults );
+			break;
+			
+			default:
+				let errmsg = `get overlaps, unhandled callback: ${callback_olap_return}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
     case 'insertProfiles_return':
-      let profile_status = data.payload;
-      console.log( 'profile inserted: ', profile_status );
-      document.getElementById("docBody").style.cursor="pointer";
-      DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
+		let profile_status = data.payload;
+		console.log( 'profile inserted: ', profile_status );
+		logHtml( '', 'profile load completed');
+		document.getElementById("docBody").style.cursor="pointer";
+		DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
     break;
  
     case 'profile_return':		// returns complete table: DB.profiles 
-      let profile_list = data.payload;   // try a shallow copy
-	  if ( profile_list.length > 0 ){
-		// only copy over profile identities when we have some. Otherwise, leave the placeholder in place.
-		profile_summary = [...profile_list];
-	  }
-      console.log( 'profiles are: ', profile_list );
-	  createKitSelector();
-	  createWebsqlprofiles();
-      chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
+		let profile_list = data.payload;   // try a shallow copy
+		if ( profile_list.length > 0 ){
+			// only copy over profile identities when we have some. Otherwise, leave the placeholder in place.
+			profile_summary = [...profile_list];
+		}
+		console.log( 'profiles are: ', profile_list );
+		createKitSelector();
+		chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
     break;
     
     case 'DBloaded_for_dump':
-      db_conlog( 1, `received ${data.payload.byteLength} bytes data : ` );
-      dumpSqlite3DB( data.payload);
+		db_conlog( 1, `received ${data.payload.byteLength} bytes data : ` );
+		dumpSqlite3DB( data.payload);
     break;
      
     case 'return_matchlist':
-      db_conlog( 1, `received ${data.payload.length} records for ${data.purpose}. ` );
-	  if ( data.purpose == 'select') {
-		createNameSelector( data.payload );
-	  } else {
-		updateDNAtesterlist( data.payload );
-	  }
-    break;
-   
+		db_conlog( 1, `received ${data.payload.length} records for ${data.purpose}. ` );
+		if ( data.purpose == 'select') {
+			createNameSelector( data.payload );
+		} else {
+			updateDNAtesterlist( data.payload );
+		}
+	break;
+	 
+	case 'ICWPrelude_return':
+		// send results back to requesting tab 
+		chrome.tabs.sendMessage( data.tabID, {mode:'ICWPrelude_return', data:data.payload} );
+	break;
+
 	case 'import_23_done':
 	  	// this can select and process multiple files, so go again if we have more files to process.
 		if ( CSV23Store.filelist.length > 0 ) {
@@ -85,30 +162,21 @@ DBworker.onmessage = function ( msg ) {
 		}
 	break;
 
-	case 'webSQLAlias_return':
-		getWebsqlFULLSegsTable();
+	case 'migrationOverlapFind':
+		migrationOverlapFind_done( data.rowsadded );
 	break;
 
-	case 'webSQLFULLSeg_return':
-		getWebsqlHALFSegsTable();
+	case 'restoredDB_return':
+		post_DB_init_setup();
 	break;
-
-	case 'webSQLSeg_return':
-		getWebsqlchr200_rels();
-	break;
-
-	case 'webSQLchr200_return':
-		WebSQLMigrateDone();
-	break;
-
-	case 'migrationFinalised':
-		migrationFinalise_done( data.rowsadded );
-	break;
-
 
 	case 'migrate_529_done':
       CSV_loadDone( data.newsize );
     break;
+
+	case 'requestTriangTable_return' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'requestTriangTable_return', data:data.payload} );
+	break;
 
     default:
       console.log( 'DBWorker msg: ', msgevt );
@@ -116,7 +184,11 @@ DBworker.onmessage = function ( msg ) {
   }
 };
 
-DBworker.postMessage({reason: "setdebug", value: 2} );
+DBworker.onerror = function ( evt ) {
+	let msg = `DB worker error: in ${evt.filename}, line ${evt.lineno}: ${evt.message}.`;
+	logHtml( 'error', msg );
+	alert( msg );
+}
 
 
 chrome.runtime.onMessage.addListener(
@@ -131,40 +203,58 @@ chrome.runtime.onMessage.addListener(
 			storeSegments(request);
 		break;	
 
-		case  "store_chr_200" :
-			save_chr200_records( request.primary, request.matchData );
+		case  "store_hidden" :
+			save_hidden_records( request.primary, request.matchData );
 		break;
 
 		case  "updateSetting" :
-			msg_conlog( 2, `   DBactions updating ${request.item} to ${request.value}` );
+			msg_conlog( 3, `   DBactions updating ${request.item} to ${request.value}` );
 			setSetting(request.item, request.value);
 		break;
 
 		case  "getSettingObj" :
 			( async() => {
-				msg_conlog( 0, `   getSettingObj: DBactions returning all settings ` );
+				msg_conlog( 2, `   getSettingObj: DBactions returning all settings ` );
 				wait4Settings( 2 );
 				sendResponse( settings529 );
 			})();
 			return true;
 		break;
 
+		case  "requestTriangTable" :
+			DBworker.postMessage( {reason:"requestTriangTable", profile:request.profile, tabID: sender.tab.id} );
+		break;
+
+
 		case  "getDBStatus" :
 				// message from popup - need to forward to worker. will return via messaging
 			
-			msg_conlog( 0, `   getDBStatus: dbmessaging to worker  ` );
+			msg_conlog( 3, `   getDBStatus: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getSummary"} );
+			DBworker.postMessage( {reason:"getMatchSummary"} );
+		break;
+
+		case "process_relatives":
+			// we have a list of relatives from the front page...
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, settings:settings529 } ); 
+
+		break;
+
+		case  "get_ICW_prelude" :
+			// message from content script - need to forward to worker. will return via messaging with requested data objects
+			// BUT, we have to record the sender tab that it needs to be returned to!
+			DBworker.postMessage( {reason:"get_ICW_prelude", matchpair:request.matchpair, tabID: sender.tab.id } );
 		break;
 
 		case  "getProfiles4pop" :
 				// message from popup - need to forward to worker. will return via messaging
 				// we could just return stored array. but for the moment just ask again...
-			msg_conlog( 0, `   getProfiles4pop: dbmessaging to worker  ` );
+			msg_conlog( 3, `   getProfiles4pop: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getProfiles"} );
 		break;
 		
 		case  "getDebugSettings" :
-			msg_conlog( 2, `   DBactions returning debug settings ` );
+			msg_conlog( 3, `   DBactions returning debug settings ` );
 			sendResponse( {	debug_q: settings529["debug_q"],
 							debug_db: settings529["debug_db"],
 							debug_msg: settings529["debug_msg"] }  );
@@ -192,8 +282,19 @@ chrome.runtime.onMessage.addListener(
  	return ; // either we replied synchronously, or nothing to say yet.
 });
 
-chrome.tabs.onRemoved.addListener( ( tabID, remInfo) =>{
-  DBworker.postMessage( {reason: "closing"});
+//  do I need this at all?  Killing this tab might close the worker anyway since it is no longer in scope.
+// in any case we probably need to use the beforeunload event.
+/* - yep - waste of time.
+chrome.tabs.onRemoved.addListener( async ( tabID, remInfo) =>{
+	let thisTab = await chrome.tabs.getCurrent();
+	if( thisTab.id == tabID ) {
+		DBworker.postMessage( {reason: "closing"});
+		alert( 'killed db worker');
+	} else {
+		alert( ' different tab removed' );
+	}
 });
+*/
+DBworker.postMessage({reason: "setdebug", value: 2} );
 
 console.log( 'worker instantiation has been started');

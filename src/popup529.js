@@ -8,18 +8,9 @@ var settings529 = {};
 var db_status_test = [
 	['DB Version', 1],
 	['no data', 0],
-	['yet', 0],
-	['again', 55],
-	['blob', 4321]
+	['yet', 0]
 ];
 
-function setBPRoundingSelector(){
-	var widget=document.getElementById("roundingBP");
-	widget.value=getSetting( "baseAddressRounding" ).toString();
-	widget.onchange=function(){
-		setSetting( "baseAddressRounding", parseInt(widget.value));
-	};
-}
 function setcMRoundingSelector(){
 	var widget=document.getElementById("roundingcM");
 	widget.value=getSetting( "cMRounding" ).toString();
@@ -32,6 +23,21 @@ function setDelaySelector(){
 	widget.value=getSetting( "delay" );
 	widget.onchange=function(){
 		setSetting( "delay", widget.value);
+	};
+}
+function setRelPaddingSelector(){
+	var widget=document.getElementById("relativePadding");
+	widget.value=getSetting( "relativePixelPadding" ).toString();
+	widget.onchange=function(){
+		setSetting( "relativePixelPadding", parseInt(widget.value));
+	};
+}
+
+function setNoteLengthSelector(){
+	var widget=document.getElementById("maxNoteLength");
+	widget.value=getSetting( "displayNotesLength" ).toString();
+	widget.onchange=function(){
+		setSetting( "displayNotesLength", parseInt(widget.value));
 	};
 }
 function setOverlapValue(){
@@ -47,6 +53,14 @@ function setReplaceSelector(){
 	widget.value=(getSetting( "importReplaces" ) == 0? "0" : "1" );
 	widget.onchange=function(){
 		setSetting( "importReplaces", widget.value);
+	};
+}
+
+function setFavouriteSelector(){
+	var widget=document.getElementById("favouritesScanned");
+	widget.value=(getSetting( "favouritesAreScanned" ) == 0? "0" : "1" );
+	widget.onchange=function(){
+		setSetting( "favouritesAreScanned", widget.value);
 	};
 }
 
@@ -166,6 +180,59 @@ function showDBStatusTable( db_status ) {
 
 }
 
+function showDBMatchStatusTable( db_status ) {
+	// Remove any preexisting table
+	let headings=[ 'Chrom', 'Triangs x2p', '2-way overlaps x2p', 'Triang i2p', '2-way overlaps i2p'];
+	let st = document.getElementById("match_status_table");
+	while(st.hasChildNodes()){
+		st.removeChild( st.firstChild );
+	}
+	let dbstatusTable=document.createElement("table");
+
+	st.appendChild(dbstatusTable);
+	let ncols = db_status.length;		// we display transposed
+	if (ncols < 2 ) {
+		return;
+	}
+	dbstatusTable.createCaption( ).innerHTML = 'Number of 3-way and 2-way overlaps found on each chromosome';
+	dbstatusTable.style.border = '1px solid black';
+	dbstatusTable.setAttribute( 'class', 'dbstatus');
+	// first row of table
+	let tablerow = dbstatusTable.insertRow(0);
+	tablerow.style.border = '1px solid black';
+
+	let thcell = tablerow.insertCell( 0 );
+	thcell.innerHTML = headings[0];
+	thcell.setAttribute( 'class', 'dbstatus');
+	thcell.style.fontWeight = 'bold';
+	for(let i = 0; i < ncols; i++){
+		let cell = tablerow.insertCell( -1 );
+		let value = (db_status[i][0]).toString();
+		if( value === '-1' ) cell.innerHTML = "No check";
+		else if( value === '-2' ) cell.innerHTML = "hidden";
+		else if( value === '0' ) cell.innerHTML = "3-way false";
+		else if( value === '23' ) cell.innerHTML = "X";
+		else cell.innerHTML = value;
+		cell.setAttribute( 'class', 'dbstatus');
+	}
+	// 2nd and later rows
+	for( let row = 1; row < 5 ; row++ ) {
+		tablerow = dbstatusTable.insertRow(row);
+		tablerow.style.border = '1px solid black';
+
+		let thcell = tablerow.insertCell( 0 );
+		thcell.innerHTML = headings[row];
+		thcell.setAttribute( 'class', 'dbstatus');
+		thcell.style.fontWeight = 'bold';
+		for(let i = 0; i < ncols; i++){
+			let cell = tablerow.insertCell( -1 );
+			cell.innerHTML = db_status[i][row];
+			cell.setAttribute( 'class', 'dbstatus dbstnum');
+		}
+	}
+
+}
+
 function showProfileTable( profiles ) {
 	let st = document.getElementById("profile_table");
 	while(st.hasChildNodes()){
@@ -235,14 +302,16 @@ function installSettings( settingsObj ) {
     Object.assign(settings529, settingsObj);
     //console.log( `installSettings called with ${Object.keys(settingsObj).length} items`);
 
-    setBPRoundingSelector();
 	setcMRoundingSelector();
 	setDelaySelector();
 	setMinSharedInput();
 	setCloseTabSelector();
 	setReplaceSelector();
+	setFavouriteSelector();
     setOverlapValue();
 	setNonOverlapSelector();
+	setRelPaddingSelector();
+	setNoteLengthSelector();
 
 	setCSVSaveDate();
     setDebugDBSelector();
@@ -299,6 +368,10 @@ chrome.runtime.onMessage.addListener(
 	  console.log( `popup listener, mode: ${request.mode}`);
 	  if(request.mode == "pop_dbstatus"){
 		showDBStatusTable( request.data );
+	  } else if(request.mode == "pop_profiles"){
+		showProfileTable( request.data );
+	  } else  if(request.mode == "pop_dbstatusMatches"){
+		showDBMatchStatusTable( request.data );
 	  } else if(request.mode == "pop_profiles"){
 		showProfileTable( request.data );
 	  } else {

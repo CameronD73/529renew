@@ -31,7 +31,7 @@ function msg_conlog( level, msg ) {
 // default values for first time.
 // Use string for integers to stop conversion to float in DB.
 const settings529default = {
-	"version": 2,		// version of this structure
+	"version": 3,		// version of this structure
 	"displayMode": "2",
 	"textSize": "small",	// never set in old code
 	"build": "37",
@@ -49,7 +49,10 @@ const settings529default = {
 	"minSharedNonOverlap": 0.3,		// percentage
 	"closeTabImmediate": "0",
 	"alwaysIncludeNonOverlap": "0",
-	"importReplaces": "0"		// if imports and migrate uses replace (1) or ignore (0)
+	"importReplaces": "0",
+	"relativePixelPadding": "16",
+	"displayNotesLength": "0",
+	"autoLoadICW": "0"
 };
 const settings_upgrade_0to1 = {
 	"debug_db": "0",
@@ -57,11 +60,19 @@ const settings_upgrade_0to1 = {
 	"debug_msg": "0",
 	"minSharedNonOverlap": 0.08,  // 0.08 will allow all
 	"closeTabImmediate": "0",
-	"alwaysIncludeNonOverlap": "0"
+	"alwaysIncludeNonOverlap": "0",
+	"favouritesAreScanned": "0"
 };
 
 const settings_upgrade_1to2 = {
 	"importReplaces": "0"		// if imports and migrate uses replace (1) or ignore (0)
+};
+
+const settings_upgrade_2to3 = {
+	"relativePixelPadding": "16",		// how many pixels padding for each relative list
+	"displayNotesLength": "0",			// how many chars to show notes next to relative name.
+	"autoLoadICW": "0",					// if we should auto-click the "load relatives in common" button.
+	"favouritesAreScanned": "0"
 };
 
 // in-page cache of settings
@@ -97,6 +108,11 @@ function retrieveSettingsP() {
 							// merge in new values...
 							Object.assign(settings529, settings_upgrade_1to2);
 							setSetting( "version", 2 );
+						}
+						if(settings529["version"] < 3 ) {
+							// merge in new values...
+							Object.assign(settings529, settings_upgrade_2to3);
+							setSetting( "version", 3 );
 						}
 						settings_from_storage = true;
 						console.log("Stored settings retrieved:", settings529); 

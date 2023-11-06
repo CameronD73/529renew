@@ -478,11 +478,25 @@ function createSVGButton( ){
 
 function createDBDumpButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Dump Sqlite DB";
-	newButton.title="Export the internal database to your computer's filesystem (mainly for debugging)";
+	newButton.innerHTML="Backup Sqlite DB";
+	newButton.title="Export the internal database to your computer's filesystem (current version cannot restore)";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){askDumpSqlite3DB();});
 	document.getElementById("buttonOutRow").appendChild(newButton);
+}
+
+function createDBRestoreButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Restore Sqlite DB";
+	newButton.title="Restore the internal database from a backup on your computer's filesystem";
+	newButton.setAttribute("type", "button");
+	newButton.addEventListener('click', ()=> {
+		if ( confirm('This will destroy all data in the current DB and\noverwrite with previously backed up file. Are you sure?') ) 
+			document.getElementById("upfile-restore").click();
+
+	} );
+	document.getElementById("buttonOutRow").appendChild(newButton);
+	document.getElementById("upfile-restore").addEventListener('change',(evt)=>{askRestoreSqlite3DB(evt);});
 }
 /*
 ** =======   Create row of buttons for import, etc
@@ -513,21 +527,13 @@ function createImport23Button(){
 	document.getElementById("upfile23").addEventListener('change', requestImport23CSV);
 }
 
-function createMigrateWebsqlButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Migrate V1 DB";
-	newButton.title='migrate the content directly from the old DB to the new';
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', requestMigrateWebsql );
-	document.getElementById("buttonInRow").appendChild(newButton);
-}
 
-function createMigrationFinaliseButton(){
+function createOverlapCalcButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Finalise Migration";
-	newButton.title='This builds a few ancillary tables from the imported data. It is safe to run twice';
+	newButton.innerHTML="Calculate overlaps ";
+	newButton.title='This identifies segment overlaps from old data. It is safe to run multiple times.';
 	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', requestMigrationFinalise );
+	newButton.addEventListener('click', requestOverlapCalculation );
 	document.getElementById("buttonInRow").appendChild(newButton);
 }
 
@@ -543,16 +549,10 @@ function createImport529Button(){
 
 function createDeleteWASMButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete 529renew New Database";
+	newButton.innerHTML="Delete 529Renew Database";
+	newButton.title='Delete all saved DNA data collected by 529Renew';
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', requestDeletionFromDatabase);
-	document.getElementById("buttonInRow").appendChild(newButton);
-}
-function createDeleteWebSQLButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Empty OLD 529renew Database";
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', deleteAllDataWebSQL);
 	document.getElementById("buttonInRow").appendChild(newButton);
 }
 /* ========= end of button creation ============= */
@@ -717,124 +717,115 @@ function createKitSelector( ){
 	}
 }
 
-function colorizeButton(button, cid1,  cid2){
-	return function(transaction, results){
-		var cmatchIds1=new Array();
-		var cnonmatchIds1=new Array();
-		var cmatchIds2=new Array();
-		var cnonmatchIds2=new Array();
-		var sharingIds=new Array();
-		{
-			let ci;
-			for(ci=0; ci<results.rows.length; ci++){
-				let crow = results.rows.item(ci);
-				if((ci+1)<results.rows.length){
-					if(results.rows.item(ci+1).ROWID==crow.ROWID){
-						continue;
-					}
+function colorizeButton( resultRows, buttondata ) {
+	let button = buttondata.button;
+	let cid1 = buttondata.id1;
+	let cid2 = buttondata.id2;
+	var cmatchIds1=new Array();
+	var cnonmatchIds1=new Array();
+	var cmatchIds2=new Array();
+	var cnonmatchIds2=new Array();
+	var sharingIds=new Array();
+	let nrows = resultRows.length;
+	{
+		let ci;
+		for(ci=0; ci<nrows; ci++){
+			let crow = resultRows.item(ci);
+			if((ci+1)<nrows){
+				if(resultRows.item(ci+1).ROWID==crow.ROWID){
+					continue;
 				}
-				if(cid1==crow.id1){
-					// ID1 is listed first in match
-					if(cid2!=crow.id2 ){
-						// ID2 is not listed second in match
-						let cid = crow.id2;
-						{
-							if(crow.chromosome==100){
-								if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
-							}
-							else{
-								if(cmatchIds1.indexOf(cid)==-1) cmatchIds1.push(cid);
-							}
+			}
+			if(cid1==crow.id1){
+				// ID1 is listed first in match
+				if(cid2!=crow.id2 ){
+					// ID2 is not listed second in match
+					let cid = crow.id2;
+					{
+						if(crow.chromosome==100){
+							if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
+						}
+						else{
+							if(cmatchIds1.indexOf(cid)==-1) cmatchIds1.push(cid);
 						}
 					}
 				}
-				else if(cid1==crow.id2){
-					// ID1 is listed second in match
-					if(cid2!=crow.id1){
-						// ID2 is not listed first in match
-						let cid=crow.id1;
-						{
-							if(crow.chromosome==100){
-								if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
-							}
-							else{
-								if(cmatchIds1.indexOf(cid)==-1) cmatchIds1.push(cid);
-							}
+			}
+			else if(cid1==crow.id2){
+				// ID1 is listed second in match
+				if(cid2!=crow.id1){
+					// ID2 is not listed first in match
+					let cid=crow.id1;
+					{
+						if(crow.chromosome==100){
+							if(cnonmatchIds1.indexOf(cid)==-1) cnonmatchIds1.push(cid);
+						}
+						else{
+							if(cmatchIds1.indexOf(cid)==-1) cmatchIds1.push(cid);
 						}
 					}
 				}
-				else if(cid2==crow.id1){
-					// ID2 is listed first in match
-					if(cid1!=crow.id2){
-						// ID1 is not listed secon in match
-						let cid = crow.id2;
-						{
-							if(crow.chromosome==100){
-								if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
-							}
-							else{
-								if(cmatchIds2.indexOf(cid)==-1) cmatchIds2.push(cid);
-							}
+			}
+			else if(cid2==crow.id1){
+				// ID2 is listed first in match
+				if(cid1!=crow.id2){
+					// ID1 is not listed secon in match
+					let cid = crow.id2;
+					{
+						if(crow.chromosome==100){
+							if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
+						}
+						else{
+							if(cmatchIds2.indexOf(cid)==-1) cmatchIds2.push(cid);
 						}
 					}
 				}
-				else if(cid2==crow.id2){
-					// ID2 is listed second in match
-					if(cid1!=crow.id1){
-						//ID1 is not listed first in match
-						let cid = crow.id1;
-						{
-							if(crow.chromosome==100){
-								if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
-							}
-							else{
-								if(cmatchIds2.indexOf(cid)==-1) cmatchIds2.push(cid);
-							}
+			}
+			else if(cid2==crow.id2){
+				// ID2 is listed second in match
+				if(cid1!=crow.id1){
+					//ID1 is not listed first in match
+					let cid = crow.id1;
+					{
+						if(crow.chromosome==100){
+							if(cnonmatchIds2.indexOf(cid)==-1) cnonmatchIds2.push(cid);
+						}
+						else{
+							if(cmatchIds2.indexOf(cid)==-1) cmatchIds2.push(cid);
 						}
 					}
 				}
 			}
 		}
-		{
-			for(let ci=0; ci<cmatchIds1.length; ci++){
-				if(cmatchIds2.indexOf(cmatchIds1[ci])==-1 && cnonmatchIds2.indexOf(cmatchIds1[ci])==-1){
-					button.style.background='darkorange';
-					return;
-				}
+	}
+	{
+		for(let ci=0; ci<cmatchIds1.length; ci++){
+			if(cmatchIds2.indexOf(cmatchIds1[ci])==-1 && cnonmatchIds2.indexOf(cmatchIds1[ci])==-1){
+				button.style.background='darkorange';
+				return;
 			}
 		}
-		{
-			for(let ci=0; ci<cmatchIds2.length; ci++){
-				if(cmatchIds1.indexOf(cmatchIds2[ci])==-1 && cnonmatchIds1.indexOf(cmatchIds2[ci])==-1){
-					button.style.background='darkorange';
-					return;
-				}
+	}
+	{
+		for(let ci=0; ci<cmatchIds2.length; ci++){
+			if(cmatchIds1.indexOf(cmatchIds2[ci])==-1 && cnonmatchIds1.indexOf(cmatchIds2[ci])==-1){
+				button.style.background='darkorange';
+				return;
 			}
 		}
-		button.style.background='darkgreen';
-	};
+	}
+	button.style.background='darkgreen';
 }
 
-// The createTable and createCSV.. functions are sql transaction callbacks
-function createTable(transaction, results){
-	createTable12(transaction, results, false);
-}
-function createTable2(transaction, results){
-	createTable12(transaction, results, true);
-}
 /*
 ** createTable12
 ** does the bulk of the processing after the big join
 ** Lays out the "Match Table" for the selected person.
 */
-function createTable12(transaction, results, colorize){
+function createTable12( resultRows, colorize){
 	var graphNode=document.getElementById("529graph");
 	if(graphNode!=null) graphNode.parentNode.removeChild(graphNode);
 
-	if(results.message){
-		alert("createTable12: Failed to retrieve match data: "+ results.message);
-		return;
-	}
 
 	var omitAliases=getSetting( "omitAliases");
 	var hideCloseMatches=getSetting( "hideCloseMatches" );
@@ -845,32 +836,34 @@ function createTable12(transaction, results, colorize){
 	var displayMode=document.getElementById("displayMode");
 	var showURL=(displayMode.value>0);
 	var enableShowSegments=(displayMode.value>1);
+	let nrows = resultRows.length;
 
 
 	// Remove any preexisting table
 	while(document.getElementById("table_div").hasChildNodes()){
 		document.getElementById("table_div").removeChild(document.getElementById("table_div").children[0]);
 	}
-	if(results.rows.length>5000){
-		if(!confirm("Display " + results.rows.length + " matching segments? That could take a while.")) return;
+	if(nrows>5000){
+		if(!confirm("Display " + nrows + " matching segments? That could take a while.")) return;
 	}
-	db_conlog( 1, `CreateTable12-query returned ${results.rows.length} rows.`)
+	db_conlog( 1, `CreateTable12-query returned ${nrows} rows.`)
 	var table=document.createElement("table");
 
 	document.getElementById("table_div").appendChild(table);
 
 	var suppressed_ids=null;
-	if(hideCloseMatches && results.rows.length>21){
+	if(hideCloseMatches && nrows>21){
 		let ids=new Array();
 		let counts=new Array();
 
-		for(let i=0; i<results.rows.length; i++){
+		for(let i=0; i<nrows; i++){
 
-			let row = results.rows.item(i);
+			let row = resultRows[i];
 			if(!row.chromosome) break;
 			if(row.chromosome==100) break;
-			if((i+1)<results.rows.length){
-				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+			if((i+1)<nrows){
+				// I don't understand what this is trying to do - two consecutive rows derived from the one segment match pair.
+				if(resultRows[i+1].ROWID==row.ROWID) continue;
 			}
 			let curr_id;
 			if(expectedIdStr==row.id2)
@@ -904,15 +897,15 @@ function createTable12(transaction, results, colorize){
 	}
 
 	let ii=-1;
-	for(let i=0; i<results.rows.length; i++) {
+	for(let i=0; i<nrows; i++) {
 
-		let row = results.rows.item(i);
+		let row = resultRows[i];
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
 
 		if(omitAliases){
-			if((i+1)<results.rows.length){
-				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+			if((i+1)<nrows){
+				if(resultRows[i+1].ROWID==row.ROWID) continue;
 			}
 		}
 		if(suppressed_ids){
@@ -1035,7 +1028,7 @@ function createTable12(transaction, results, colorize){
 			button.innerHTML="show overlapping segments";
 			(tablerow.insertCell(curColumnId++)).appendChild(button);
 			if( colorize ){
-				selectSegmentMatchesFromDatabase(colorizeButton(button, row.id1, row.id2), row.ROWID);
+				selectSegmentMatchesFromDatabase('colorizeButton', {button:button, id1:row.id1, id2:row.id2}, row.ROWID);
 			}
 		}
 	}
@@ -1057,37 +1050,27 @@ function createTable12(transaction, results, colorize){
 	}
 	createMatchSVG(table);
 }
-function createCSV(transaction, results){
-	createCSV12( results, false);
-}
-function createCSV2(transaction, results){
-	createCSV12( results, false);
-}
-function createCSV3(transaction, results){
-	createCSV12( results, true);
-}
-function createCSV12( results,  includeNonMatch){
 
-	if(results.message){
-		alert("createCSV12: Failed to retrieve 12 match data: "+ results.message);
-		return;
-	}
+function createCSV12( resultRows,  includeNonMatch){
+
+
 	var omitAliases=getSetting( "omitAliases");
 
 	var csvarray=new Array();
 	csvarray.push("Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs, ID, Match ID\n");
 
+	let nrows = resultRows.length;
 	var theName=null;
 
-	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
+	for(let i=0; i<nrows; i++) {	//nrows
 
-		let row = results.rows.item(i);
+		let row = resultRows[i];
 		if(!row.chromosome) break;
 		if(row.chromosome==100 && !includeNonMatch) break;
 
 		if(omitAliases){
-			if((i+1)<results.rows.length){
-				if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+			if((i+1)<nrows){
+				if(resultRows[i+1].ROWID==row.ROWID) continue;
 			}
 		}
 		let name=null;
@@ -1163,12 +1146,8 @@ function downloadSVG(){
 	var blob = new Blob(svgArray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529renew.svg");
 }
-function createGEXF(transaction, results){
 
-	if(results.message){
-		alert("createGEXF: Failed to retrieve match data: "+ results.message);
-		return;
-	}
+function createGEXF(resultRows){
 
 	var gexfarray=new Array();
 	gexfarray.push('<?xml version="1.0" encoding="UTF-8"?>\n');
@@ -1179,14 +1158,17 @@ function createGEXF(transaction, results){
 	gexfarray.push('  </meta>\n');
 	gexfarray.push('  <graph defaultedgetype="undirected" mode="static">\n');
 	gexfarray.push('    <nodes>\n');
-	var nodeArray=new Array();
-	for(let i=0; i<results.rows.length; i++){
 
-		let row= results.rows.item(i);
+	var nodeArray=new Array();
+	let nrows = resultRows.length;
+
+	for(let i=0; i<nrows; i++){
+
+		let row= resultRows[i];
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
-		if((i+1)<results.rows.length){
-			if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+		if((i+1)<nrows){
+			if(resultRows[i+1].ROWID==row.ROWID) continue;
 		}
 		let nodeId=row.id1;
 		let j=0;
@@ -1211,21 +1193,21 @@ function createGEXF(transaction, results){
 	gexfarray.push('    <edges>\n');
 
 
-	for(let i=0; i<results.rows.length; i++) {	//results.rows.length
+	for(let i=0; i<nrows; i++) {
 
-		let row = results.rows.item(i);
+		let row = resultRows[i];
 		if(!row.chromosome) break;
 		if(row.chromosome==100) break;
 
-		if((i+1)<results.rows.length){
-			if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+		if((i+1)<nrows){
+			if(resultRows[i+1].ROWID==row.ROWID) continue;
 		}
 
 		let label;
 		if(row.chromosome==23) label="X:";
 		else label=row.chromosome+":";
 
-		label=label+ row.start + "-" + row.end;
+		label += row.start + "-" + row.end;
 
 		if(expectedIdStr==row.id2){
 			gexfarray.push('      <edge source="' + row.id1 +'" target="' + row.id2 + '" weight="' + row.cM/20 + '" label="'+label+'"/>\n');
@@ -1260,22 +1242,17 @@ function get_cM( val ){
 	
 
 /*
-** createSegmentTable - db transaction callback, with results of query for matching segments
+** createSegmentTable - db pseudo-callback, with results of query for matching segments
 ** - creates html table of segment overlaps between testing pairs
 */
 
-function createSegmentTable(transaction, results){
+function createSegmentTable(resultRows){
 
 	let omitAliases=getSetting( "omitAliases");
 	let hideCloseMatches=getSetting( "hideCloseMatches" );
+	let nrows = resultRows.length;
 
 	if(hideCloseMatches && document.getElementById("selectName").selectedIndex==0) hideCloseMatches=false;
-
-
-	if(results.message){
-		alert("createSegmentTable: Failed to retrieve match data: "+ results.message);
-		return;
-	}
 
 	var displayMode=document.getElementById("displayMode");
 	
@@ -1300,15 +1277,15 @@ function createSegmentTable(transaction, results){
 		// into the matchIds array
 		let i;
 		let ii=-1;
-		for (i=0; i<results.rows.length; i++) {
-			let row = results.rows.item(i);
+		for (i=0; i<nrows; i++) {
+			let row = resultRows[i];
 			// result rows are ordered in the first instance by chromosome number, so
 			// once we hit chr 100 there are no real results remaining
 			if(row.chromosome>=100) break;
 
 			if(omitAliases){
-				if((i+1)<results.rows.length){
-					if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+				if((i+1)<nrows){
+					if(resultRows[i+1].ROWID==row.ROWID) continue;
 				}
 			}
 			ii++;
@@ -1370,13 +1347,13 @@ function createSegmentTable(transaction, results){
 		}
 		// Process the chromosome 100 matches
 		// at this stage, i is the first chr 100 entry.
-		for(; i<results.rows.length; i++) {
+		for(; i<nrows; i++) {
 
-			let row = results.rows.item(i);
+			let row = resultRows[i];
 
 			if(omitAliases){
-				if((i+1)<results.rows.length){
-					if(results.rows.item(i+1).ROWID==row.ROWID) continue;
+				if((i+1)<nrows){
+					if(resultRows[i+1].ROWID==row.ROWID) continue;
 				}
 			}
 			ii++;
@@ -1732,7 +1709,7 @@ function createSegmentTable(transaction, results){
 			}
 		}
 	}
-	// Creating the header after the body prevents rows from being inserted into header
+	// Creating the header after the body prevents rows from being inserted into header - apparently
 	let tablehead=table.createTHead();
 	let tableheadrow=tablehead.insertRow(0);
 	tableheadrow.className="center";
@@ -1757,13 +1734,11 @@ function displayMatchingSegments(rowid, name1, name2, id1, id2){
 	expected_id1=id1;
 	expected_id2=id2;
 	db_conlog( 2, `displayMatchingSegments: n1=${name1} and n2=${name2}`);
-	selectSegmentMatchesFromDatabase(createSegmentTable, rowid);
+	selectSegmentMatchesFromDatabase('createSegmentTable', {}, rowid);
 }
 
 // display match table on screen
 function requestSelectFromDatabase(shiftIsDown, altIsDown){
-	alert( 'Does nothing yet');
-	return;
 	let namesel = document.getElementById("selectName");
 	let chromsel = document.getElementById("chromosome");
 	if(namesel.selectedIndex<0) return;
@@ -1775,16 +1750,14 @@ function requestSelectFromDatabase(shiftIsDown, altIsDown){
 		expectedIdStr=expectedId;
 
 	if(shiftIsDown){
-		selectFromDatabase(createTable2, expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
+		selectFromDatabase('createTable2', expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
 	}
 	else{
-		selectFromDatabase(createTable, expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
+		selectFromDatabase('createTable', expectedId, chromsel.options[chromsel.selectedIndex].value, altIsDown, false);
 	}
 }
 
 function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
-	alert( 'Does nothing yet');
-	return;
 	let namesel = document.getElementById("selectName");
 	if(namesel.selectedIndex<0) return;
 	expectedName=namesel.options[namesel.selectedIndex].text;
@@ -1796,15 +1769,13 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 	let limitDates = !shiftIsDown;
 	let chromsel = document.getElementById("chromosome");
 	if(altIsDown){
-		selectFromDatabase(createCSV3, expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, true);
+		selectFromDatabase('createCSV3', expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, true);
 	}
 	else{
-		selectFromDatabase(createCSV, expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
+		selectFromDatabase('createCSV', expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
 	}
 }
 function requestSelectFromDatabaseForGEXF(){
-	alert( 'Does nothing yet');
-	return;
 	let namesel = document.getElementById("selectName");
 	let chromsel = document.getElementById("chromosome");
 	if(namesel.selectedIndex<0) return;
@@ -1814,7 +1785,7 @@ function requestSelectFromDatabaseForGEXF(){
 		expectedIdStr=0;
 	else
 		expectedIdStr=expectedId;
-	selectFromDatabase(createGEXF, expectedId, chromsel.options[chromsel.selectedIndex].value, false, false);
+	selectFromDatabase('createGEXF', expectedId, chromsel.options[chromsel.selectedIndex].value, false, false);
 }
 
 let migration_started= 0;
@@ -1825,21 +1796,13 @@ function CSV_loadDone( newSize ){
 	document.getElementById("docBody").style.cursor="pointer";
 
 	alert(`CSV file parsing complete in ${elapsed} seconds,\n database updated, now ${newSize} bytes`);
-	// don't remember why I needed to refresh the page - block for now so we can see output
+	// don't remember why I needed to refresh the page - ignore the reload for now so we can see output
 	// location.reload(true); 
 }
 
-function WebSQLMigrateDone(  ){
+function migrationOverlapFind_done( s ) {
 	let elapsed = secondsToday() - migration_started;
-
-	document.getElementById("docBody").style.cursor="pointer";
-
-	alert(`Migration of old DB complete in ${elapsed} seconds.`);
-}
-
-function migrationFinalise_done( s ) {
-	let elapsed = secondsToday() - migration_started;
-	let elapsed_min = elapsed / 60.0;
+	let elapsed_min = (elapsed / 60.0).toFixed(1);
 	let str = '';
 	if ( elapsed > 100) {
 		str = `${elapsed_min} minutes`;
@@ -1847,8 +1810,9 @@ function migrationFinalise_done( s ) {
 		str = `${elapsed} seconds`;
 	}
 	document.getElementById("docBody").style.cursor="pointer";
-
-	alert(`ICW sets analysed in ${str}.\n${s.triang} triangulate; ${s.twoway} overlaps 2-way only; ${s.no_overlap} have no overlap;\n${s.hidden} are hidden; ${s.unknown} have status uncertain.`);
+	//let MC = 0.1*Math.floor( * 10+ 0.5);
+	let MC = (s.compared).toFixed( 2 );
+	alert(`ICW sets analysed in ${str}.\n${s.triang} triangulate; ${s.twoway} overlaps 2-way only; ${s.no_overlap} have no overlap;\n${s.hidden} are hidden; ${s.unknown} have status uncertain.\nOut of ${MC} million comparisons`);
 }
 
 function requestImportProfiles(evt){
@@ -1925,7 +1889,7 @@ function requestImport529CSV(evt){
         	else if(lines[0]==="Name, Match name, Chromosome, Start point, End point, Genetic distance, # SNPs"){
         		alert("This file lacks 23andMe unique identifiers and therefore cannot be imported");
         	}
-        	else alert("Unrecognized file format - cannot process");
+        	else alert("Unrecognized header in 529 CSV file - cannot process");
         };
       })(file);
 
@@ -1971,11 +1935,13 @@ function readNextCSV23() {
 	reader.onload = (function(theFile) {
 		return function(e) {
 			let lines = e.target.result.split(/\r\n|\r|\n/);
-			if(lines[0] === CSVheader){
+			let CSVh_noquotes = CSVheader.replaceAll( '"', '' );
+			let inhead_noquotes = lines[0].replaceAll( '"', '' );
+			if(inhead_noquotes === CSVh_noquotes){
 				document.getElementById("docBody").style.cursor="wait";
 				import23CSV(kitID, kitName, lines, 30 );
 			}
-        	else alert("Unrecognized file format");
+        	else alert(`Unrecognized header line in 23 and Me CSV: ${file.name}`);
         };
       })(file);
 
@@ -2000,8 +1966,26 @@ function dumpSqlite3DB(arrbuf) {
 
 function askDumpSqlite3DB() {
 	DBworker.postMessage( {reason:"dumpDB"} );
-	}
+}
 
+function askRestoreSqlite3DB(evt) {
+	
+	evt.stopPropagation();
+	evt.preventDefault();
+
+	const file = evt.target.files[0];
+	if ( ! file ) return;
+	const reader = new FileReader();
+
+
+	reader.addEventListener('load', function(theFile) {
+		let data = this.result;  // an ArrayBuffer
+		DBworker.postMessage( {reason:"restoreDB", filecontents:data}, [data] );
+	} );
+
+    reader.readAsArrayBuffer(file);
+}
+	
 
 document.addEventListener('DOMContentLoaded',  function () {
 	( async() => {
@@ -2014,16 +1998,15 @@ document.addEventListener('DOMContentLoaded',  function () {
 	createGEXFButton();
 	createSVGButton();
 	createDBDumpButton();
+	createDBRestoreButton();
 
 	createKitSelector();
 	createImportProfileButton();
 	createImport23Button();
-	createMigrateWebsqlButton();
-	createMigrationFinaliseButton();
+	createOverlapCalcButton();
 	createImport529Button();
 	createClearFilterButton();
 	createDeleteWASMButton();
-	createDeleteWebSQLButton();
 
 	setDisplayModeSelector();
 	setTextSizeSelector();

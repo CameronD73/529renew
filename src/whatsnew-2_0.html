@@ -6,96 +6,144 @@
   </head>
   <body style="font-size: medium;">
     <h2>Changes with version 2 of 529Renew.</h2>
-    <h3>This page  appears only when 529renew is upgraded from version 1.x to 2.0 (or 1.9)</h3>
+    <h3>This page  appears only when 529renew is upgraded from version 1.x to 2.0 </h3>
     <p>
-      This <b>major</b> change was required before 30 October 2023, when Chromium-based browsers plan to remove the <i>WebSQL API</i> that was a core part of 529Renew.
+      This <b>major</b> change was required by 30 October 2023, when Chromium-based browsers removed the <i>WebSQL API</i> that was a core part of 529Renew.  Unfortunately it coincided with a lockdown by 23andMe following some customers' private data exposure, so this version, while it has been released with webSQL code removed, cannot be tested.
+      It is <i>unlikely to work for triangulation</i> - but I cannot test it while no segment matching is available from 23andMe.
     </p>
     <h4>Version 1.9.x - mid to late October 2023</h4>
-    <p>With this version you will be able to migrate your existing database, provided it is done before approximately 26th October.
-      You should take care to follow the procedure outlined - while it is not essential that you follow every step in order, I have not studied all possible combinations.
+    <p>With that version you were able to migrate your existing database, however that pathway is no longer  available in Chrome.
     </p>
-    <h4>Version 2.x - introduced late October 2023</h4>
+    <h3>DNA Relatives page</h3>
     <p>
-      Starting around the 26th October, all code relating to the old database (WebSQL API) will be removed.
-      It is likely to be incomplete, and subsequent updates should follow to reach at least the same functionality as V1.3.
+      Previously, 529Renew did not modify the DNArelatives page, but now there are some changes to the code that change the appearance of the page.
+      Most of these can be turned off, if you wish.
     </p>
+    <ol>
+      <li><i><b>Gather button:</b></i> a button labelled "529 Gather" (for want of anything more meaningful) will scan your list of 1500 relatives and update the database with any new entries. This is a good starting point for new kits or new users of 529Renew.  It includes some, but not all of, the information provided in a CSV download of DNArelatives, so you should still do that once a month or so, while this provides a convenient process for more frequent updates.</li>
+      <li><i><b>compressed layout:</b></i> see the <i>padding</i> option for details</li>
+      <li><i><b>displayed notes:</b></i> If you have added notes to a person then it is displayed on the relatives list (up to a limit)
+      under their name. Hover the mouse to display the full note. If you have no notes then a brief summary is fabricated, indicated by a leading "---". It includes the percent shared calculated as cM as well as the longest segment. See the <i>Maximum Note Length</i> setting.</li>
+      <li>The <i><b>background colour </b></i>of a relative  will be shown in pale green after 529Renew code has scanned all ICWs of that profile-relative pair. See the <i>Star means have-triangulated</i> option for a possible shortcut.</li>
+    </ol>
+    <h3>Options Changed</h3>
+    <p>
+      Read the description on the options setting page for details of new options.
+    </p>
+    <h4>Base Pair Address Rounding</h4>
+    <p>
+      This setting has been removed - no rounding is done to the addresses from now.  It was provided  only for compatibility with very  old versions of 529 and You database values, and has been rendered unnecessary by the <i>minOverlap</i> setting.
+    </p>
+    <h4>Padding on DNA Relatives list</h4>
+    <p> a new option to remove some of the blank space above and below each relative listed.
+      (I don't like unnecessary scrolling)
+    </p>
+    <h4>Maximum Note Length</h4>
+    <p> a new option - your notes will be added under each relative's name, up to this limit (number of characters). Set it to zero to disable the display on notes.</p>
+    <h4>Action for duplicate imports</h4>
+    <p>
+      This describes how 529 handles importing details of a DNArelative from the csv file when there is already an entry.
+      It can be set to either "ignore" or "replace".  It should be set to "ignore" when you are bulk-importing multiple files at once, but "replace" once you are updating a single file at a time (that assumes more recent results should overwrite previous ones). Because the "gather" process has incomplete data, you should always use replace so that CSV data replaces gathered data.
+    </p>
+    <h4>Star means have-triangulated</h4>
+    <p>
+      My process was to click on the "favourite" star for each relative that I had triangulated. In future this information (that a triangulation run has been done between a profile person and a DNArelative) will be stored in the DB, but in this way I can apply the flag retrospectively to previous triangulations.
+      If it is also true in your case then set this to "yes" and use the "gather" button to assign "has been triangulated" status.
+      Currently this will only affect display.
+    </p>
+    <hr/>
     <h2>Migration Pathway</h2>
     <p>
-      Migration is not mandatory - if all fails you could start again - but migration will retain as much of your hard-won data as possible, (otherwise you will eventually need to scan them all again).
+      There are various scenarios:
     </p>
-    <p>This process is set out in buttons on the "529Renew Results" tab, as shown in this screenshot.</p>
+    <h3>Already migrated</h3>
+      <p>
+        If you have already carried out the migration, using V1.9, then <b>you  need to rescan for overlapping segments</b>.
+        There was a major bug in the code for the "finalise migration" button on V1.9 (now labelled "Calculate overlaps"), and it needs to be run again.
+      </p>
+    <h3>Not Migrated - Have an exported 529 CSV file</h3>
+      <h4>1. prepare a profile table.</h4>
+      <p>
+        This is <i>an essential first step</i>.
+        The profile table will be a tiny CSV file, which you need to create, identifying all the kits that you manage on 23 and Me.
+        It might be a good idea to put older generations first (future code might be optimised on this assumption.)
+        The format is very simple:
+        <ul>
+          <li>column 1: the 16-character ID that 23andMe uses to identify the profile, the same as GDAT uses. The allowed characters are digits 0 to 9 and alphabetic a to f.</li>
+          <li>column 2: any short name allowing you to recognise the person when using 529Renew.  It does <i>not</i>
+          need to be the same as used for the kits in 23andMe</li>
+        </ul>
+        <p><i>The first line will be ignored</i>, so use it to put in a reminder heading.
+        Your file will look like something like this example:</p>
+        <pre style="font-size:larger;">
+          ID, name     # this file is for initial entry to 529Renew
+          1234567890abcdef,Mum     
+          abcdef1234567890,My-name  
+        </pre>
+        Any quotation marks will be removed automatically, but extraneous embedded commas may cause errors.
+      </p>
+      <p>
+        Once the file is ready, click the button labelled <b>Import DNA kit list</b> and select the file you have just created.
+      </p>
+      <p>
+        When loaded, the dropdown "<i>Select profile for import</i>" (see arrow in screenshot) should show the people in the list you have just imported.
+      </p>
+      <h4>2. Import all CSV export files from 23andMe</h4>
+      <p>
+        This refers to the CSV files obtained using the "<i>Request DNA Relatives Data Download</i>" button.
+      </p>
+      <p>
+        Importing these files is the fastest way to load the background details of the DNA relatives, including data not previously stored by 529.
+        Because 23andMe only provide a fixed number of matches, there will regularly be people dropping from the list as stronger matches are tested.
+        By processing <i>all</i> your previously downloaded files, you can retain this information in one place, even though much of it is not used directly by 529 at the moment.
+      </p>
+      <p>
+        This routine allows you to select and process multiple files at once, although they must always be for the one profile person, as that information is not in the CSV file.
+        You can process one file at a time, but that is rather tedious (unless you have only one or two such files).
+        <ol>
+          <li>Create a folder for the one tester, and place all the csv files there.</li>
+          <li>They will all need renaming, and should be named so that they become sorted in date order when sorted by name. My recommendation is to use ISO-date format, for example "<i>&lt;profile-person&gt;</i>-DNArelatives-2023-05-21.csv"</li>
+          <li>The default import at this stage will not overwrite records that are already saved -
+            it will assume newer records are more valid and try starting with the newest file first.
+            It lists each file as it reads it, so you can confirm the sequence.</li>
+          <li>If you have placed returns (line-breaks) in the notes, then this will corrupt the import process and they should be edited out - both in the CSV and on the relative's 23andMe web page.</li>
+        </ol>
+      </p>
+      <p>
+        <ul>
+          <li>Select the appropriate profile person from the dropdown "<i>Select profile for import</i>" (see arrow in screenshot).</li>
+          <li>Then click the <B>Import 23+Me CSV</B> button.</li>
+          <li>select all the csv files for that profile person.</li>
+          <li>Repeat for each profile kit that you manage.</li>
+        </ul>
+        
+      </p>
+      <h4>3. Import the content from the 529 export CSV file.</h4>
+      <p>
+        This will transfer most of the segment details that you have painstakingly collected up to now.
+        Simply click the "<B>Import 529 CSV</B>" button, select the appropriate file, and it will carry out the import.
+        There are several stages, and there will be occasional notifications in the area below the buttons.
+      </p>
+      <h4>4. Calculate Overlaps</h4>
+      <p>
+        This will take several minutes.
+        If you use this button then there will be some housekeeping, checking  that the database is self-consistent and some utility tables are calculated.
+        It generates lists of ICWs that all share a common segment, as well as ICWs where the profile person shares the same segment with each but for some reason we cannot identify a 3-way overlap.
+        These are part of the planning for changes after the loss of information about shared overlap, but not yet fully implemented.
+      </p>
+    <h3>You are New to 529Renew</h3>
+      <p>
+        If you already have  downloaded 23andMe CSV data  then you can start off with the first two steps above.
+        Then wait for 23andMe to release DNA comparison results again.
+      </p>
+    <h3>You are New to 23andME and to 529Renew</h3>
+      <p>
+        You can start at the DNArelatives page and use the "Gather-529" button to save  some information and prepare the  system.
+        Do this for each profile that you manage, changing profile with the drop-down menu near top right.
+        Then wait for 23andMe to release DNA comparison results again.
+      </p>
+
     <hr/>
-    <img src="websql/529renew-results-startup.png" alt="screenshot showing migration buttons" />
-    <hr/>
-    <h3>1. prepare a profile table.</h3>
-    <p>
-      This is <i>an essential first step</i>.
-      The profile table will be a tiny CSV file, which you need to create, identifying all the kits that you manage on 23 and Me.
-      It might be a good idea to put older generations first (future code might be optimised on this assumption.)
-      The format is very simple:
-      <ul>
-        <li>column 1: the 16-character ID that 23andMe uses to identify the profile, the same as GDAT uses. The allowed characters are digits 0 to 9 and alphabetic a to f.</li>
-        <li>column 2: any short name allowing you to recognise the person when using 529Renew.  It does <i>not</i>
-        need to be the same as used for the kits in 23andMe</li>
-      </ul>
-      <p><i>The first line will be ignored</i>, so use it to put in a reminder heading.
-      Your file will look like something like this example:</p>
-      <pre style="font-size:larger;">
-        ID, name     # this file is for initial entry to 529Renew
-        1234567890abcdef,Mum     
-        abcdef1234567890,My-name  
-      </pre>
-      Any quotation marks will be removed automatically, but extraneous embedded commas may cause errors.
-    </p>
-    <p>
-      Once the file is ready, click the button labelled <b>Import DNA kit list</b> and select the file you have just created.
-    </p>
-    <p>
-      When loaded, the dropdown "<i>Select profile for import</i>" (see arrow in screenshot) should show the people in the list you have just imported.
-    </p>
-    <h3>2. Import all CSV export files from 23andMe</h3>
-    <p>
-      This refers to the CSV files obtained using the "<i>Request DNA Relatives Data Download</i>" button.
-    </p>
-    <p>
-      Importing these files is the fastest way to load the background details of the DNA relatives, including data not previously stored by 529.
-      Because 23andMe only provide a fixed number of matches, there will always be people dropping from the list as stronger matches are tested.
-      By processing <i>all</i> your previously downloaded files, you can retain this information in one place, even though much of it is not used directly by 529 at the moment.
-    </p>
-    <p>
-      This routine allows you to select and process multiple files at once, although they must always be for the one profile person, as that information is not in the CSV file.
-      You can process one file at a time, but that is rather tedious (unless you have only one or two such files).
-      <ol>
-        <li>Create a folder for the one tester, and place all the csv files there.</li>
-        <li>They will all need renaming, and should be named so that they become sorted in date order when sorted by name. My recommendation is to use ISO-date format, for example "<i>&lt;profile-person&gt;</i>-DNArelatives-2023-05-21.csv"</li>
-        <li>The default import at this stage will not overwrite records that are already saved -
-           it will assume newer records are more valid and try starting with the newest file first.
-          It lists each file as it reads it, so you can confirm the sequence.</li>
-        <li>If you have placed returns (line-breaks) in the notes, then this will corrupt the import process and they should be edited out - both in the CSV and on the relative's 23andMe web page.</li>
-      </ol>
-    </p>
-    <p>
-      <ul>
-        <li>Select the appropriate profile person from the dropdown "<i>Select profile for import</i>" (see arrow in screenshot).</li>
-        <li>Then click the <B>Import 23+Me CSV</B> button.</li>
-        <li>select all the csv files for that profile person.</li>
-        <li>Repeat for each profile kit that you manage.</li>
-      </ul>
-      
-    </p>
-    <h3>3. Migrate the content from the old database</h3>
-    <p>
-      This will transfer all the segments that you have painstakingly collected up to now.
-      Simply click the "<B>Migrate V1 DB</B>" button and it will carry out the transfer.
-      There are several stages, and there will be occasional updates in the area below the buttons.
-    </p>
-    <h3>4. Finalise the Migration</h3>
-    <p>
-      This will take several minutes.
-      If you use this button then there will be some housekeeping, checking  that the database is self-consistent and some utility tables are calculated.
-      It generates lists of ICWs that all share a common segment, as well as ICWs where the profile person shares the same segment with each but for some reason we cannot identify a 3-way overlap.
-      These are planning for changes after the loss of information about shared overlap, but I am not sure at the moment how best to use the information (so at the moment it does nothing with the information).
-    </p>
     <h2>Other options</h2>
     <p>
       There are various other operations that are active at this stage, although none are essential.
@@ -107,11 +155,16 @@
     <h3>view the DB status in the Settings Pop-up</h3>
     <p>If you go to the 529 settings popup, scroll to the bottom and you will see tables showing the sizes of the database tables and also your  profile list.
     </p>
-    <h3>Dump Sqlite DB</h3>
+    <h3>Backup Sqlite DB</h3>
     <p>
       This button will write the raw database file into a chosen folder on your normal filesystem.
-      The operating database is not stored anywhere accessible to you, so this export is the only way to get a copy and a complete backup.
-      There is at the moment no method to import such a DB file back into the extension, but that should be possible if necessary.
+      Unlike the previous version based on WebSQL, your active 529 database is not stored anywhere accessible to you, so this export is the only way to get a copy and a complete backup.
+    </p>
+    <h3>Restore Sqlite DB</h3>
+    <p>
+      This button will allow you to specifiy a database file that was previously saved using the "Backup Sqlite DB" button. 
+      The backed-up DB will <i>overwrite</i> the current DB contents, so be careful with it.
+      The  command was mainly enabled for code development, but could be useful for example to transfer the work to a new computer, or possibly a different browser.
     </p>
     <h3>Import 529 CSV</h3>
     <p>
@@ -120,19 +173,15 @@
     <h3>Delete 529renew New Database</h3>
     <p>
       This button will completely delete the new database, should things get messsed up.
-      You can then start the migration process again.
+      You can then start the import process again.
     </p>
     <h3>Backup old database</h3>
     <p>If you are reading this notice, it is already <i>no longer possible to export the database to CSV</i>.
-      I would recommend copying the entire old database into a safe area. 
+      Your browser has disabled access to the database but the file itself has been left in place.
+      I would recommend copying the entire old database into a safe area, just in case my migration process failed (or you missed out in the narrow window of opportunity). 
       Instructions are given in <a href="https://github.com/CameronD73/529renew/wiki/WebSQL-%E2%80%90-archiving-database" target="_blank">the 529Renew Wiki</a>.
-      Exporting a CSV from here is relatively straight-forward, but I won't bother with detail unless it becomes necessary.
-    </p>
-    <h3>Empty OLD 529renew Database</h3>
-    <p>
-      Once you are happy with the migrated data, if you are not comfortable with archiving the database file, as described above,
-      then you can save storage space by deleting the contents of the database.
-      529Renew cannot actually delete the database.  A small, nearly empty, file will remain.
+      You can then delete it from within your browser profile folder.
+      Exporting a CSV from the old database is relatively straight-forward, but I won't bother with detail unless it becomes necessary.
     </p>
  
   </body>

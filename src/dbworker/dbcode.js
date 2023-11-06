@@ -1,6 +1,6 @@
-/* define it as an object to isolate namespaces for different DB types.
+/*
+* define it as an object to isolate namespaces for different DB types.
 */
-
 
 console.log( 'dbcode loaded');
 
@@ -82,22 +82,45 @@ var DBwasm = {
                     returnValue: "resultRows"
                 } );
             }
-            const today = formattedDate2();
-            DB529.exec( {
-                sql:`INSERT into DBVersion (version, date) VALUES (1, '${today}');`,
-                returnValue: "resultRows"
-            });
+            DBwasm.assign_DB_version( 2 );
+
+
         } catch( e ) {
             console.error( 'DB Table creation failed: ', e.message);
         }
     },
     
+    assign_DB_version: function( ver ) {
+        const today = formattedDate2();
+        DB529.exec( `INSERT or IGNORE into DBVersion (version, date) VALUES (?, ?);`, {bind:[ver, today]} );
+    },
+
+    check_DB_version( ) {
+        let version = [];
+        try {
+            DB529.exec( 'SELECT version from DBVersion ORDER by version DESC LIMIT 1;', {resultRows:version, rowMode: 'array'} );
+            if ( version[0][0] == 1 ) {
+                DBwasm.update_DB_1_to_2();
+            }
+        } catch( e ) {
+            conerror( `update version failed: ${e.msg}` );
+        }
+
+    },
+
+    update_DB_1_to_2: function  () {
+        // this removes the effect of a bug in V1.9.2 where this flag was set by mistake. At this stage, nothing should be able to assign
+        // it to a correct value, so just removing all values is enough.
+        DB529.exec( 'UPDATE DNARelatives SET ICWscanned = NULL, dateScanned = NULL WHERE ICWscanned = 1');
+        DBwasm.assign_DB_version( 2 );
+    },
+
     get_summary: function() {
         let sqlcode = " \
                 SELECT \'DBVersion\' as tbl, max(version) as nrows  from DBVersion \
-            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles \
-            UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref \
-            UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
+            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles " +
+            // "UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref " +   // remove while we don't use it
+            "UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
             UNION SELECT \'DNAmatches\' as tbl, count(*) as nrows from DNAmatches \
             UNION SELECT \'ibdsegs\' as tbl, count(*) as nrows from ibdsegs \
             UNION SELECT \'idalias\' as tbl, count(*) as nrows from idalias \
@@ -117,6 +140,59 @@ var DBwasm = {
             return( [ ] );
         }
         //console.log( 'DB summary gave: ', rows);
+        return rows;
+
+    },
+
+    /*
+    ** return a summary table for the count of overlapping segments under various categories:
+    ** 1: 3-way overlaps
+    ** 2: 2-way overlaps only
+    ** 3: same as 1, but excluding any match where two profiles are involved. (two kits are liekly to be closely related and so have lots of triangulations)
+    ** 4: same as 2, but excluding any match where two profiles are involved.
+    */
+    get_matchSummary: function( cmlimit ) {
+        let sel3 = "SELECT chromosome, count(*) as nmatches FROM ICWsets as s JOIN DNAmatches as m ON s.ID2 = m.ID1 and s.ID3 = m.ID2";
+        let sel2 = "SELECT chromosome, count(*) as nmatches FROM ICWSets2way as s JOIN DNAmatches as m ON s.ID2 = m.ID1 and s.ID3 = m.ID2";
+        let joinLimit = `m.cMtotal < ${cmlimit}`;
+            // condition where ICW excludes presence of two profiles in one ICW set.
+        let wherex2p = "(s.ID2 not in (select IDprofile from profiles) AND s.ID3  not in (select IDprofile from profiles))";
+            // condition where we consider only ICW sets that have at least 2 profiles in the set.
+        let whereinc2p = "(s.ID2 in (select IDprofile from profiles) OR s.ID3 in (select IDprofile from profiles))";
+        let sqlcode = `SELECT chromosome, w3.nmatches as tr, w2.nmatches as mx2, w3b.nmatches as trb, w2b.nmatches as mx2b FROM \
+                ( ${sel3} WHERE ${joinLimit} AND ${wherex2p} GROUP BY chromosome) as w3 \
+                LEFT JOIN \
+                ( ${sel2} WHERE ${joinLimit} AND  ${wherex2p} GROUP BY chromosome) as w2 USING( chromosome ) \
+                LEFT JOIN \
+                ( ${sel3} WHERE ${joinLimit} AND  ${whereinc2p} GROUP BY chromosome) as w3b USING( chromosome ) \
+                LEFT JOIN \
+                ( ${sel2} WHERE ${joinLimit} AND  ${whereinc2p} GROUP BY chromosome) as w2b USING( chromosome );`;
+
+        let rows = [];
+        let options = {
+            resultRows: rows,
+            rowMode: 'array'
+        };
+        try{
+            DB529.exec( sqlcode, options );
+            let sum2wayx2p = 0;
+            let sum2wayi2p = 0;
+            for( let i = 0 ; i < rows.length; i++){
+                if ( rows[i][0] == 0) {
+                    // have found cell for chr 0
+                    for( let j = i+1; j < rows.length; j++ ){
+                        sum2wayx2p += rows[j][2];
+                        sum2wayi2p += rows[j][4];
+                    }
+                    rows[i][2] = sum2wayx2p;
+                    rows[i][4] = sum2wayi2p;
+                    break;
+                }
+            }
+        } catch( e ) {
+            conerror( `DB get_matchSummary: ${e.message}`);
+            return( [ ] );
+        }
         return rows;
 
     },
@@ -178,7 +254,7 @@ var DBwasm = {
         return rows;
     },
 
-    get_matches_list( filter, purpose ) {
+    get_matches_list_for_dropdown( filter, purpose ) {
         // the select is slightly tricky as we want to exclude any hidden DNA matches
         let qry = "SELECT name, IDText from  DNAmatches join idalias on (IDText = ID1 OR IDText = ID2) where ishidden = 0 ";
         if ( filter ) {
@@ -214,6 +290,341 @@ var DBwasm = {
         return rows;
     },
 
+    /*
+    ** select all the segments in the DB that match given criteria..
+    ** id: is the 16-digit ID text (for a specific tester), or else "All"
+    ** chromosome: either gives a specific chromosome number, or zero for "all"
+    ** dateLimit is either the empty string (return all) or a date such that only newer matching segments are returned.
+    */
+    selectFromDatabase( id, chromosome, dateLimit, incChr100 ) {
+        let qry_sel = "SELECT \
+                    s0.ROWID as ROWID, \
+                    t1.name AS name1, \
+                    t2.name AS name2, \
+                    t1.IDText AS id1, \
+                    t2.IDText AS id2, \
+                    chromosome, start, end, cM, snps, \
+                    m.lastdate as segdate \
+                FROM ibdsegs AS s0 \
+                JOIN idalias t1 ON (t1.IDText=s0.id1) \
+                JOIN idalias t2 ON (t2.IDText=s0.id2)  \
+                LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
+        const qry_condc = '(chromosome = ?) ';
+        const qry_condid =  '((s0.id1=?) OR (s0.id2=?))';
+        // convert to julianday to do a floating point comparison rather than string
+        const qry_date = ' julianday(m.lastdate) >= julianday(?)'
+        const qry_order =  ' ORDER BY chromosome, start, end DESC, s0.ROWID'
+        const extra_order = ', julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+        let query = qry_sel;
+        let needsand = false;
+        let chrNum=parseInt(chromosome);
+        if ( chrNum > 0 && chrNum < 24 ) {
+            query += `WHERE (chromosome = ${chrNum}) `;
+            needsand = true;
+        }
+        if ( id.length == 16 ) {
+            query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
+            needsand = true;
+        }
+        if( dateLimit.length> 10 ) {
+            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
+        }
+            
+        query += qry_order;
+        conlog(3, `query = ${query} with chr ${chrNum} and ID ${id}`);
+
+
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object'
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get_segments list: ${e.message}, from request ${query}`);
+            return( [ ] );
+        }
+        //console.log( 'DB summary gave: ', rows);
+        return rows;
+    },
+
+    /*
+    ** returns a table of all segment matches that overlap the one specified by
+    ** input parameter segmentId (which is a ROWID value in the ibdsegs table)
+    */
+    getOverlappingSegments: function( segmentRow, overlap ) {
+        
+    const sellist1 = "s0.ROWID as ROWID,\
+        t1.name AS name1,\
+        t2.name AS name2,\
+        t1.IDText AS id1,\
+        t2.IDText AS id2,\
+        s0.chromosome AS chromosome,\
+        s0.start AS start,\
+        s0.end AS end,\
+        s0.cM AS cM,\
+        s0.snps AS snps,\
+        m.lastdate AS segdate";
+
+    const joinlist = "ibdsegs as s0 \
+        JOIN idalias AS t1 ON (t1.IDText=s0.id1 ) \
+        JOIN idalias AS t2 ON (t2.IDText=s0.id2 ) \
+        JOIN ibdsegs AS s3 ON 	( \
+            s3.ROWID=? \
+            AND s3.chromosome=s0.chromosome \
+            AND s0.start<=(s3.end-?) \
+            AND s0.end>=(s3.start+?) \
+            AND (  \
+                   (s3.id1=s0.id1) \
+                OR (s3.id1=s0.id2 ) \
+                OR (s3.id2=s0.id1 )  \
+                OR (s3.id2=s0.id2 ) \
+                ) \
+            ) \
+        LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
+
+    const orderlist = "chromosome, \
+        s0.start, \
+        s0.end DESC, \
+        s0.ROWID, \
+        t1.ROWID+t2.ROWID;";
+    const query='SELECT ' + sellist1 + ' FROM ' + joinlist + ' ORDER BY ' + orderlist;
+
+    conlog(3, `getOverlappingSegments query = ${query} `);
+
+    let rows = [];
+    try{
+        DB529.exec( query, {
+                resultRows: rows,
+                rowMode: 'object',
+                bind:[segmentRow, overlap, overlap]
+            }
+        );
+    } catch( e ) {
+        conerror( `DB get_segment overlaps: ${e.message}, from request ${query}`);
+        return( [ ] );
+    }
+    //console.log( 'DB summary gave: ', rows);
+    return rows;
+    },
+    /*
+    ** check whether we already have all available data for match between id1 and id2
+    */
+    checkInDB: function( id1, id2 ){
+        let qry = "SELECT nsegs, hasSegs, cMtotal from  DNAmatches  where ID1 = ? and ID2 = ? and ishidden = 0 ";
+		let firstid = id1;
+		let secondid = id2;
+		if(id1 > id2){
+			firstid = id2;
+			secondid = id1;
+		}
+        let rows = [];
+        try{
+            
+            DB529.exec( qry, {
+                    resultRows: rows,
+                    rowMode: 'object',
+                    bind: [firstid, secondid]
+                }
+            );
+        
+        } catch( e ) {
+            conerror( `DB checkInDB : ${e.message}`);
+            return( 0 );
+        }
+        if( rows.length > 1 ) {
+            console.log( 'DB checkInDB gave unecpected: ', rows);
+        }
+        if( rows.length > 0) {
+            return rows[0];
+        } else {
+            return( [{ nsegs:-1, hasSegs:0, cMtotal:0.0 }])
+        }
+    },
+
+    /* process the relatives list from the main page.
+    ** 1. is this a newly seen profile? - if so then insert new values
+    ** 2. check DNARelative - potentially add side and note/comment - potentially update note or maybe side.
+    ** 3. check DNAmatches - can add ishidden, pctshared, cMtotal, nsegs, hasSegs
+    */
+    processRelatives: function ( profile, relativesArr, settings ) {
+
+        function show_updated( o, txt ) {
+            let msg =  `${txt}:  for ${o.name}, s:${o.side}, fav:${o.fav?'y':'n'}, n:${o.note.length} chars`;
+            conlog( 1, msg);
+            logHtml( '', msg);
+        };
+        
+        const today = formattedDate2();
+        const qry_profile = 'INSERT or IGNORE INTO profiles (IDProfile, pname) VALUES (?, ?);'; 
+        const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?, ?);'; 
+        const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side) VALUES (?, ?, ?, ? );';
+        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
+        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
+        const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
+        const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs ) VALUES (?, ?, ?,  ?, ?, ?, 0 );';
+        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? (ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
+        let total_updates = 0;
+        let use_fave = false;
+        if (Object.keys(settings).includes( "favouritesAreScanned") ) {
+            use_fave  = settings.favouritesAreScanned;
+        }
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            DB529.exec( qry_profile, { bind:[profile.id, profile.name] } );
+            DB529.exec( qry_alias_update, { bind:[profile.id, profile.name, today] } );
+            // now, for each relative, check/update their presence in the various tables
+            for ( let i = 0; i < relativesArr.length; i++ ){
+            //for( const[relkey, obj] of relativesArr ) {
+                relkey = relativesArr[i].key;
+                obj = relativesArr[i].val;
+                // if new, add to alias table...
+                DB529.exec( qry_alias_update, { bind:[relkey, obj.name, today] } );
+                //  now process the relatives table...
+                if ( use_fave && obj.fav ) {
+                    DB529.exec( qry_rel_ins_full, {bind:[profile.id, relkey, 1, today, obj.note, obj.side]} );
+                } else {
+                    DB529.exec( qry_rel_ins, {bind:[profile.id, relkey, obj.note, obj.side]} );
+                }
+                let rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+                if ( rowsaffected < 1 ) {
+                    // we already had this record, so do conditional updates, otherwise it will have just been inserted
+                    if ( obj.side != 'n') {
+                        DB529.exec( qry_upd_side, {bind:[obj.side, profile.id, relkey ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'side updated');
+                            total_updates += ra;
+                        }
+                    }
+                    if ( obj.note.length > 0 ) {
+                        DB529.exec( qry_upd_note, {bind:[obj.note, profile.id, relkey, obj.note ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'note updated');
+                            total_updates += ra;
+                        }
+                    }
+                    if ( use_fave && obj.fav  ) {
+                        DB529.exec( qry_upd_date, {bind:[today, profile.id, relkey ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'date updated');
+                            total_updates += ra;
+                        }
+                    }
+                } else {
+                    show_updated( obj, 'added');
+                }
+                // and repeat for the matches table
+                let is_hidden = obj.shared ? 0 : 1;
+                let id1 = profile.id;
+                let id2 = relkey;
+                if ( id2 < id1 ) {
+                    id2 = profile.id;
+                    id1 = relkey;
+                }
+                DB529.exec( qry_match_insert, {bind:[id1, id2, is_hidden, obj.pctshared, obj.totalcM, obj.nseg]} );
+
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+                if ( rowsaffected < 1 ) {
+                    // we already had this record, but there are some circumstances where nsegs in DB was null.
+                    // This is usually (always??) when neither match is a profile person.
+                    if ( obj.nsegs > 0 ) {
+                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2, is_hidden ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'numSegments updated');
+                            total_updates += ra;
+                        }
+                    }
+                } else {
+                    show_updated( obj, 'Match added');
+                }
+            }
+
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch ( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml( 'error', `DB processRelatives: error: ${e.message}`);
+            return 0;
+
+        }
+        return total_updates;
+    },
+    
+
+    /*
+    ** routine to return tables of known information about a profile and the chosen relative.
+    ** in: pairobj: object with name and ID of the profile persoinn and the matching relative
+    ** returns:
+    **      arrays of objects with ICW comparisons and segment match summaries.
+    ** side-effect: adds to profile table if this profile person is not there already.
+    */
+    getICWPrelude: function( pairobj ) {
+        const profileID = pairobj.pid;
+        const profileName = pairobj.pname;
+        const matchID = pairobj.mid;
+        //const matchName = pairobj.mname;
+        // the GROUPing is in case we have a hidden and unhidden record (ignore hidden)
+        const qry_DNAmatch = 'SELECT ID1, ID2, min(ishidden) as ishidden, nsegs, hasSegs from DNAmatches \
+                            WHERE ID1 = ? or ID2 = ? GROUP BY ID1, ID2;';
+        const qry_ICW = 'SELECT * FROM ICWsets WHERE IDprofile = ? and (ID2 = ? OR ID3 = ?)'
+        let rowsprofile = [];
+        let rowsmatch = [];
+        let rowsICW = [];
+        let nrows = 0;
+        try {     
+            DB529.exec( 'INSERT or IGNORE INTO profiles (IDprofile, pname) VALUES (?, ? )', 
+                { bind: [profileID, profileName] }
+            );
+            DB529.exec( qry_DNAmatch, 
+                { resultRows: rowsprofile, rowMode: 'object', bind: [profileID, profileID] }
+            );
+            nrows = rowsprofile.length;
+            conlog( 2, `profmatches returned ${nrows} items`);
+            logHtml( '', `profmatches for ${profileID} returned ${nrows} items` );
+
+            DB529.exec( qry_DNAmatch, 
+                { resultRows: rowsmatch, rowMode: 'object', bind: [matchID, matchID] }
+            );
+            nrows = rowsmatch.length;
+            conlog( 2, `rowsmatch returned ${nrows} items`);
+            logHtml( '', `rowsmatch for ${matchID} returned ${nrows} items` );
+            DB529.exec( qry_ICW, 
+                { resultRows: rowsICW, rowMode: 'object', bind: [profileID, matchID, matchID] }
+            );
+            nrows = rowsICW.length;
+            conlog( 2, `rowsICW returned ${nrows} items`);
+            logHtml( '', `rowsICW returned ${nrows} items` );
+        
+        } catch( e ) {
+            conerror( `DB preparing for ICW checks : ${e.message}`);
+            return( 0 );
+        }
+
+        return {pair:pairobj, profileMatches:rowsprofile, DNArelMatches: rowsmatch, ICWset: rowsICW};
+    },
+
+    getTriangTable: function( profileID ) {
+        const qry = 'SELECT IDrelative, ICWscanned from DNARelatives WHERE IDprofile = ? and ICWscanned = 1;';
+        let rows = [];
+        try {     
+            DB529.exec( qry, {resultRows: rows, rowMode: 'object',  bind: [profileID] } );
+        
+        } catch( e ) {
+            conerror( `DB returned triang list : ${e.message}`);
+            return( 0 );
+        }
+
+        return { profile: profileID,  dnarels:rows };
+    },
+
     updateDBSettings: function( data) {
         const update_qry =  "INSERT OR REPLACE INTO settings (setting, value) VALUES (?,?);";
         let rows = [];
@@ -232,7 +643,7 @@ var DBwasm = {
         return true;
     },
 
-    migrateAliasmap: function( aliasmap, hashap, useReplace ) {
+    insertAliasmap: function( aliasmap, hashap, useReplace ) {
         const today = formattedDate2();
         let update_qry_part = '';
         if( hashap ) {
@@ -245,13 +656,9 @@ var DBwasm = {
         let total_rows_updated = 0;
 
         try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of aliasmap ) {
-
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind: obj
                 } );
                 
@@ -260,17 +667,16 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB MigAlias: error: ${e.message}`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
+            conerror( `DB insertAlias: error: ${e.message}`);
             return false;
         }
-        let msg = `DB migrate Alias: finished; ${total_rows_updated} rows updated` ;
-        conlog( 1, msg );
-        logHtml( null, msg);
+        conlog( 1, `DB insertAlias: finished; ${total_rows_updated} rows updated` );
+        //logHtml( null, 'finished');
         return true;
     },
 
-    migrateSegmentMap: function( segmap, table, useReplace ) {
+    insertSegmentMap: function( segmap, table, useReplace ) {
         //logHtml( null, 'Storing segment pairs ...');
         // const today = formattedDate2();
         const update_qry_part =  ' ( ID1, ID2, chromosome, start, end, cM, snps ) VALUES '+
@@ -285,8 +691,7 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of segmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind: obj
                 } );
                 let rowsaffected = DB529.changes();
@@ -298,37 +703,33 @@ var DBwasm = {
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
-            conerror( `DB migrateSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             DB529.exec( 'ROLLBACK TRANSACTION;');
+            conerror( `DB insertSegMap: error: ${e.message} after ${total_rows_updated} rows`);
             return false;
         }
-        let msg = `DB migrateSegMap: finished; ${total_rows_updated} rows updated.`;
-        conlog( 0, msg );
-        logHtml( null, msg);
+        conlog( 0, `DB insertSegMap: finished; ${total_rows_updated} rows updated.` );
+        //logHtml( null, 'finished');
         return true;
     },
 
         /*
         ** this table is of pairs of testers where we have segment data
-        */
-    migrateMatchMap: function( matmap, matchtype, useReplace ) {
+        */ 
+   insertMatchMap: function( matmap, matchtype, useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
         const update_qry_part =  ' (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, lastdate) '+
-                `VALUES ($id1,$id2,$ishidden,$pctshared,$cMtotal,$nsegs, $hasSegs,'${today}');`;
+                `VALUES ($id1,$id2,$ishidden,$pctshared,$cMtotal,$nsegs, $hasSegs, $lastdate);`;
         const update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO DNAmatches' + update_qry_part;
         let total_rows_updated = 0;
 
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of matmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
-                    bind:obj
-                } );
+                DB529.exec( update_qry, { bind:obj } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${ssret}`);
+                conlog( 4, `DB Migrate${matchtype}: There were ${rowsaffected} rows affected by statement ${update_qry}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -342,7 +743,7 @@ var DBwasm = {
         return true;
     },
 
-    migrateDNArelatives: function( matmap,  useReplace ) {
+    insertDNArelatives: function( matmap,  useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
         const update_qry_part =  ' (IDprofile, IDrelative, comment, side) VALUES ($id1, $id2, $note, $side );';
@@ -362,10 +763,10 @@ var DBwasm = {
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
-            logHtml('error', `DB MigrateDNArels: error: ${e.message}`);
+            logHtml('error', `DB insertDNArels: error: ${e.message}`);
             return false;
         }
-        conlog( 4, `DB MigrateDNArels: finished` );
+        conlog( 4, `DB insertDNArels: finished` );
         //logHtml( null, 'finished');
         return true;
     },
@@ -384,13 +785,12 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of matmap ) {
                 conlog( 4, `DB MigrateMatchHidden:  insert key ${key}, name ${obj.name}`);
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind:[obj.id1, obj.id2, obj.ishidden ,obj.start ,obj.end ,obj.cM , obj.snps]
                 } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
-                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${ssret}`);
+                conlog( 4, `DB MigrateMatchHidden: There were ${rowsaffected} rows affected by statement ${update_qry}`);
             }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
@@ -406,7 +806,7 @@ var DBwasm = {
     insertProfiles: function( profilemap ) {
         logHtml( null, 'Storing  profile (kit) IDs ...');
         const today = formattedDate2();
-        const update_qry =  `INSERT OR REPLACE INTO profiles (IDProfile, pname) VALUES (?,?);`;
+        const update_qry =  'INSERT OR REPLACE INTO profiles (IDProfile, pname) VALUES (?,?);';
         let total_rows_updated = 0;
         //conlog( 0,'DB MigrateMatchHidden: skipped 4');
         //return;
@@ -415,8 +815,7 @@ var DBwasm = {
             DB529.exec( 'BEGIN TRANSACTION;');
             for( const[key, obj] of profilemap ) {
                 conlog( 4, `DB ProfileTable:  insert key ${key}, name ${obj.name}`);
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",
+                DB529.exec( update_qry, {
                     bind:[key, obj.name]
                 } );
                 let rowsaffected = DB529.changes();
@@ -435,11 +834,11 @@ var DBwasm = {
     },
 
     identify_icw: function() {
-        logHtml( '' , 'Looking for 3-way segment overlaps.');
+        logHtml( '' , 'Looking for 3-way segment overlaps. This will take a long time');
         const profiles = DBwasm.get_profile_list();
         const matchList = DBwasm.get_DNAmatch_list();
         if ( matchList.length < 1) {
-            alert( 'no matches found');
+            conerror( 'identify_ICW: no matches in database');
             return;
         }
         const icwmap = new Map();       // 3-way overlap
@@ -451,7 +850,7 @@ var DBwasm = {
             let key = nr.ID1 + "_" + nr.ID2;
             matchmap.set( key, nr );
         }
-        let sumICW = {'unknown': 0, 'hidden':0, 'no_overlap':0, 'triang':0, 'twoway':0 };
+        let sumICW = {'compared': 0, 'unknown': 0, 'hidden':0, 'no_overlap':0, 'triang':0, 'twoway':0 };
 
         for( let p = 0 ; p < profiles.length; p++ ) {
         //let p=0; {
@@ -460,13 +859,14 @@ var DBwasm = {
             logHtml( '' , `Looking for segment overlaps for ${pr.pname}`);
             const skiplist = [];
             for( let pp = 0 ; pp < p; pp++) {
-                skiplist[pp] = profiles[pp].IDprofile
+                skiplist[pp] = profiles[pp].IDprofile   // to avoid duplicating matches where two  are profile people.
             }
 
-            const relList = DBwasm.get_DNArel_list( P1id );
+            const relList = DBwasm.get_DNArel_list( P1id );     // already sorted by ID
             const rlsize = relList.length;
             const maxChecks = 0.5 * rlsize * ( rlsize - 1);
             const checkInterval = Math.floor(maxChecks/10);
+            sumICW.compared += (maxChecks * 0.000001);
             let checksdone = 0;
             // We need an inner loop descending from one below the outer element, so a numerical index is easiest to handle
             for( let i = 0; i < rlsize; i++ ) {
@@ -492,39 +892,42 @@ var DBwasm = {
                     // we already know M1 and M2 match the profile person, so existence of a some sort of M1-M2 match proves 3-way ICW.
                     if ( ! matchmap.has( key3 ) )
                         continue;
-                    const P1M1 = DBwasm.get_match_2way( matchmap, P1id, M2id );
-                    const P1M2 = DBwasm.get_match_2way( matchmap, P1id, M3id );
+                    const P1M2 = DBwasm.get_match_2way( matchmap, P1id, M2id );
+                    const P1M3 = DBwasm.get_match_2way( matchmap, P1id, M3id );
                     const M1M2 = matchmap.get( key3 );
                     let icwkey = P1id + "_" + M2id + "_" + M3id;
-                    if ( P1M1.ishidden != 0 ||  P1M2.ishidden != 0 ||  M1M2.ishidden != 0 ) {
+                    if ( P1M2.ishidden != 0 ||  P1M3.ishidden != 0 ||  M1M2.ishidden != 0 ) {
                         // ignore if any are hidden.
+                        icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -2, $st: 0, $end: 0} ); // chr = -2 means hidden
                         sumICW.hidden++;
-                    } else if ( P1M1.hasSegs == 0 ||  P1M2.hasSegs == 0 ||  M1M2.hasSegs == 0 ) {
+                    } else if ( P1M2.hasSegs == 0 ||  P1M3.hasSegs == 0 ||  M1M2.hasSegs == 0 ) {
                             // is ICW, but we cannot tell how - this key is good enough for this pass, but not enough for the entire db
-                            if ( P1M1.hasSegs != 0 &&  P1M2.hasSegs != 0 ) {
+                            if ( P1M2.hasSegs != 0 &&  P1M3.hasSegs != 0 ) {
                                 // we can do a 2-way check.
                                 const overlaps = DBwasm.get_icw_overlaps( P1id, M2id, M3id, false );
                                 DBwasm.saveOverlaps_2way(overlaps[0], icwmap2, icwkey, sumICW, P1id, M2id, M3id  );
                             }
-                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -1, $st: 0, $end: 0} );
+                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: -1, $st: 0, $end: 0} ); // chr = -1 means "don't know"
                             sumICW.unknown++;
                     } else {
 
-                        // we have icw - the question now is, is there any overlap == triangulation
+                        // we have icw - the question now is: is there any overlap ==> triangulation
                         const overlaps = DBwasm.get_icw_overlaps( P1id, M2id, M3id, true );
                         if ( overlaps[1].length === 0 ) {
-                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: 0, $st: 0, $end: 0} );      // we know there is zero full overlap
+                            // chr=0 means we know there is not 3-way overlap
+                            icwmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr: 0, $st: 0, $end: 0} );
                             if ( overlaps[0].length > 0){
                                 DBwasm.saveOverlaps_2way(overlaps[0], icwmap2, icwkey, sumICW, P1id, M2id, M3id  );
                             } else {
                                 sumICW.no_overlap++;
                             }
                         } else {
-                            // I'm not sure we need this, rather than just rescan icwmap.
-                            icwxrefmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:overlaps[0].chr, $st:overlaps[0].startolap, $end:overlaps[0].endolap}) ;
-                            sumICW.triang++;
-                            for( let r = 0 ; r < overlaps.length; r++) {
-                                let ol = overlaps[r];
+                            // I'm not sure we need icwxrefmap, rather than just rescan icwmap.
+                            let olap3way = overlaps[1];
+                            icwxrefmap.set( icwkey, {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:olap3way[0].chr, $st:olap3way[0].startolap, $end:olap3way[0].endolap}) ;
+                            for( let r = 0 ; r < olap3way.length; r++) {
+                                let ol = olap3way[r];
+                                sumICW.triang++;
                                 icwmap.set( icwkey + "_" + r.toString(),
                                                 {$IDp:P1id, $ID2:M2id, $ID3:M3id, $chr:ol.chr, $st:ol.startolap, $end:ol.endolap} );
                             }
@@ -552,7 +955,7 @@ var DBwasm = {
     },
 
     get_match_2way: function( matchmap, id1, id2 ) {
-        // return the match list object that corresponds to id1-id2
+        // return the match list object that corresponds to id1 cf id2
         let m1 = id1;
         let m2 = id2;
         if ( id2 < id1 ){
@@ -582,7 +985,7 @@ var DBwasm = {
         }
         let rows2 = [];
         let rows3 = [];
-        // a giant join is just too complicated for me to understand - if it is even possible.  Just split into 3x two-way matches and compare.
+        // a giant join is just too complicated for me to understand and get right (if it is even possible).  Just split into 3x two-way matches and compare.
         try {
             DB529.exec( 'DROP TABLE IF EXISTS wab;DROP TABLE IF EXISTS wac;DROP TABLE IF EXISTS wbc;DROP TABLE IF EXISTS ww;', {} );
             DB529.exec( 'CREATE temporary table wab as SELECT * from ibdsegs where id1 = ? and id2 = ?;', {bind:[olist[0], olist[1]]} );
@@ -600,19 +1003,7 @@ var DBwasm = {
                     FROM ww JOIN wbc ON chr = wbc.chromosome \
                             AND (wbc.start between ww.startolap and ww.endolap or wbc.start between ww.startolap and ww.endolap)',
                     { resultRows: rows3, rowMode: 'object' } );     
-            }    
-            /*
-            // this does the 3-way triang in one hit.
-            DB529.exec( 'SELECT ww.chr as chr,  case when ww.startolap < wbc.start then wbc.start else ww.startolap end as startolap,\
-                                    case when ww.endolap < wbc.end then ww.endolap else wbc.end end as endolap \
-                FROM \
-                    ( SELECT wab.chromosome as chr,  case when wab.start < wac.start then wac.start else wab.start end as startolap, \
-                                                     case when wab.end < wac.end then wab.end else wac.end end as endolap \
-                    FROM wab JOIN wac ON wab.chromosome = wac.chromosome AND (wab.start between wac.start and wac.end or wac.start between wab.start and wab.end) \
-                    ) as ww \
-                    JOIN wbc ON chr = wbc.chromosome AND (wbc.start between ww.startolap and ww.endolap or wbc.start between ww.startolap and ww.endolap)',
-                 { resultRows: rows3, rowMode: 'object' } );
-                 */
+            } 
 
         } catch( e ) {
             logHtml( 'error', `Find triangulation failed with ${e.message}, for ${olist[0]},  ${olist[1]},  ${olist[2]}`);
@@ -624,17 +1015,14 @@ var DBwasm = {
     insertICW: function( icwmap, tablename ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
         const today = formattedDate2();
-        const update_qry = `INSERT OR IGNORE INTO ${tablename} (IDprofile, ID2, ID3, chromosome, start, end) VALUES ($IDp, $ID2, $ID3, $chr, $st, $end );`;
+        const update_qry = `INSERT OR REPLACE INTO ${tablename} (IDprofile, ID2, ID3, chromosome, start, end) VALUES ($IDp, $ID2, $ID3, $chr, $st, $end );`;
         let total_rows_updated = 0;
 
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of icwmap ) {
-                let ssret = DB529.exec( update_qry, {
-                    returnValue: "saveSql",     //pointless
-                    bind:obj
-                } );
+                DB529.exec( update_qry, { bind:obj } );
                 let rowsaffected = DB529.changes();
                 total_rows_updated += rowsaffected; 
                 if ( ++loopcount % 10000 == 0 ) {
@@ -647,7 +1035,6 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             let msg = `DB insertICW ${tablename}: error: ${e.message}`;
             conerror( msg );
-            logHtml('error', msg );
             return false;
         }
         conlog( 4, `DB insertICW ${tablename}: finished` );
@@ -656,8 +1043,9 @@ var DBwasm = {
             return;
         }
 
+        /*  LET's NOT - I misinterpreted the ICWscanned meaning
         let total_date_rows_updated = 0;
-        const update_date1 = `UPDATE  DNArelatives set ICWScanned = 1, dateScanned = $today where` +
+        const update_date1 = `UPDATE  DNArelatives set ICWscanned = 1, dateScanned = $today where` +
                 ' IDprofile = $IDp and (IDrelative = $ID2 OR IDrelative = $ID3);';
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
@@ -676,10 +1064,31 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             let msg = `DB updateICW ${tablename}: error: ${e.message}`;
             conerror( msg );
-            logHtml('error', msg );
             return false;
         }
+        */
         return true;
     },
-    
+
+    /*
+    ** sanity-check function to determine if any matches are missing the segment count when we know we have them
+    */
+    check_segCount: function( ) {
+        let qry = 'SELECT * FROM DNAmatches as m JOIN ibdsegs as s USING(ID1,ID2) WHERE m.hasSegs = 0 and m.ishidden = 0;';
+        // TODO - finish the code
+    },
+
+    /*
+    ** fix any missing segment counts in DNAmatches table.
+    */
+    fix_segCount: function() {
+        let qry = "UPDATE DNAmatches as m set nsegs=nsegments, hasSegs=1 FROM \
+	    	( SELECT ID1, ID2, count(*) as nsegments \
+				FROM  DNAmatches as m JOIN ibdsegs as s USING(ID1,ID2) \
+				WHERE (m.hasSegs = 0 OR m.nsegs is null) and m.ishidden = 0 \
+				GROUP BY ID1, ID2 \
+            ) as sj\
+		WHERE m.ID1 = sj.ID1 and m.ID2 = sj.ID2;";
+        // TODO - finish the code
+    },
 }

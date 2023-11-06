@@ -10,10 +10,13 @@
 ** returns - the number rounded as required (or not)
 */
 function roundBaseAddress( addr ) {
+	return addr;		// no  longer do any rounding. pointless.
+	/*
 	let baseAddressRounding = settings529.baseAddressRounding;	// the order of magnitude - must be a power of 10
 	if ( baseAddressRounding == 0 )
 		return addr;
 	return (Math.floor(addr/baseAddressRounding))*baseAddressRounding;
+	*/
 }
 
 function round_cM(  cMvalue ) {
@@ -40,7 +43,7 @@ function base2Mbase( addr ) {
 
 /*
 * convert between 23 and Me's percent value and centiMorgans.
-* A conversion of 74.40cM/pct seems to apply, no matter whether testers are male or female.
+* A conversion of approx 74.40cM/pct seems to apply, no matter whether testers are male or female.
 */
 function pctShared2cM( pct ) {
 	return (pct * 74.4 );
