@@ -8,8 +8,8 @@
 /* eslint no-unused-vars: "off"*/
 'use strict';
 
-let div=document.createElement('div');
-div.id="div529r";
+let div529=document.createElement('div');
+div529.id="div529r";
 
 let tr_el=document.createElement('button');
 tr_el.innerHTML="Triangulate into 529Renew";
@@ -767,7 +767,8 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	//alert( 'Not yet available with the new database format'); 	return;
+	alert( 'Not yet available until I can test that it works with potentially modified 23andMe pages');
+	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw new Error("Page structure changed");
@@ -849,26 +850,6 @@ function process_settings_then_compare( response ) {
 	if ( response.hasOwnProperty('debug_msg') ) {
 		debug_msg = response.debug_msg;
 	}
-	/*
-	if ( Object.keys( response ).includes('qDelay') ) {
-		increment_ms = response.qDelay * 1000.0;
-	}
-	if ( Object.keys( response ).includes('minSharedNonOverlap') ) {
-		minSharedNonOverlap = response.minSharedNonOverlap;
-	}
-	if ( Object.keys( response ).includes('alwaysIncludeNonOverlap') ) {
-		alwaysIncludeNonOverlap = (response.alwaysIncludeNonOverlap == 0 ? false : true);
-	}
-	if ( Object.keys( response ).includes('closeTabImmediate') ) {
-		closeTabImmediate = (response.closeTabImmediate == 0 ? false : true);
-	}
-	if ( Object.keys( response ).includes('debug_q') ) {
-		debug_q = response.debug_q;
-	}
-	if ( Object.keys( response ).includes('debug_msg') ) {
-		debug_msg = response.debug_msg;
-	}
-	*/
 	failedInSomeWay = false;		// reset just in case.
 	runComparison(false);
 };
@@ -879,7 +860,7 @@ The process is:
 **	 1 send a message to the service worker script
 **   2. it decides whether to create new tab or load ID into existing one.
 */
-div.appendChild(tr_el);
+div529.appendChild(tr_el);
 
 let b529r=document.createElement('button');
 b529r.id="b529r";
@@ -903,14 +884,14 @@ img.src=chrome.runtime.getURL("logos/529renew-48.png");
 img.style.verticalAlign='middle';
 b529r.appendChild(img);
 
-div.appendChild(b529r);
+div529.appendChild(b529r);
 
 let ric_parent=document.getElementsByClassName("js-profile-relatives-in-common")[0];
 let modules=document.getElementsByClassName("module-content");
 if(ric_parent!=null && modules!=null){
 	var i;
 	for(i=0; i<modules.length; i++){
-		if(ric_parent.contains(modules[i])) modules[i].appendChild(div);
+		if(ric_parent.contains(modules[i])) modules[i].appendChild(div529);
 	}
 }
 // extract the match ID from the page URL...

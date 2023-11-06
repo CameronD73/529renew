@@ -1,6 +1,6 @@
-/* define it as an object to isolate namespaces for different DB types.
+/*
+* define it as an object to isolate namespaces for different DB types.
 */
-
 
 console.log( 'dbcode loaded');
 
@@ -82,22 +82,45 @@ var DBwasm = {
                     returnValue: "resultRows"
                 } );
             }
-            const today = formattedDate2();
-            DB529.exec( {
-                sql:`INSERT into DBVersion (version, date) VALUES (1, '${today}');`,
-                returnValue: "resultRows"
-            });
+            DBwasm.assign_DB_version( 2 );
+
+
         } catch( e ) {
             console.error( 'DB Table creation failed: ', e.message);
         }
     },
     
+    assign_DB_version: function( ver ) {
+        const today = formattedDate2();
+        DB529.exec( `INSERT or IGNORE into DBVersion (version, date) VALUES (?, ?);`, {bind:[ver, today]} );
+    },
+
+    check_DB_version( ) {
+        let version = [];
+        try {
+            DB529.exec( 'SELECT version from DBVersion ORDER by version DESC LIMIT 1;', {resultRows:version, rowMode: 'array'} );
+            if ( version[0][0] == 1 ) {
+                DBwasm.update_DB_1_to_2();
+            }
+        } catch( e ) {
+            conerror( `update version failed: ${e.msg}` );
+        }
+
+    },
+
+    update_DB_1_to_2: function  () {
+        // this removes the effect of a bug in V1.9.2 where this flag was set by mistake. At this stage, nothing should be able to assign
+        // it to a correct value, so just removing all values is enough.
+        DB529.exec( 'UPDATE DNARelatives SET ICWscanned = NULL, dateScanned = NULL WHERE ICWscanned = 1');
+        DBwasm.assign_DB_version( 2 );
+    },
+
     get_summary: function() {
         let sqlcode = " \
                 SELECT \'DBVersion\' as tbl, max(version) as nrows  from DBVersion \
-            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles \
-            UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref \
-            UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
+            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles " +
+            // "UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref " +   // remove while we don't use it
+            "UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
             UNION SELECT \'DNAmatches\' as tbl, count(*) as nrows from DNAmatches \
             UNION SELECT \'ibdsegs\' as tbl, count(*) as nrows from ibdsegs \
             UNION SELECT \'idalias\' as tbl, count(*) as nrows from idalias \
@@ -437,10 +460,10 @@ var DBwasm = {
         const qry_profile = 'INSERT or IGNORE INTO profiles (IDProfile, pname) VALUES (?, ?);'; 
         const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?, ?);'; 
         const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side) VALUES (?, ?, ?, ? );';
-        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWScanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
+        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
         const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
         const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
-        const qry_upd_date = 'UPDATE DNARelatives SET ICWScanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWScanned is NULL or ICWScanned = 0 );';
+        const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
         const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs ) VALUES (?, ?, ?,  ?, ?, ?, 0 );';
         const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? (ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
         let total_updates = 0;
@@ -586,6 +609,20 @@ var DBwasm = {
         }
 
         return {pair:pairobj, profileMatches:rowsprofile, DNArelMatches: rowsmatch, ICWset: rowsICW};
+    },
+
+    getTriangTable: function( profileID ) {
+        const qry = 'SELECT IDrelative, ICWscanned from DNARelatives WHERE IDprofile = ? and ICWscanned = 1;';
+        let rows = [];
+        try {     
+            DB529.exec( qry, {resultRows: rows, rowMode: 'object',  bind: [profileID] } );
+        
+        } catch( e ) {
+            conerror( `DB returned triang list : ${e.message}`);
+            return( 0 );
+        }
+
+        return { profile: profileID,  dnarels:rows };
     },
 
     updateDBSettings: function( data) {
@@ -1005,8 +1042,9 @@ var DBwasm = {
             return;
         }
 
+        /*  LET's NOT - I misinterpreted the ICWscanned meaning
         let total_date_rows_updated = 0;
-        const update_date1 = `UPDATE  DNArelatives set ICWScanned = 1, dateScanned = $today where` +
+        const update_date1 = `UPDATE  DNArelatives set ICWscanned = 1, dateScanned = $today where` +
                 ' IDprofile = $IDp and (IDrelative = $ID2 OR IDrelative = $ID3);';
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
@@ -1027,6 +1065,7 @@ var DBwasm = {
             conerror( msg );
             return false;
         }
+        */
         return true;
     },
 

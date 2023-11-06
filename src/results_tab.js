@@ -528,12 +528,12 @@ function createImport23Button(){
 }
 
 
-function createMigrationFinaliseButton(){
+function createOverlapCalcButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Finalise Migration";
-	newButton.title='This builds a few ancillary tables from the imported data. It is safe to run twice';
+	newButton.innerHTML="Calculate overlaps ";
+	newButton.title='This identifies segment overlaps from old data. It is safe to run multiple times.';
 	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', requestMigrationFinalise );
+	newButton.addEventListener('click', requestOverlapCalculation );
 	document.getElementById("buttonInRow").appendChild(newButton);
 }
 
@@ -1800,7 +1800,7 @@ function CSV_loadDone( newSize ){
 	// location.reload(true); 
 }
 
-function migrationFinalise_done( s ) {
+function migrationOverlapFind_done( s ) {
 	let elapsed = secondsToday() - migration_started;
 	let elapsed_min = (elapsed / 60.0).toFixed(1);
 	let str = '';
@@ -2003,7 +2003,7 @@ document.addEventListener('DOMContentLoaded',  function () {
 	createKitSelector();
 	createImportProfileButton();
 	createImport23Button();
-	createMigrationFinaliseButton();
+	createOverlapCalcButton();
 	createImport529Button();
 	createClearFilterButton();
 	createDeleteWASMButton();

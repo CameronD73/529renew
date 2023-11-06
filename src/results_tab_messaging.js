@@ -149,7 +149,7 @@ DBworker.onmessage = function ( msg ) {
 	break;
 	 
 	case 'ICWPrelude_return':
-			// send results back to requesting tab 
+		// send results back to requesting tab 
 		chrome.tabs.sendMessage( data.tabID, {mode:'ICWPrelude_return', data:data.payload} );
 	break;
 
@@ -162,8 +162,8 @@ DBworker.onmessage = function ( msg ) {
 		}
 	break;
 
-	case 'migrationFinalised':
-		migrationFinalise_done( data.rowsadded );
+	case 'migrationOverlapFind':
+		migrationOverlapFind_done( data.rowsadded );
 	break;
 
 	case 'restoredDB_return':
@@ -173,6 +173,10 @@ DBworker.onmessage = function ( msg ) {
 	case 'migrate_529_done':
       CSV_loadDone( data.newsize );
     break;
+
+	case 'requestTriangTable_return' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'requestTriangTable_return', data:data.payload} );
+	break;
 
     default:
       console.log( 'DBWorker msg: ', msgevt );
@@ -185,6 +189,7 @@ DBworker.onerror = function ( evt ) {
 	logHtml( 'error', msg );
 	alert( msg );
 }
+
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -215,6 +220,11 @@ chrome.runtime.onMessage.addListener(
 			})();
 			return true;
 		break;
+
+		case  "requestTriangTable" :
+			DBworker.postMessage( {reason:"requestTriangTable", profile:request.profile, tabID: sender.tab.id} );
+		break;
+
 
 		case  "getDBStatus" :
 				// message from popup - need to forward to worker. will return via messaging

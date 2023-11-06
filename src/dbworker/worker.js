@@ -122,6 +122,11 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'ICWPrelude_return', tabID:content.tabID, payload: rowsICWP } );
     break;
 
+    case "requestTriangTable":
+      let retTriang = DBwasm.getTriangTable(content.profile);  // synchronous, so we can just send result back
+      postMessage( {reason: 'requestTriangTable_return', tabID:content.tabID, payload: retTriang } );
+    break;
+
     case "process_relatives":
       let rowsRelatives = DBwasm.processRelatives(content.profile, content.relatives, content.settings);  // synchronous, so we can just send result back
     break;
@@ -192,9 +197,9 @@ function processMigrations( content ) {
       reportMigratedSize('migrate_529_done');
     break;
 
-    case "migrationFinalise":
+    case "migrationOverlapFind":
       let icwadded = DBwasm.identify_icw( ); 
-      postMessage( {reason:'migrationFinalised', rowsadded:icwadded} );
+      postMessage( {reason:'migrationOverlapFind', rowsadded:icwadded} );
     break;
 
     case "migrateMatchMapHidden":
@@ -261,6 +266,7 @@ const start = async function (sqlite3) {
     return;
   }
   conlog( 1,'db =', DB529.filename);
+  DBwasm.check_DB_version();
 
 };
 

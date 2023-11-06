@@ -21,12 +21,14 @@ let current_ajax = '';
 let profileName = null;		// name of primary DNA tester (you?)
 let profileID = null;		// UUID string of the profile person ("You")
 
-let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
-let matchMatchesMap = new Map();		// all the matches we already have 
-let sharedSegMapMap = new Map();	// all known 3-way comparisons including parofil+ match person.
+//let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
+//let matchMatchesMap = new Map();		// all the matches we already have 
+//let sharedSegMapMap = new Map();	// all known 3-way comparisons including parofil+ match person.
 
 let relativesMap = new Map();		// the 1500 relatives that are preloaded on this page
 let notesMap = new Map();			// the annotations preloaded for this page.
+
+let triangMap = new Map();			// map of triangulations to the current profile
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -91,8 +93,22 @@ function finishAjax () {
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 
-	if(request.mode === "returnSaveData"){
-
+	if(request.mode === "requestTriangTable_return"){
+		let retprofile = request.data.profile;
+		if ( retprofile != profileID ) {
+			alert( `Expecting triang data for ${profileID} (${profileName}), got ${retprofile}`)
+		}
+		let retarray = request.data.dnarels;
+		
+		triangMap.clear();
+		for(  let i = 0 ; i < retarray.length ; i++ ) {
+			let obj = retarray[i];
+			if ( obj.ICWscanned == 1 ) {
+				// only add true ones, ignore others.
+				triangMap.set( obj.IDrelative,  true  ) ;
+			}
+			
+		}
 		//let tset = ajQueue.dequeue();
 		// sanity check...
 
@@ -242,16 +258,15 @@ function watchdogTimer() {
 }
 
 function fill_relative_details() {
-	msg_debug_log( 4,  `trace start 'fill_relative_details'` );
 	const rels = document.getElementsByClassName("dna-relatives-list-item");
 	msg_debug_log( 4,  `relatives: ${rels.length}.` );
 	for( let i=0; i < rels.length; i++ ){
-		let nextbox = rels[i];
+		let containingbox = rels[i];
 		let pid = '';
 		let note2show = '';
-		nextbox.style.paddingBottom = `${settings529.relativePixelPadding}px`;
-		nextbox.style.paddingTop =  `${settings529.relativePixelPadding}px`;
-		let namebox = nextbox.getElementsByClassName( 'relative-link' );
+		containingbox.style.paddingBottom = `${settings529.relativePixelPadding}px`;
+		containingbox.style.paddingTop =  `${settings529.relativePixelPadding}px`;
+		let namebox = containingbox.getElementsByClassName( 'relative-link' );
 		if ( namebox.length <= 0 )
 			continue;
 		const href = namebox[0].href;
@@ -262,7 +277,9 @@ function fill_relative_details() {
 			alert( e.message );
 			continue;	// skip this one - try next
 		}
-		
+		if ( triangMap.has( pid )) {
+			containingbox.style.backgroundColor = "#bbffbb";
+		}
 		let fullNote = '';
 		if ( relativesMap.has( pid )) {
 			note2show = relativesMap.get( pid ).note;
@@ -352,6 +369,7 @@ function process_settings( response ) {
 		debug_msg = response.debug_msg;
 	}
 };
+
 
 // now get the profile person's ID and name
 [profileID, profileName] =  get_profile_from_header();
@@ -446,7 +464,7 @@ function add529Button() {
 	buttoncount++;
 	msg_debug_log( 3,  `Loop at ${buttoncount}, button: ${rd_parent.length}, paginator: ${pag_parent.length}, settingsProcessed: ${settingsProcessed}.`);
 	if ( buttoncount > 2 &&  !settingsProcessed && !settingsRequested) {
-		// load settings while we wait (but wait for first loop otherwise results tab not ready.)
+		// load settings while we wait (but wait for first loop otherwise results tab will not be not ready.)
 		settingsRequested = true;
 		try {
 			setTimeout( watchdogTimer, 5000 );
@@ -460,6 +478,7 @@ function add529Button() {
 					}
 				}
 			);
+			chrome.runtime.sendMessage({mode: "requestTriangTable", profile: profileID } ); // this will just pass values back asynch.
 		} catch( e ) {
 			// never catches anything!?
 			handleMessageCatches( "getting options", e );
@@ -469,11 +488,11 @@ function add529Button() {
 	// if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
 	if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
 		if (buttoncount > 100){
-			msg_debug_log( 4,  `$trace ABORT 'add529Button' 100 tries eclipsed` );
+			//msg_debug_log( 4,  `$trace ABORT 'add529Button' 100 tries eclipsed` );
 			return;
 		}
 		setTimeout( add529Button, 500);
-		msg_debug_log( 4,  `$trace RESTART 'add529Button'` );
+		// msg_debug_log( 4,  `$trace RESTART 'add529Button'` );
 		return;
 	} 
 	if(rd_parent[0]!=null ){
@@ -488,6 +507,6 @@ function add529Button() {
 	if (rl_parent[0] != null){
 		attachObserversToHeader(rl_parent[0]);
 	}
-	msg_debug_log( 4, `trace end 'add529Button'` );
+	//msg_debug_log( 4, `trace end 'add529Button'` );
 }
 add529Button();

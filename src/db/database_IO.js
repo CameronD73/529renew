@@ -39,14 +39,14 @@ function getFilteredMatchesFromDatabase( filterText ){
 	DBworker.postMessage( {reason:"getMatchList", filter:filterText, purpose:'select'} );
 }
 
-function requestMigrationFinalise ( evt ) {
+function requestOverlapCalculation ( evt ) {
 	
 	evt.stopPropagation();
 	evt.preventDefault();
 	document.getElementById("docBody").style.cursor="wait";
 	migration_started = secondsToday();
 
-	DBworker.postMessage( {reason:"migrationFinalise"} );
+	DBworker.postMessage( {reason:"migrationOverlapFind"} );
 	return;
 }
 
