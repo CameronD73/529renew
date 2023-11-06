@@ -37,20 +37,12 @@ The following steps then apply whichever browser you are using:
 * You should _pin the 529renew icon to the toolbar_ so that you can access the settings page.  On Vivaldi it seems to be present by default, as soon as the extension is installed. For other browsers you need to go to `manage extensions` to pin 
 * The "extensions" icon (a jigsaw puzzle piece on Chrome, a box on Opera) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
 * you are now ready to start.
-* if you have old data that you want to migrate from _529 and You_ then go to the next section, otherwise you can skip it.
+* if you have been away for a long time and have old data that you want to migrate from _529 and You_, then go to the section at the end of this page.
+
 ## Database Migration from 529Renew before October 2023
-Version 1.9 offers an easy migration process and is documented in a web page that pops up when the extension is installed. Since it is transient, I will not document it here.
+Version 1.9 offers an easy migration process and is documented in a web page that popped up when the extension is installed. It no longer works, so is not documented here.
 
-## Database Import from 529 and You
-
-* 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
-* This means you need to reimport your data to easily populate the database with all the matches you carefully obtained with 529 and You.
-* The file that you need to import is the CSV file that you previously exported for GDAT from _529 and You_. If you have been using 529 and You for a long time then you may have some "build 36" records. The exports from  _529 and You_ could be from either build 36 or from build 37 but not both in the one file. The files do not contain the build info so you have to know if the file is build 37 or not.  _Any file you import will be assumed to be build 37_.
-* before you import, you should  consider the rounding parameters - the cM rounding parameter will be used when importing data.  The base-pair address rounding is not used on import, although  _529 and You_ always rounded to the nearest Megabase address to be compatible with older 23andMe outputs.
-* Click on the `Import CSV` button and select the required CSV file.  Then wait.  This is a ridiculously slow process (due to Google blocking access to any faster DB operations). If you have a large file and would like progress reports then you can open the debug window using either _F12_ or _ctrl-Shift-I_ or right-click `inspect`(at least under ms-Windows) and select the  _console_ tab.
-* message box eventually says "CSV parsing complete" and you can click OK to continue.
-* you can safely reload the file or load other versions and new entries will be updated. It will ignore matching segments already loaded (which makes it much faster reloading duplicated data), so it would be perhaps safer to load newer files first.
-* you should then be able to examine the `show matches of` list to see testers who have been imported.
+Once the extension is installed, you should see the migrations notes, and you can also later see them bu typing, (or copy/pasting) [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.
 
 ## The tab/page named "529Renew Results"
 
@@ -65,7 +57,7 @@ If you press the `Open 529renew` button then it will create the page if necessar
 
 It is safe to be using the results tab to view already saved results at the same time as another tab is doing the triangulations.
 
-***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log is saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
+***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log may be saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
 
 ### gruesome details
 Part of the security model of web browser extensions is that any tab/page displaying content from 23andMe (or any external web server) is not permitted to access the database.
@@ -90,23 +82,38 @@ When you have finished, simply click back in another tab and the popup should be
 (default 2 seconds). This should help make 23 and me servers complain less, such as giving error 429 and locking your access. (See below for more details)
 
 ### rounding of base-pair addresses
-This is not a good idea and will be removed at some stage.
-The original _529 and You_ code rounds to the nearest million in order to match early output from 23 and me. This is discarding significant information, so the default is no rounding, but can be adjusted if required back to the original. A better alternative would be to always save the full address and use the rounding in comparisons. The minimum overlap setting now makes this less important.
+This has been removed, and results are always saved without rounding. The minimum overlap setting can be used to achieve similar effects.
 
 ### rounding of centiMorgan values
 now rounds by default to 2 decimal places, purely for appearances. The second decimal place is almost meaningless in most cases, as uncertainty is usually higher than this. It also stops output files being padded out with numbers that are meaningless.
 
-### segment minimum overlap
+### Padding on DNA Relatives list:
+This is the number of pixels of blank space used to pad out the top and bottom of each person on the DNA relatives list. The default used by 23andMe was 16. Set this to a smaller number to reduce the amount of scrolling you need.
+
+### Maximum Note length
+If this number is greater than zero then any Notes you have added to the DNA relative will be displayed after the name. No more than this number of characters will be displayed in the relatives list - the full number will always be shown in the original Notes section on the relative's individual profile page and they will appear in a "mouseover", when you hover the pointer over the person's name.
+
+### Minimum segment overlap
 Similar to GDAT's option, and it has no bearing on 23 and Me's definition of whether segments overlap enough to be considered _shared_.  In  _529 and You_  the display routines considered segments to "overlap" provided they merely touch - for example the end address of one segment is the same as the starting address of another.  If you set this parameter to a number above zero then the start and end must overlap by at least this number of Mbase pairs.
 
+### Action for duplicate imports
+When importing results from CSV files, sometimes values are found that already match the conditions for a record in the database. This option determines whether the import should
+
+1. _Ignore_: retain the old values, or
+2. _Replace_: overwrite the data in the database with the value in the file.
+
+### Star means "have triangulated"
+If you  applied the yellow star only to a relative who had been previously triangulated, then set this to yes and 529Renew will change displays accordingly. It has no other meaning and is only useful transitioning data from before version 2. Any triangulations in future will set this parameter directly.
+
+#### Minimum shared DNA (pct):
+This parameter sets a lower limit - only matches having at least this percentage in common will be checked and recorded.  This now applies to all ICW, as we cannot tell in advance whether they have overlap.
+
 ### Recording segments that are not overlapping
-This section is out of date as of V1.3.0, after 23andMe removed the information about whether there was any overlap.
+The two options in this section are out of date as of V1.3.0 and have no effect, after 23andMe removed the information about whether there was any overlap.
 
 Normally, the "triangulation" process ignores any matches that have no overlaps.  This pair of related options modify this behaviour.
 
 Say your profile person **A** is in common with **X** and **Y** but the matching segments do not overlap. Normal recording of "triangulation" only accepts matches with 3-way overlaps. Both  _529 and You_ and _529renew_ allow you to shift-click to save segment details between the profile person and  **Y**  and between **X** and  **Y**  when they do not overlap. 
-#### Minimum shared DNA (pct):
-This parameter sets a lower limit - only matches having at least this percentage in common will be recorded.  This now applies to all ICW, as we cannot tell in advance whether they have overlap.
 
 #### Save Segments Mode.
 This parameter can be set to "always" or "only with shift-click". If you want to always record segments then this should be set to "always" to save the need for you to remember to hold the shift-key every time.
@@ -203,3 +210,14 @@ As I write this (Jan 2023) it appears that using a delay setting between 1.5 and
 I can usually be triangulating on one tab and have other tabs open and be preparing for triangulation at the same time. These requests are not subject to the delay that 529Renew applies  on segment requests and so will add to the request rate.  I have found that it is possible to get locked out simply by opening up a series of tabs too quickly.
 
 If you are triangulating on one tab only, but your other activities causes a lockout, then generally you will need to go through the multiple Captcha screens once and can then refresh the locked out tabs. The triangulating tab will stop with a message box if it sees an return status of 429. Sometimes it is sufficient to do nothing, wait 30sec to 1 minute, then click `OK` and have the process continue without needing the Captcha.
+
+## Database Import from 529 and You
+
+* 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
+* This means you need to reimport your data to easily populate the database with all the matches you carefully obtained with 529 and You.
+* The file that you need to import is the CSV file that you previously exported for GDAT from _529 and You_. If you have been using 529 and You for a long time then you may have some "build 36" records. The exports from  _529 and You_ could be from either build 36 or from build 37 but not both in the one file. The files do not contain the build info so you have to know if the file is build 37 or not.  _Any file you import will be assumed to be build 37_.
+* before you import, you should  consider the rounding parameters - the cM rounding parameter will be used when importing data.  The base-pair address rounding is not used on import, although  _529 and You_ always rounded to the nearest Megabase address to be compatible with older 23andMe outputs.
+* Click on the `Import CSV` button and select the required CSV file.  Then wait.  This is a ridiculously slow process (due to Google blocking access to any faster DB operations). If you have a large file and would like progress reports then you can open the debug window using either _F12_ or _ctrl-Shift-I_ or right-click `inspect`(at least under ms-Windows) and select the  _console_ tab.
+* message box eventually says "CSV parsing complete" and you can click OK to continue.
+* you can safely reload the file or load other versions and new entries will be updated. It will ignore matching segments already loaded (which makes it much faster reloading duplicated data), so it would be perhaps safer to load newer files first.
+* you should then be able to examine the `show matches of` list to see testers who have been imported.

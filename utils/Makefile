@@ -1,5 +1,5 @@
 # BUILDxxx represent the target directories in while to build the extension.
-BUILDDIR	= 529renew-V2-interim
+BUILDDIR	= 529renew-V2-release
 # BUILD_WEBSQL	= ${BUILDDIR}/websql
 BUILD_LOGOS	= ${BUILDDIR}/logos
 BUILD_IMAGES	= ${BUILDDIR}/images
@@ -172,7 +172,7 @@ ${BUILD_UTIL}/FileSaver.js: ${FSDIR}/FileSaver.js
 	${CP} $< $@
 
 ${BUILD_DBWORKER}/jswasm/sqlite3.wasm: ${SQLITEDIR}/jswasm/sqlite3.wasm
-	${CP} -r ${SQLITEDIR}/jswasm/  ${BUILD_DBWORKER}/jswasm/
+	${CP} -r ${SQLITEDIR}/jswasm/  ${BUILD_DBWORKER}/jswasm
 
 ${BUILD_UTIL}/papaparse.min.js: ${PAPADIR}/papaparse.min.js
 	${CP} $< $@

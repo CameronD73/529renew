@@ -313,6 +313,8 @@ function fill_relative_details() {
 				noteElement.innerText = note2show;
 				namebox[0].appendChild(noteElement);
 			}
+		} else {
+			namebox[0].title = note2show;
 		}
 	}
 

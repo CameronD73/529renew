@@ -45,9 +45,10 @@ V1.9.0  submitted to Chrome store  11-Oct-2023
     Normal functionality is not available in the V1.9 series, as those most of those routines still use the webSQL api.
     The opportunity was taken to substantially modify the DB schema.
 
-V2.0.0   submission to Chrome store  expected late October 2023.
-    Will have no webSQL code.
-    Bug in V1.9.x fixed = "finalise" button did not do what was expected.
+V2.0.0   submission to Chrome store around 7 November 2023.
+    Has no webSQL code.
+    _Does not work fully_ because 23andMe have disabled segment display.
+    Bug in V1.9.x fixed = "finalise" button did not do what was expected, also set ICWscanned to too many relatives.
     Most functionality restored, some new features.
     Sqlite DB file can be backed up and restored.
     Some code to manipulate the page appearance depending on DB information.
@@ -55,3 +56,5 @@ V2.0.0   submission to Chrome store  expected late October 2023.
 	BaseAddressRounding - has been removed - always zero.
 	RelativesPixelPadding - change the padding above and below each person on the relatives list
 	NotesLength - display Notes on DNARelatives list page.
+    Star means have-triangulated - If you previously use the star to indicate that you had triangulated.
+    Action for duplicate imports - whether csv imports update older values or not.

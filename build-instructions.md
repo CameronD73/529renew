@@ -20,6 +20,6 @@ This should work directly under GNU/Linux systems, BSD, etc but it  abit trickie
 Git Bash does not seem to provide a Make, so I use one from WSL running in windows terminal.
 You should also be able to get a system working under cygwin or msys.
 
-The command _make_ should create an unpacked installable folder for Chrome/etc, while 
+The command _make_ should create an unpacked installable folder for Chrome/etc in developer mode, while 
 the command _make_ _zip_ will produce a file 529renew.zip in the top level.
 You should ensure the zip file does not exist already.
