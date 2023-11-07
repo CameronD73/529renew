@@ -47,8 +47,9 @@ V1.9.0  submitted to Chrome store  11-Oct-2023
 
 V2.0.0   submission to Chrome store around 7 November 2023.
     Has no webSQL code.
+    Sqlite-WASM v 3.44.0
     _Does not work fully_ because 23andMe have disabled segment display.
-    Bug in V1.9.x fixed = "finalise" button did not do what was expected, also set ICWscanned to too many relatives.
+    Bug in V1.9.x fixed = "finalise" button did not do what was expected, also had applied ICWscanned to too many relatives.
     Most functionality restored, some new features.
     Sqlite DB file can be backed up and restored.
     Some code to manipulate the page appearance depending on DB information.
