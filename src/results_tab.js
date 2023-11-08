@@ -49,6 +49,15 @@ const clengths_Mbase=[
 
 ];
 
+function ID_is_profile_person( id ) {
+	for ( let i = 0 ; i < profile_summary.length; i++ ) {
+		if ( profile_summary[i].IDprofile === id ) {
+			return true;
+		}
+	}
+	return false;
+}
+
 /*
 ** createMatchSVG
 ** draws graphical representations of segment lengths and location.
@@ -939,7 +948,7 @@ function createTable12( resultRows, colorize){
 				link.setAttribute("href", "https://you.23andme.com/profile/" + row.id2 +"/");
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name2;
-				link.className="special";
+				link.className=  ID_is_profile_person( row.id2 ) ? "special-profile": "special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
@@ -950,7 +959,7 @@ function createTable12( resultRows, colorize){
 				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + row.id1);
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name1;
-				link.className="special";
+				link.className=  ID_is_profile_person( row.id1 ) ? "special-profile": "special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name1;
@@ -964,7 +973,7 @@ function createTable12( resultRows, colorize){
 
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name1;
-				link.className="special";
+				link.className=  ID_is_profile_person( row.id1 ) ? "special-profile": "special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name1;
@@ -976,7 +985,7 @@ function createTable12( resultRows, colorize){
 				link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + row.id2);
 				link.setAttribute("target", "_blank");
 				link.innerHTML=row.name2;
-				link.className="special";
+				link.className=  ID_is_profile_person( row.id2 ) ? "special-profile": "special";
 				(tablerow.insertCell(curColumnId++)).appendChild(link);
 			}
 			else (tablerow.insertCell(curColumnId++)).innerHTML=row.name2;
@@ -1547,11 +1556,12 @@ function createSegmentTable(resultRows){
 				{
 
 					let link = document.createElement("a");
-					link.setAttribute("href", "https://you.23andme.com/profile/" + matchingSegmentsArray[k][i].id1 +"/");
+					let  person = matchingSegmentsArray[k][i];
+					link.setAttribute("href", "https://you.23andme.com/profile/" + person.id1 +"/");
 
 					link.setAttribute("target", "_blank");
-					link.innerHTML=matchingSegmentsArray[k][i].name1;
-					link.className="special";
+					link.innerHTML=person.name1;
+					link.className=  ID_is_profile_person( person.id1 ) ? "special-profile": "special";
 					let cell=tablerow.insertCell(curColumnId++);
 					(cell).appendChild(link);
 					if(i==matchingSegmentsArray[k].length-1){
@@ -1562,10 +1572,11 @@ function createSegmentTable(resultRows){
 
 				{
 					let link = document.createElement("a");
-					link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + matchingSegmentsArray[k][i].id2);
+					let  person = matchingSegmentsArray[k][i];
+					link.setAttribute("href", chrome.runtime.getURL('results_tab.html')+"?id=" + person.id2);
 					link.setAttribute("target", "_blank");
-					link.innerHTML=matchingSegmentsArray[k][i].name2;
-					link.className="special";
+					link.innerHTML=person.name2;
+					link.className=  ID_is_profile_person( person.id2 ) ? "special-profile": "special";
 					let cell=tablerow.insertCell(curColumnId++);
 					(cell).appendChild(link);
 					if(i==matchingSegmentsArray[k].length-1){
@@ -1573,7 +1584,7 @@ function createSegmentTable(resultRows){
 					}
 				}
 
-
+				// will never be true now, but leave it hses until I figure out if I need to replace it with other code
 				if(matchingSegmentsArray[k][i].chromosome==100){
 					{
 						let cell=tablerow.insertCell(curColumnId++);

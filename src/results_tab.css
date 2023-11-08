@@ -38,6 +38,9 @@ select.special {
 a.special {
 	color:#0000ff;
 }
+a.special-profile {
+	background-color:rgb(228, 220, 132);
+}
 td.bottom {
 	border-bottom: 1px solid #666666;
 }
