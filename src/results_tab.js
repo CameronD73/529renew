@@ -839,7 +839,8 @@ function createTable12( resultRows, colorize){
 	let nrows = resultRows.length;
 
 
-	// Remove any preexisting table
+	// Remove any preexisting table and other content
+	logHtmlClear();
 	while(document.getElementById("table_div").hasChildNodes()){
 		document.getElementById("table_div").removeChild(document.getElementById("table_div").children[0]);
 	}

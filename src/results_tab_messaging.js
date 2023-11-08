@@ -8,15 +8,22 @@
 
 console.log( 'create_db_worker.js started');
 
-const logHtml = function (cssClass, ...args) {
-  const ln = document.createElement('div');
-  if (cssClass) ln.classList.add(cssClass);
-  ln.append(document.createTextNode(args.join(' ')));
-  document.body.append(ln);
-  if ( cssClass === 'error' ){
-	alert( ...args );
+function logHtml(cssClass, ...args) {
+	const logbox = document.getElementById( "html_log_box");
+	const ln = document.createElement('div');
+	if (cssClass) ln.classList.add(cssClass);
+	ln.append(document.createTextNode(args.join(' ')));
+	logbox.append(ln);
+	if ( cssClass === 'error' ){
+		alert( ...args );
   }
 };
+function logHtmlClear() {
+	const logbox = document.getElementById( "html_log_box");
+	while( logbox.hasChildNodes() ) {
+		logbox.removeChild( logbox.children[0]);
+	}
+}
 
 const DBworker = new Worker('dbworker/worker.js?sqlite3.dir=jswasm');
 
