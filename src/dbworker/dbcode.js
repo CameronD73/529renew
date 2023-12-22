@@ -517,7 +517,7 @@ var DBwasm = {
                         }
                     }
                 } else {
-                    show_updated( obj, 'added');
+                    show_updated( obj, 'Match added');
                 }
                 // and repeat for the matches table
                 let is_hidden = obj.shared ? 0 : 1;
@@ -542,9 +542,7 @@ var DBwasm = {
                             total_updates += ra;
                         }
                     }
-                } else {
-                    show_updated( obj, 'Match added');
-                }
+                } 
             }
 
             DB529.exec( 'COMMIT TRANSACTION;');
