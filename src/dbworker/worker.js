@@ -141,7 +141,9 @@ self.onmessage = function processMessages( msg ) {
             logHtml( '', 'Restore done');
             let dbtables = DBwasm.get_summary();
             if( dbtables.length < 10) {
-              conerror( 'Looks like your file was not a 529Renew database - or it has been corrupted\nYou should delete it and identify the problem');
+              let msg = `Only ${dbtables.length} tables in summary of DB.`;
+              console.log( msg, dbtables );
+              conerror( msg + '\nLooks like your file was not a 529Renew database - or it has been corrupted\nYou should delete it and identify the problem');
             }
             postMessage( {reason: 'restoredDB_return' } );
           }); 

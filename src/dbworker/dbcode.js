@@ -119,7 +119,7 @@ var DBwasm = {
         let sqlcode = " \
                 SELECT \'DBVersion\' as tbl, max(version) as nrows  from DBVersion \
             UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles " +
-            // "UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref " +   // remove while we don't use it
+            "UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref " + 
             "UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
             UNION SELECT \'DNAmatches\' as tbl, count(*) as nrows from DNAmatches \
             UNION SELECT \'ibdsegs\' as tbl, count(*) as nrows from ibdsegs \
