@@ -52,7 +52,8 @@ const settings529default = {
 	"importReplaces": "0",
 	"relativePixelPadding": "16",
 	"displayNotesLength": "0",
-	"autoLoadICW": "0"
+	"autoLoadICW": "0",
+	"favouritesAreScanned": "0"
 };
 const settings_upgrade_0to1 = {
 	"debug_db": "0",
@@ -60,8 +61,7 @@ const settings_upgrade_0to1 = {
 	"debug_msg": "0",
 	"minSharedNonOverlap": 0.08,  // 0.08 will allow all
 	"closeTabImmediate": "0",
-	"alwaysIncludeNonOverlap": "0",
-	"favouritesAreScanned": "0"
+	"alwaysIncludeNonOverlap": "0"
 };
 
 const settings_upgrade_1to2 = {
