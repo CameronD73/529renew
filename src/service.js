@@ -105,6 +105,8 @@ chrome.runtime.onInstalled.addListener( function(details) {
 		case  'install':
 			conlog( 0, "529 extension installed");
 			open_results_tab("results_tab.html", true );
+			// temporarily show page that warns about inability to do anything...
+			chrome.tabs.create({ active:true, url: 'whatsnew-2_0.html' });
 			break;
 		case 'update':
 			conlog(0, `529 extension updated from ${previousVersion} to ${currentVersion}.`);

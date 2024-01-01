@@ -1,6 +1,8 @@
-# BUILDxxx represent the target directories in while to build the extension.
+# BUILDxxx represent the target directories in which to build the extension.
+# set BUILDDIR to 529renew-V2-test for local devel installation, or
+#				  529renew-V2-release for a release version
 BUILDDIR	= 529renew-V2-release
-# BUILD_WEBSQL	= ${BUILDDIR}/websql
+
 BUILD_LOGOS	= ${BUILDDIR}/logos
 BUILD_IMAGES	= ${BUILDDIR}/images
 BUILD_UTIL	= ${BUILDDIR}/util
