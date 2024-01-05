@@ -59,3 +59,8 @@ V2.0.0   submission to Chrome store around 7 November 2023.
 	NotesLength - display Notes on DNARelatives list page.
     Star means have-triangulated - If you previously use the star to indicate that you had triangulated.
     Action for duplicate imports - whether csv imports update older values or not.
+
+V2.0.1 submitted to store 2024-Jan-01
+    _Does not work fully_ because 23andMe have disabled segment display. Added notes to warn about this in the "Whatsnew" page
+    Tinkered with the debugging output.
+    fixed bug: incorrect warning about failing to import sqlite DB, when it is in fact valid.
