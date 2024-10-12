@@ -2,6 +2,12 @@
 Chrome extension to allow "23 and me" customers to extract their DNA segment match information
 
 This is now available on the Chrome Store.
+## Status October 2024
+I think it has now been a year since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with far fewer matches being identified than before.
+
+Without the chromosomem browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testsers.  And at this time it looks like it is most likely to go broke.
+
+The changes around the enforced migration to sqlite were never completed when the chromosome browser was disabled. The code could be completed as far as getting some ICW match details, but it all seems rather pointless to put the work in at this stage.
 
 ## Contents:
 * [Installation Guide](#installation)
