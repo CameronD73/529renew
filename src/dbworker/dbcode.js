@@ -615,10 +615,10 @@ var DBwasm = {
     ** So, we need to scrape the match's profile page
     */
     setHaplogroups: function( matchHapData ) {
-        const matchID = matchHapData.mid;
-        const matchName = matchHapData.mname;
-        const hapMat= matchHapData.hapMat;
-        const hapPat= matchHapData.hapPat;
+        const matchID = matchHapData.$mid;
+        const matchName = matchHapData.$mname;
+        //const hapMat= matchHapData.hapMat;
+        //const hapPat= matchHapData.hapPat;
         const today = formattedDate2();
 
         let update_qry = `INSERT OR REPLACE INTO idalias (IDText, name, date, hapMat, hapPat) VALUES ($mid, $mname, '${today}', $hapMat, $hapPat );`;

@@ -1,5 +1,6 @@
 /*
-* this content script version is for ibdsegment access.
+** This code must not run before the DOM has loaded.
+* this content script version is for ibdsegment access and ICWs
 ** Most comments in this file were made trying to interpret the original code and
 * do not carry any warranty as to accuracy.
 ** This version is run using a fifo queue to allow more control over adding delays
@@ -42,6 +43,8 @@ let rereadSegsRequested = null;	// if alt   key was held when "triangulate" butt
 let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
 let matchMatchesMap = new Map();		// all the matches we already have 
 let sharedSegMapMap = new Map();	// all known 3-way comparisons including profile match person.
+
+let sharedDNAPrimary = {pct:-1.0, cM:0, hapMat:"", hapPat:""};
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -434,7 +437,7 @@ function get_primary_match_details() {
 		if (matsel) {
 			hapPat = matsel.innerText;
 		}
-		chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: {mid:matchID, mname:matchName, hapMat:hapMat, hapPat:hapPat}} );
+		chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: {$mid:matchID, $mname:matchName, $hapMat:hapMat, $hapPat:hapPat}} );
 	}
 	catch(e){
 		hapPat = "error parsing page";
@@ -509,10 +512,6 @@ function runComparison(ranPrimaryComparison ){
 	let any_hidden = false;
 
 	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
-	let sharedDNAPrimary = {pct:-1.0, cM:0, hapMat:"", hapPat:""};
-	if ( !ranPrimaryComparison ) {
-		sharedDNAPrimary = get_primary_match_details();
-	}
 	try{
 		// js-relatives-table is the DIV showing relatives in common between you and person A, normally shows:
 		// headers - table header line
@@ -961,3 +960,8 @@ try {
 } catch( e ) {
 	handleMessageCatches( "in storeSegment", e );
 }
+
+/*
+** now scan the page and extract dna summary for primary match
+*/
+sharedDNAPrimary = get_primary_match_details();
