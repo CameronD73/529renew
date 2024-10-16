@@ -388,11 +388,15 @@ function get_pct_shared( row_n, classtext ) {
 	}
 	return percentShared;
 }
-/* and the same for the comparison between profile person and DNA relative.
+/*
+** find DNA match amount, plus haplogroups for the comparison between profile person and DNA relative.
 */
-function get_pct_shared_primary() {
+function get_primary_match_details() {
 	let shared_pct = 0.0;
 	let shared_cM = 0.0;
+	let hapPat = "";
+	let hapMat = "";
+
 	let  sharedBlock=document.getElementsByClassName("js-shared-dna-percentage");
 	for(let i=0; i<sharedBlock.length; i++){
 		let sb = sharedBlock[i];
@@ -421,7 +425,26 @@ function get_pct_shared_primary() {
 			}
 		}
 	}
-	return( {pct:shared_pct, cM:shared_cM});
+	try {
+		let matsel = document.querySelector(".js-maternal-haplogroup .js-haplogroup-name-remote");
+		if (matsel) {
+			hapMat = matsel.innerText;
+		}
+		matsel = document.querySelector(".js-paternal-haplogroup .js-haplogroup-name-remote");
+		if (matsel) {
+			hapPat = matsel.innerText;
+		}
+		chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: {mid:matchID, mname:matchName, hapMat:hapMat, hapPat:hapPat}} );
+	}
+	catch(e){
+		hapPat = "error parsing page";
+		hapMat = "error parsing page";
+	}
+	
+	if(shared_cM == 0.0){
+		shared_cM = pctShared2cM( shared_pct );
+	}
+	return( {pct:shared_pct, cM:shared_cM, hapPat:hapPat, hapMat:hapMat });
 }
 
 /*
@@ -486,9 +509,9 @@ function runComparison(ranPrimaryComparison ){
 	let any_hidden = false;
 
 	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
-	let sharedDNAPrimary = {pct:-1.0, cM:0};
+	let sharedDNAPrimary = {pct:-1.0, cM:0, hapMat:"", hapPat:""};
 	if ( !ranPrimaryComparison ) {
-		sharedDNAPrimary = get_pct_shared_primary();
+		sharedDNAPrimary = get_primary_match_details();
 	}
 	try{
 		// js-relatives-table is the DIV showing relatives in common between you and person A, normally shows:
@@ -529,7 +552,7 @@ function runComparison(ranPrimaryComparison ){
 		setTimeout(function(){runComparison(ranPrimaryComparison);}, 1000);
 		return;
 	}
-	var foundData=false;
+	var foundData=true;		// TEMPORARY while there is no chromosome browser
 	var number_of_rows = row_container.children.length;
 	q_debug_log( 1, " checking " + number_of_rows + " rows" );
 	// typically here the row_container has up to 10 rows of ICWs
@@ -767,8 +790,8 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	alert( 'Not yet available until I can test that it works with potentially modified 23andMe pages');
-	return;
+	//alert( 'Not yet available until I can test that it works with potentially modified 23andMe pages');
+	//return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw new Error("Page structure changed");
@@ -798,7 +821,7 @@ tr_el.onclick=function(evt){
 	}
 	var personAID=getMatchId();
 
-	tr_el.innerHTML="Collecting DNA segments..";
+	tr_el.innerHTML="Collecting ICW and any DNA segments..";
 	pendingPages=true;
 
 	profileName = localName;
