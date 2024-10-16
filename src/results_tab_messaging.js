@@ -253,6 +253,11 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"get_ICW_prelude", matchpair:request.matchpair, tabID: sender.tab.id } );
 		break;
 
+		case  "update_haplogroups" :
+			// message from content script - need to forward to worker. will not bother returning, just hope it works
+			DBworker.postMessage( {reason:"update_haplogroups", matchHapData:request.matchHapData } );
+		break;
+
 		case  "getProfiles4pop" :
 				// message from popup - need to forward to worker. will return via messaging
 				// we could just return stored array. but for the moment just ask again...

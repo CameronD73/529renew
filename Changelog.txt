@@ -64,3 +64,8 @@ V2.0.1 submitted to store 2024-Jan-01
     _Does not work fully_ because 23andMe have disabled segment display. Added notes to warn about this in the "Whatsnew" page
     Tinkered with the debugging output.
     fixed bug: incorrect warning about failing to import sqlite DB, when it is in fact valid.
+
+V2.1.0 submitted to store 2024-Oct-nn
+    A quick hack for people to get as much data as possible in case 23andMe goes down the gurgler.
+    Sqlite-WASM v 3.60.0
+    PapaParse v 5.4.0

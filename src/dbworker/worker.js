@@ -104,7 +104,7 @@ self.onmessage = function processMessages( msg ) {
     break;
 
     case "selectFromDatabase":
-      let retvalsfD = DBwasm.selectFromDatabase(content.id, content.chr, content.dateLimit, content.incChr100);  // synchronous, so we can just send result back
+      let retvalsfD = DBwasm.selectSegsFromDatabase(content.id, content.chr, content.dateLimit, content.incChr100);  // synchronous, so we can just send result back
       postMessage( {reason: 'selectFromDatabase_return', callback:content.callback, payload: retvalsfD } );
     break;
 
@@ -120,6 +120,11 @@ self.onmessage = function processMessages( msg ) {
     case "get_ICW_prelude":
       let rowsICWP = DBwasm.getICWPrelude(content.matchpair);  // synchronous, so we can just send result back
       postMessage( {reason: 'ICWPrelude_return', tabID:content.tabID, payload: rowsICWP } );
+    break;
+
+    case "update_haplogroups":
+      let rowsHapUp = DBwasm.setHaplogroups(content.matchHapData);  // synchronous, so we can just send result back
+      //postMessage( {reason: 'haplogroup_return', tabID:content.tabID, payload: rowsICWP } );
     break;
 
     case "requestTriangTable":

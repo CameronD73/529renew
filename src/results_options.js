@@ -40,18 +40,18 @@ const settings529default = {
 	"baseAddressRounding": "0",
 	"cMRounding": "2",
 	"delay": "2", // units of seconds
-	"minimumOverlap": "0", //units of Mbp
+	"minimumOverlap": "1", //units of Mbp
 	"lastCSVExportDate": "1900-01-01",
 	"lastGEFXExportDate": "1900-01-01",		// yes, it's a typo
 	"debug_db": "0",
 	"debug_q": "0",
 	"debug_msg": "0",
-	"minSharedNonOverlap": 0.3,		// percentage
+	"minSharedNonOverlap": 0.07,		// percentage
 	"closeTabImmediate": "0",
-	"alwaysIncludeNonOverlap": "0",
+	"alwaysIncludeNonOverlap": "1",
 	"importReplaces": "0",
-	"relativePixelPadding": "16",
-	"displayNotesLength": "0",
+	"relativePixelPadding": "3",
+	"displayNotesLength": "100",
 	"autoLoadICW": "0",
 	"favouritesAreScanned": "0"
 };
@@ -69,8 +69,8 @@ const settings_upgrade_1to2 = {
 };
 
 const settings_upgrade_2to3 = {
-	"relativePixelPadding": "16",		// how many pixels padding for each relative list
-	"displayNotesLength": "0",			// how many chars to show notes next to relative name.
+	"relativePixelPadding": "3",		// how many pixels padding for each relative list
+	"displayNotesLength": "100",			// how many chars to show notes next to relative name.
 	"autoLoadICW": "0",					// if we should auto-click the "load relatives in common" button.
 	"favouritesAreScanned": "0"
 };

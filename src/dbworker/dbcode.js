@@ -148,7 +148,7 @@ var DBwasm = {
     ** return a summary table for the count of overlapping segments under various categories:
     ** 1: 3-way overlaps
     ** 2: 2-way overlaps only
-    ** 3: same as 1, but excluding any match where two profiles are involved. (two kits are liekly to be closely related and so have lots of triangulations)
+    ** 3: same as 1, but excluding any match where two profiles are involved. (two kits are likely to be closely related and so have lots of triangulations)
     ** 4: same as 2, but excluding any match where two profiles are involved.
     */
     get_matchSummary: function( cmlimit ) {
@@ -296,7 +296,7 @@ var DBwasm = {
     ** chromosome: either gives a specific chromosome number, or zero for "all"
     ** dateLimit is either the empty string (return all) or a date such that only newer matching segments are returned.
     */
-    selectFromDatabase( id, chromosome, dateLimit, incChr100 ) {
+    selectSegsFromDatabase( id, chromosome, dateLimit, incChr100 ) {
         let qry_sel = "SELECT \
                     s0.ROWID as ROWID, \
                     t1.name AS name1, \
@@ -559,7 +559,7 @@ var DBwasm = {
 
     /*
     ** routine to return tables of known information about a profile and the chosen relative.
-    ** in: pairobj: object with name and ID of the profile persoinn and the matching relative
+    ** in: pairobj: object with name and ID of the profile person and the matching relative
     ** returns:
     **      arrays of objects with ICW comparisons and segment match summaries.
     ** side-effect: adds to profile table if this profile person is not there already.
@@ -607,6 +607,30 @@ var DBwasm = {
         }
 
         return {pair:pairobj, profileMatches:rowsprofile, DNArelMatches: rowsmatch, ICWset: rowsICW};
+    },
+
+    /*
+    ** insert/update the match's haplogroup data.
+    ** originally we imported from 23nme csv files but these no longer exist.
+    ** So, we need to scrape the match's profile page
+    */
+    setHaplogroups: function( matchHapData ) {
+        const matchID = matchHapData.mid;
+        const matchName = matchHapData.mname;
+        const hapMat= matchHapData.hapMat;
+        const hapPat= matchHapData.hapPat;
+        const today = formattedDate2();
+
+        let update_qry = `INSERT OR REPLACE INTO idalias (IDText, name, date, hapMat, hapPat) VALUES ($mid, $mname, '${today}', $hapMat, $hapPat );`;
+
+        try {
+            DB529.exec( update_qry, {bind: matchHapData} );
+        } catch( e ) {
+            conerror( `DB updating haplogroups for ${matchName} : ${e.message}`);
+            return( 0 );
+        }
+
+        return(1); 
     },
 
     getTriangTable: function( profileID ) {
