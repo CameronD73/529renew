@@ -185,6 +185,10 @@ DBworker.onmessage = function ( msg ) {
 		chrome.tabs.sendMessage( data.tabID, {mode:'requestTriangTable_return', data:data.payload} );
 	break;
 
+	case 'relatives_completed' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'relatives_completed', data:data.payload} );
+	break;
+
     default:
       console.log( 'DBWorker msg: ', msgevt );
       logHtml('error', 'Unhandled DBworker msg:', data.reason);
@@ -243,7 +247,7 @@ chrome.runtime.onMessage.addListener(
 
 		case "process_relatives":
 			// we have a list of relatives from the front page...
-			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, settings:settings529 } ); 
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
 
 		break;
 

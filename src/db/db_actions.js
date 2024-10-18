@@ -132,49 +132,66 @@ function save_hidden_records( primary_pair, page_rows ) {
 	for(let i=0; i<page_rows.length; i++){
 		// Attempt to insert these two number, name combos
 		let pr=page_rows[i];		// is an object of the i'th row
-		if( pr.is_hidden ) {
-			let id1 = pr.ID_icw_relative;
-			db_conlog( 2, `save_hidden_records: alias ${i} for ${pr.name_icw_relative}}`);
+		if( pr.$is_hidden ) {
+			let id1 = pr.$ID_icw_relative;
+			db_conlog( 2, `save_hidden_records: alias ${i} for ${pr.$name_icw_relative}}`);
 			// there are 3 IDs in the match, but profile and match should have been stored already
 			if( ! DNAtesters.has( id1 ) ) {
-				aliasToAdd.set( id1, {$k:id1, $name:pr.name_icw_relative });
-				DNAtesters.set( id1, {ID:id1, name:pr.name_icw_relative});
+				aliasToAdd.set( id1, {$k:id1, $name:pr.$name_icw_relative });
+				DNAtesters.set( id1, {ID:id1, name:pr.$name_icw_relative});
 			}
 		}
 	}
 	let hiddenMap = new Map();
+	let ICWmap = new Map();
+	let prfID = primary_pair.profileID;
+	let matID = primary_pair.matchID;
 
 	for(let i=0; i<page_rows.length; i++){
 		let pr=page_rows[i];
-		if( pr.is_hidden ) {
-			if ( pr.shared_pct_P2B > 0.0 ) {
-				let id1 = primary_pair.profileID;
-				let id2 = pr.ID_icw_relative;
+		let relID = pr.$ID_icw_relative;
+		let ICWkey = prfID + matID + relID;
+		let icid2 = matID;
+		let icid3 = relID;
+		if (icid2 > icid3) {
+			icid2 = relID;
+			icid3 = matID;
+			ICWkey = prfID + relID + matID;
+		}
+		ICWmap.set(ICWkey, {$IDp:prfID, $ID2:icid2, $ID3:icid3, $chr:-2, $st:0, $end:0} );
+		
+		if( pr.$is_hidden ) {
+			if ( pr.$shared_pct_P2B > 0.0 ) {
+				let id1 = prfID;
+				let id2 = pr.$ID_icw_relative;
 				if ( id2 < id1 ) {
 					let temp = id2;
 					id2 = id1;
 					id1 = temp;
 				}
 				let matchkey = id1 + "_" + id2;
-				let pctsh = pr.shared_pct_P2B;
+				let pctsh = pr.$shared_pct_P2B;
 				let cMtotal = pctShared2cM( pctsh );
 				hiddenMap.set(matchkey, {$id1: id1, $id2: id2, $ishidden: 1, $cMtotal: cMtotal, $pctshared : pctsh, $nsegs: 0, $hasSegs: 0 });
 			}
 
-			if ( pr.shared_pct_A2B > 0.0 ) {
-				let id1 = primary_pair.matchID;
-				let id2 = pr.ID_icw_relative;
+			if ( pr.$shared_pct_A2B > 0.0 ) {
+				let id1 = matID;
+				let id2 = pr.$ID_icw_relative;
 				if ( id2 < id1 ) {
 					let temp = id2;
 					id2 = id1;
 					id1 = temp;
 				}
 				let matchkey = id1 + "_" + id2;
-				let pctsh = pr.shared_pct_A2B;
+				let pctsh = pr.$shared_pct_A2B;
 				let cMtotal = pctShared2cM( pctsh );
 				hiddenMap.set(matchkey, {$id1: id1, $id2: id2, $ishidden: 1, $cMtotal: cMtotal, $pctshared : pctsh, $nsegs: 0, $hasSegs: 0 });
 			}
 		}
 	}
-	DBworker.postMessage( { reason: 'insertHiddenMap', amap: aliasToAdd, hmap: hiddenMap, useReplace: true });
+	// change useReplace to false, because we don't want to overwrite haplogroup data in idalias,
+	// Also I don't think we will ever improve content in matchmap, so should be safe.
+	// We might have already stored number of segments in initial scan.
+	DBworker.postMessage( { reason: 'insertHiddenMap', amap: aliasToAdd, hmap: hiddenMap, ICWmap:ICWmap, useReplace: false });
 }

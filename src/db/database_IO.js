@@ -70,6 +70,13 @@ function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, include
 	return;
 }
 
+/* this version gets a table for export in 23andMe format
+*/
+function select23CSVFromDatabase(callbackSuccess, id ){
+	DBworker.postMessage( {reason:"select23FromDatabase", callback: callbackSuccess, id: id} );
+	return;
+}
+
 
 /*
 ********************************************************

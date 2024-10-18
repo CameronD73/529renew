@@ -464,10 +464,18 @@ function createMatchTableButton( ){
 
 function createCSVButton( ){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Download CSV update";
+	newButton.innerHTML="D'load segment update";
 	newButton.title="Always includes 23andMe ID's; Shift-click to include all previously exported; Alt-click to also include non-match info";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseForCSV(evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOutRow").appendChild(newButton);
+}
+function create23CSVButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load 23andMe CSV";
+	newButton.title="Downloads a CSV relatives file in 23andMe format (approximately)";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV(evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOutRow").appendChild(newButton);
 }
 function createGEXFButton( ){
@@ -485,13 +493,16 @@ function createSVGButton( ){
 	document.getElementById("buttonOutRow").appendChild(newButton);
 }
 
+/*
+** =======  rows of buttons for DB operations
+*/
 function createDBDumpButton(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Backup Sqlite DB";
 	newButton.title="Export the internal database to your computer's filesystem (current version cannot restore)";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){askDumpSqlite3DB();});
-	document.getElementById("buttonOutRow").appendChild(newButton);
+	document.getElementById("buttonDBRow").appendChild(newButton);
 }
 
 function createDBRestoreButton(){
@@ -504,9 +515,19 @@ function createDBRestoreButton(){
 			document.getElementById("upfile-restore").click();
 
 	} );
-	document.getElementById("buttonOutRow").appendChild(newButton);
+	document.getElementById("buttonDBRow").appendChild(newButton);
 	document.getElementById("upfile-restore").addEventListener('change',(evt)=>{askRestoreSqlite3DB(evt);});
 }
+
+function createDeleteWASMButton(){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="Delete 529Renew Database";
+	newButton.title='Delete all saved DNA data collected by 529Renew';
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', requestDeletionFromDatabase);
+	document.getElementById("buttonDBRow").appendChild(newButton);
+}
+
 /*
 ** =======   Create row of buttons for import, etc
 */
@@ -556,14 +577,6 @@ function createImport529Button(){
 	document.getElementById("upfile529").addEventListener('change', requestImport529CSV);
 }
 
-function createDeleteWASMButton(){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete 529Renew Database";
-	newButton.title='Delete all saved DNA data collected by 529Renew';
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', requestDeletionFromDatabase);
-	document.getElementById("buttonInRow").appendChild(newButton);
-}
 /* ========= end of button creation ============= */
 
 function clearFilterText() {
@@ -1787,6 +1800,28 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 		selectFromDatabase('createCSV', expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
 	}
 }
+function requestSelectFromDatabaseFor23CSV(shiftIsDown, altIsDown){
+
+	let namesel = document.getElementById("selectKit");
+	if(namesel.selectedIndex<0)
+		 return;
+	let kitName=namesel.options[namesel.selectedIndex].text;
+	let kitID=namesel.options[namesel.selectedIndex].value;
+
+	if(kitID=='all')
+		kitIDStr=0;
+	else
+		kitIDStr=kitID;
+	let limitDates = false;
+	db_conlog( 1, `writing 23andMe format CSV relatives for profile: ${kitName}`);
+	if(altIsDown){
+		select23CSVFromDatabase('create23CSV', kitID);
+	}
+	else{
+		select23CSVFromDatabase('create23CSV', kitID);
+	}
+}
+
 function requestSelectFromDatabaseForGEXF(){
 	let namesel = document.getElementById("selectName");
 	let chromsel = document.getElementById("chromosome");
@@ -2007,6 +2042,7 @@ document.addEventListener('DOMContentLoaded',  function () {
 
 	createMatchTableButton();
 	createCSVButton();
+	create23CSVButton();
 	createGEXFButton();
 	createSVGButton();
 	createDBDumpButton();

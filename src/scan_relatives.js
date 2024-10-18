@@ -27,6 +27,7 @@ let profileID = null;		// UUID string of the profile person ("You")
 
 let relativesMap = new Map();		// the 1500 relatives that are preloaded on this page
 let notesMap = new Map();			// the annotations preloaded for this page.
+let messagesMap = new Map();			// the messages preloaded for this page.
 
 let triangMap = new Map();			// map of triangulations to the current profile
 
@@ -78,6 +79,7 @@ function run_query(personaId, personbId, personaName, personbName){
 function startAjax() {
 	ajQueue.enqueue( {datatype:'annotations', pid:profileID, urltail:'/family/relatives/annotations/'});
 	ajQueue.enqueue( {datatype:'relatives', pid:profileID, urltail:'/family/relatives/ajax/'});
+	ajQueue.enqueue( {datatype:'messages', pid:profileID, urltail:'/family/relatives/messages/'});
 	current_ajax = '';
 	launch_next_ajax_query();
 
@@ -111,14 +113,15 @@ chrome.runtime.onMessage.addListener(
 		}
 		//let tset = ajQueue.dequeue();
 		// sanity check...
-
+	} else if(request.mode === "relatives_completed"){
+		tr_el.innerHTML="529-Gather Done";
 	} else
 		return false;			// message not handled here
   }
 );
 
 /*
-** callback function to initiate processing the next IBD segment collection
+** callback function to initiate processing the next result set from an Ajax call
 ** from the queue
 */
 function launch_next_ajax_query() {
@@ -129,8 +132,8 @@ function launch_next_ajax_query() {
 	let tset = ajQueue.dequeue();
 	q_debug_log( 2, `     sending query for ${tset.datatype} and ${tset.pid}` );
 
-	function makeSegmentSaver( datatype ){
-		/* This gets called when the Ajax data requests are returned.
+	function makeAjaxSaver( datatype ){
+		/* This creates a callback function that gets called when the Ajax data requests are returned.
 		** every return path from here should launch_next_ajax_query()
 		*/
 		return function(){
@@ -154,6 +157,9 @@ function launch_next_ajax_query() {
 				case 'relatives':
 					load_ajax_relatives( resp );
 				break;
+				case 'messages':
+					load_ajax_messages( resp );
+				break;
 				default:
 					let errmsg = `unprogrammed datatype in Ajax queue ${datatype}`;
 					console.error( errmsg );
@@ -176,7 +182,7 @@ function launch_next_ajax_query() {
 	var oReq = new XMLHttpRequest();
 	msg_debug_log( 1, `calling ${ajaxURL}`);
 	oReq.withCredentials = true;
-	oReq.onload=makeSegmentSaver( tset.datatype );
+	oReq.onload=makeAjaxSaver( tset.datatype );
 	oReq.onerror=makeErrorHandler( tset.datatype );
 	oReq.open("get", ajaxURL, true);
 	oReq.setRequestHeader('X-Requested-With', 'XMLHttpRequest'  );		// returns 404 without this
@@ -192,6 +198,28 @@ function load_ajax_notes( resparray ) {
 	}
 }
 
+/*
+** process the message json response.
+** It looks like this is limited to the first 20000 (or value in "limit")
+** so I won't bother trying to get more than whatever it offers.
+*/
+function load_ajax_messages( resp ) {
+	messagesMap.clear();
+	let msgcount = resp.total_count;
+	let msglimit = resp.limit;
+	let msgoffset = resp.offset;
+	let resparray = resp.messages;
+
+	for( let i = 0 ; i < resparray.length; i++ ) {
+		let mobj = resparray[i];
+		let msgID = mobj.id;
+		let senderid = mobj.sender.id
+		messagesMap.set( mobj.id, {$id:mobj.id, $sender:mobj.sender.id, $recip:mobj.recipient.id, $content:mobj.body, $entireJSON:JSON.stringify(resparray) } );
+	}
+	msg_debug_log( 1,  `Populated ${messagesMap.size} entries into 'messagesMap' out of ${msgcount}` );
+	msg_debug_log( 4,  `trace end 'load_ajax_messages'` );
+}
+
 function load_ajax_relatives( resparray ) {
 	msg_debug_log( 4,  `trace start 'load_ajax_relatives'` );
 	relativesMap.clear();
@@ -199,7 +227,7 @@ function load_ajax_relatives( resparray ) {
 		let nobj = resparray[i];
 		let relID = nobj.relative_profile_id;
 		let pctshared = nobj.ibd_proportion * 100.0;
-		let totcM = round_cM( pctShared2cM(pctshared ) );
+		let totcM = round_cM( pctShared2cM(pctshared) );
 		let shared = nobj.is_open_sharing;		// whether results are publicly shared
 		if ( ! shared ) {
 			// not open shared, but may be private sharing...
@@ -224,12 +252,14 @@ function load_ajax_relatives( resparray ) {
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
 				totalcM: totcM, 
-				max_seg: largest_seg,
+				max_seg: Math.round(largest_seg, 2),
 				side: side,
 				sex: nobj.sex,
 				messagex: nobj.has_exchanged_message,
 				fav:nobj.is_favorite,
-				known_rel: nobj.overridden_relationship_id 
+				known_rel: nobj.overridden_relationship_id,
+				family_locations:JSON.stringify(nobj.raw_family_locations),
+				surnames:JSON.stringify(nobj.surnames)
 			}
 		); 
 		if (notesMap.has( relID ) && (notesMap.get(relID).note.length > 0) ) {
@@ -349,12 +379,14 @@ tr_el.onclick=function(evt){
 		// don't use a callback, as we cannot pass it through the worker... Just rely on the returned message
 		// and we cannot pass a Map, so convert...
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
-		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } )
+		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
+		console.log( 'msg array is ', msgarr );
+		tr_el.innerHTML="..Busy..";
+		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr, messages:msgarr } );
 	} catch( e ) {
 		// never catches anything!?
 		handleMessageCatches( "process relatives list ", e );
 	}
-	
 }
 
 
@@ -380,8 +412,8 @@ msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 
 let b529r=document.createElement('button');
 b529r.id="b529r";
-b529r.innerHTML="pad";
-b529r.title="debug code to apply padding and notes";
+b529r.innerHTML="scan ICW (maybe)";
+b529r.title="code to apply padding and notes";
 b529r.onclick= fill_relative_details;
 b529r.style.marginLeft='10px';
 b529r.style['height'] = '100%';

@@ -20,11 +20,11 @@ var DBwasm = {
             'profiles ( IDprofile TEXT, pname TEXT NOT NULL UNIQUE, PRIMARY KEY(IDprofile) )',
             'settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting))',
 
-            'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null )',
+            'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null, familySurnames TEXT DEFAULT NULL, familyLocations TEXT DEFAULT NULL, familyTreeURL TEXT DEFAULT NULL )',
 
             'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
 
-            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden) )',
+            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, largestSeg REAL NOT NULL DEFAULT 0.0, PRIMARY KEY(ID1,ID2,ishidden) )',
 
             'ibdsegs(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
 
@@ -34,7 +34,9 @@ var DBwasm = {
 
             'ICWSets2way (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
 
-            'ICWSegXref ( ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL )'
+            'ICWSegXref ( ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL )',
+
+            'messages ( IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg) )'
         ];
 
         const indexDefs = [
@@ -48,7 +50,9 @@ var DBwasm = {
             'icwset_id3 ON ICWSets ( ID3 )',
             'icwset2_idp ON ICWSets2way ( IDprofile )',
             'icwset2_id2 ON ICWSets2way ( ID2 )',
-            'icwset2_id3 ON ICWSets2way ( ID3 )'
+            'icwset2_id3 ON ICWSets2way ( ID3 )',
+            'msgsender ON messages ( IDsender )',
+            'msgrecipient ON messages ( IDrec )'
         ];
         const indexDefsUnique = [
             'ibdsegs_kitchen_sink ON ibdsegs ( ID1, ID2, chromosome, start )',
@@ -82,7 +86,7 @@ var DBwasm = {
                     returnValue: "resultRows"
                 } );
             }
-            DBwasm.assign_DB_version( 2 );
+            DBwasm.assign_DB_version( 3 );
 
 
         } catch( e ) {
@@ -97,13 +101,22 @@ var DBwasm = {
 
     check_DB_version( ) {
         let version = [];
+        let oldversion = 0;
         try {
             DB529.exec( 'SELECT version from DBVersion ORDER by version DESC LIMIT 1;', {resultRows:version, rowMode: 'array'} );
-            if ( version[0][0] == 1 ) {
+            oldversion = version[0][0];
+            if ( oldversion == 1 ) {
                 DBwasm.update_DB_1_to_2();
+                oldversion = 2;
+            }
+            if ( oldversion == 2 ) {
+                DBwasm.update_DB_2_to_3();
             }
         } catch( e ) {
-            conerror( `update version failed: ${e.msg}` );
+            conerror( `update version ${oldversion} failed: ${e.msg}` );
+        }
+        if ( oldversion != 3) {
+            DB529.exec( 'UPDATE DNAmatches set pctshared = round(cMtotal / 74.4, 2) WHERE pctshared is NULL')
         }
 
     },
@@ -115,17 +128,37 @@ var DBwasm = {
         DBwasm.assign_DB_version( 2 );
     },
 
+    update_DB_2_to_3: function  () {
+        // Add some more data fields 
+        try{
+            DB529.exec( 'CREATE TABLE IF NOT EXISTS messages ( IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg))' );
+            DB529.exec( 'CREATE INDEX IF NOT EXISTS msgsender ON messages ( IDsender )' );
+            DB529.exec( 'CREATE INDEX IF NOT EXISTS msgrecipient ON messages ( IDrec )' );
+            DB529.exec( 'ALTER TABLE idalias ADD COLUMN sex TEXT DEFAULT null');
+            DB529.exec( 'ALTER TABLE idalias ADD COLUMN familySurnames TEXT DEFAULT null');
+            DB529.exec( 'ALTER TABLE idalias ADD COLUMN familyLocations TEXT DEFAULT null');
+            DB529.exec( 'ALTER TABLE idalias ADD COLUMN familyTreeURL TEXT DEFAULT null');
+            DB529.exec( 'ALTER TABLE DNAmatches ADD COLUMN largestSeg REAL NOT NULL DEFAULT 0.0');
+        } catch( e ){
+            conerror( `update version 2to3 failed: ${e.msg}` );
+            return;
+        }
+        DBwasm.assign_DB_version( 3 );
+    },
+
     get_summary: function() {
         let sqlcode = " \
-                SELECT \'DBVersion\' as tbl, max(version) as nrows  from DBVersion \
-            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles " +
-            "UNION SELECT \'ICWSegXref\' as tbl, count(*) as nrows from ICWSegXref " + 
-            "UNION SELECT \'DNARelatives\' as tbl, count(*) as nrows from DNARelatives \
-            UNION SELECT \'DNAmatches\' as tbl, count(*) as nrows from DNAmatches \
+                SELECT \'DBVer\' as tbl, max(version) as nrows  from DBVersion \
+            UNION SELECT \'profiles\' as tbl, count(*) as nrows from profiles \
+            UNION SELECT \'ICWSegX\' as tbl, count(*) as nrows from ICWSegXref \
+            UNION SELECT \'DNARels\' as tbl, count(*) as nrows from DNARelatives \
+            UNION SELECT \'DNAmats\' as tbl, count(*) as nrows from DNAmatches \
             UNION SELECT \'ibdsegs\' as tbl, count(*) as nrows from ibdsegs \
             UNION SELECT \'idalias\' as tbl, count(*) as nrows from idalias \
-            UNION SELECT \'ICWSets3way\' as tbl, count(*) as nrows from ICWSets \
-            UNION SELECT \'ICWSets2way\' as tbl, count(*) as nrows from ICWSets2way \
+            UNION SELECT \'idali+hap\' as tbl, count(*) as nrows from idalias where hapMat is not null \
+            UNION SELECT \'ICW3way\' as tbl, count(*) as nrows from ICWSets \
+            UNION SELECT \'ICW2way\' as tbl, count(*) as nrows from ICWSets2way \
+            UNION SELECT \'msgs\' as tbl, count(*) as nrows from messages \
             UNION SELECT \'settings\' as tbl, count(*) as nrows from settings;";
 
         let rows = [];
@@ -350,6 +383,64 @@ var DBwasm = {
     },
 
     /*
+    ** select all the summary data for matching relatives
+    ** id: is the 16-digit ID text (for a specific tester profile)
+    ** This is to simulate the xxxx_relatives_download CSV format.
+    */
+    select23RelsFromDatabase( id ) {
+        let qry_sel = "SELECT \
+                    s0.ROWID as ROWID, \
+                    t1.name AS name1, \
+                    t2.name AS name2, \
+                    t1.IDText AS id1, \
+                    t2.IDText AS id2, \
+                    chromosome, start, end, cM, snps, \
+                    m.lastdate as segdate \
+                FROM ibdsegs AS s0 \
+                JOIN idalias t1 ON (t1.IDText=s0.id1) \
+                JOIN idalias t2 ON (t2.IDText=s0.id2)  \
+                LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
+        const qry_condc = '(chromosome = ?) ';
+        const qry_condid =  '((s0.id1=?) OR (s0.id2=?))';
+        // convert to julianday to do a floating point comparison rather than string
+        const qry_date = ' julianday(m.lastdate) >= julianday(?)'
+        const qry_order =  ' ORDER BY chromosome, start, end DESC, s0.ROWID'
+        const extra_order = ', julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
+        let query = qry_sel;
+        let needsand = false;
+        let chrNum=parseInt(chromosome);
+        if ( chrNum > 0 && chrNum < 24 ) {
+            query += `WHERE (chromosome = ${chrNum}) `;
+            needsand = true;
+        }
+        if ( id.length == 16 ) {
+            query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
+            needsand = true;
+        }
+        if( dateLimit.length> 10 ) {
+            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
+        }
+            
+        query += qry_order;
+        conlog(3, `query = ${query} with chr ${chrNum} and ID ${id}`);
+
+
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object'
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get_segments list: ${e.message}, from request ${query}`);
+            return( [ ] );
+        }
+        //console.log( 'DB summary gave: ', rows);
+        return rows;
+    },
+
+    /*
     ** returns a table of all segment matches that overlap the one specified by
     ** input parameter segmentId (which is a ROWID value in the ibdsegs table)
     */
@@ -451,21 +542,27 @@ var DBwasm = {
     processRelatives: function ( profile, relativesArr, settings ) {
 
         function show_updated( o, txt ) {
-            let msg =  `${txt}:  for ${o.name}, s:${o.side}, fav:${o.fav?'y':'n'}, n:${o.note.length} chars`;
+            // let msg =  `${txt}:  for ${o.name}, fav:${o.fav?'y':'n'}, n:${o.note.length} chars`;
+            let msg =  `${txt}:  for ${o.name}`;
             conlog( 1, msg);
             logHtml( '', msg);
         };
         
         const today = formattedDate2();
         const qry_profile = 'INSERT or IGNORE INTO profiles (IDProfile, pname) VALUES (?, ?);'; 
-        const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?, ?);'; 
+        const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date, familySurnames, familyLocations) VALUES (?, ?, ?, ?, ?);'; 
         const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side) VALUES (?, ?, ?, ? );';
         const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
+        const qry_upd_surnames = 'UPDATE idalias SET familySurnames = ? WHERE IDtext = ? AND familySurnames is null;';
+        const qry_upd_locations = 'UPDATE idalias SET familyLocations = ? WHERE IDtext = ? AND familyLocations is null;';
         const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
         const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
         const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
-        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs ) VALUES (?, ?, ?,  ?, ?, ?, 0 );';
-        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? (ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, largestSeg ) VALUES (?, ?, ?, ?, ?, ?, 0, ? );';
+        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
+        const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND largestSeg < 1.0 ;';
+        let transState = "start";
+        let rowsaffected = 0;
         let total_updates = 0;
         let use_fave = false;
         if (Object.keys(settings).includes( "favouritesAreScanned") ) {
@@ -473,26 +570,55 @@ var DBwasm = {
         }
         try {
             DB529.exec( 'BEGIN TRANSACTION;');
+            transState = 'BT';
             DB529.exec( qry_profile, { bind:[profile.id, profile.name] } );
-            DB529.exec( qry_alias_update, { bind:[profile.id, profile.name, today] } );
+            transState = "qau";
+            DB529.exec( qry_alias_update, { bind:[profile.id, profile.name, today, "", ""] } );
             // now, for each relative, check/update their presence in the various tables
             for ( let i = 0; i < relativesArr.length; i++ ){
             //for( const[relkey, obj] of relativesArr ) {
                 relkey = relativesArr[i].key;
                 obj = relativesArr[i].val;
                 // if new, add to alias table...
-                DB529.exec( qry_alias_update, { bind:[relkey, obj.name, today] } );
+                transState = `aliasup row ${i}`;
+                DB529.exec( qry_alias_update, { bind:[relkey, obj.name, today, obj.surnames, obj.family_locations] } );
+                rowsaffected = DB529.changes();
+                if ( rowsaffected < 1 ) {
+                    // we already had this record, so do conditional updates
+                    if ( obj.surnames.length>0) {
+                        transState = `surnames row ${i}`;
+                        DB529.exec( qry_upd_surnames, {bind:[obj.surnames, relkey]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'surnames updated');
+                            total_updates += ra;
+                        }
+                        
+                    }
+                    if ( obj.family_locations.length>0) {
+                        transState = `locations row ${i}`;
+                        DB529.exec( qry_upd_locations, {bind:[obj.family_locations, relkey]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'ancestor locations updated');
+                            total_updates += ra;
+                        }
+                    }
+                }
                 //  now process the relatives table...
                 if ( use_fave && obj.fav ) {
+                    transState = `Rels insert full row ${i}`;
                     DB529.exec( qry_rel_ins_full, {bind:[profile.id, relkey, 1, today, obj.note, obj.side]} );
                 } else {
+                    transState = `Rels insert row ${i}`;
                     DB529.exec( qry_rel_ins, {bind:[profile.id, relkey, obj.note, obj.side]} );
                 }
-                let rowsaffected = DB529.changes();
+                rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
                 if ( rowsaffected < 1 ) {
                     // we already had this record, so do conditional updates, otherwise it will have just been inserted
                     if ( obj.side != 'n') {
+                        transState = `update side row ${i}`;
                         DB529.exec( qry_upd_side, {bind:[obj.side, profile.id, relkey ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
@@ -501,6 +627,7 @@ var DBwasm = {
                         }
                     }
                     if ( obj.note.length > 0 ) {
+                        transState = `update note, row ${i}`;
                         DB529.exec( qry_upd_note, {bind:[obj.note, profile.id, relkey, obj.note ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
@@ -509,6 +636,7 @@ var DBwasm = {
                         }
                     }
                     if ( use_fave && obj.fav  ) {
+                        transState = `Rels upd date row ${i}`;
                         DB529.exec( qry_upd_date, {bind:[today, profile.id, relkey ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
@@ -517,7 +645,7 @@ var DBwasm = {
                         }
                     }
                 } else {
-                    show_updated( obj, 'Match added');
+                    show_updated( obj, 'Relative added');
                 }
                 // and repeat for the matches table
                 let is_hidden = obj.shared ? 0 : 1;
@@ -527,7 +655,8 @@ var DBwasm = {
                     id2 = profile.id;
                     id1 = relkey;
                 }
-                DB529.exec( qry_match_insert, {bind:[id1, id2, is_hidden, obj.pctshared, obj.totalcM, obj.nseg]} );
+                transState = `match insert  row ${i}`;
+                DB529.exec( qry_match_insert, {bind:[id1, id2, is_hidden, obj.pct_ibd, obj.totalcM, obj.nseg, obj.max_seg]} );
 
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
@@ -535,6 +664,7 @@ var DBwasm = {
                     // we already had this record, but there are some circumstances where nsegs in DB was null.
                     // This is usually (always??) when neither match is a profile person.
                     if ( obj.nsegs > 0 ) {
+                        transState = `match update nsegs row ${i}`;
                         DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2, is_hidden ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
@@ -542,18 +672,60 @@ var DBwasm = {
                             total_updates += ra;
                         }
                     }
-                } 
+                    if ( obj.max_seg > 1.0 ) {
+                        transState = `match update largest, row ${i}`;
+                        DB529.exec( qry_match_upd_largest, {bind:[obj.max_seg, id1, id2, is_hidden ]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'largest segment updated');
+                            total_updates += ra;
+                        }
+                    }
+                } else {
+                    show_updated( obj, '..match added');
+                }
             }
 
             DB529.exec( 'COMMIT TRANSACTION;');
 
         } catch ( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
-            logHtml( 'error', `DB processRelatives: error: ${e.message}`);
+            logHtml( 'error', `DB processRelatives: error after ${total_updates} and ${rowsaffected} rows at ${transState}: ${e.message}`);
             return 0;
 
         }
         return total_updates;
+    },
+
+        /*
+        ** save the communication content that was sent between various DNA testers.
+        */
+    process23Comms: function ( messages ) {
+
+        function show_updated( o, txt ) {
+            let msg =  `${txt}:  for ${o.name}`;
+            conlog( 1, msg);
+            logHtml( '', msg);
+        };
+        
+        const today = formattedDate2();
+        const update_qry = 'INSERT or IGNORE INTO messages (IDmsg, IDsender, IDrec, content, entireJSON) VALUES \
+                ($id, $sender, $recip, $content, $entireJSON);';
+        let rowsaffected = 0;
+        try{
+            DB529.exec( 'BEGIN TRANSACTION;');
+            for( obj of messages ) {
+                DB529.exec( update_qry, { bind:obj } );
+                rowsaffected = DB529.changes();
+            }    
+            DB529.exec( 'COMMIT TRANSACTION;');
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            let msg = `DB insert communications: error: ${e.message}`;
+            conerror( msg );
+            return false;
+        }
+        return rowsaffected;
     },
     
 

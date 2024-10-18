@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name" : "529renew",
-  "version" : "2.0.5",
+  "version" : "2.0.8",
   "description" : "Tracks 23andMe DNA Matches using a local SQL database",
   "background": {
   	"service_worker": "service.js"
@@ -15,6 +15,7 @@
       "js" : [
         "util/basicQueue.js",
         "util/page_23_utils.js",
+        "util/rounding.js",
         "util/dates.js",
         "util/validations.js",
         "save_segments.js"
@@ -43,7 +44,8 @@
         "util/page_23_utils.js",
         "util/rounding.js",
         "util/validations.js",
-        "scan_relatives.js"
+        "scan_relatives.js",
+        "scan_icws.js"
       ],
       "run_at" : "document_idle",
       "all_frames" : false

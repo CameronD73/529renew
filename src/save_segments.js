@@ -1,5 +1,5 @@
 /*
-** This code must not run before the DOM has loaded.
+** This code must not run before the DOM has loaded.  Even then, somem of the content might not have been loaded.
 * this content script version is for ibdsegment access and ICWs
 ** Most comments in this file were made trying to interpret the original code and
 * do not carry any warranty as to accuracy.
@@ -8,6 +8,8 @@
 */
 /* eslint no-unused-vars: "off"*/
 'use strict';
+
+let CHROMOSOME_DATA_AVAILABLE = false;			// skip a bit of code while it is useless
 
 let div529=document.createElement('div');
 div529.id="div529r";
@@ -437,7 +439,10 @@ function get_primary_match_details() {
 		if (matsel) {
 			hapPat = matsel.innerText;
 		}
-		chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: {$mid:matchID, $mname:matchName, $hapMat:hapMat, $hapPat:hapPat}} );
+		if( length(hapPat) > 0 && length(hapMat) > 0 ) {
+			let datapkt = {$mid:matchID, $mname:matchName, $hapMat:hapMat, $hapPat:hapPat};
+			chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: datapkt });
+		}
 	}
 	catch(e){
 		hapPat = "error parsing page";
@@ -512,6 +517,10 @@ function runComparison(ranPrimaryComparison ){
 	let any_hidden = false;
 
 	q_debug_log( 0, "runComparison: entry: for " + matchName + " with profile " + profileName  );
+	if ( !ranPrimaryComparison ) {
+		// now scan the page and extract dna summary for primary match
+		sharedDNAPrimary = get_primary_match_details();
+	}
 	try{
 		// js-relatives-table is the DIV showing relatives in common between you and person A, normally shows:
 		// headers - table header line
@@ -565,10 +574,10 @@ function runComparison(ranPrimaryComparison ){
 			continue;
 		let remote_shared_pct = get_pct_shared( row_n, "remote-profile" );
 		let local_shared_pct = get_pct_shared( row_n, "local-profile" );
-		match_data[i].shared_pct_A2B = remote_shared_pct;
-		match_data[i].shared_pct_P2B = local_shared_pct;
-		match_data[i].name_profile = profileName;
-		match_data[i].name_match = matchName;
+		match_data[i].$shared_pct_A2B = remote_shared_pct;
+		match_data[i].$shared_pct_P2B = local_shared_pct;
+		match_data[i].$name_profile = profileName;
+		match_data[i].$name_match = matchName;
 		let hidden = false;
 
 		var ids=null;
@@ -581,74 +590,78 @@ function runComparison(ranPrimaryComparison ){
 					let name_cell = row_n.children[j];
 					let ID_ICW = null;
 					[ ID_ICW , relative_in_common_name ] = get_icw_details( name_cell );
-					match_data[i].ID_icw_relative = ID_ICW;
+					match_data[i].$ID_icw_relative = ID_ICW;
+					match_data[i].$name_icw_relative = relative_in_common_name;
 					continue;
 				}
-				if(row_n.children[j].getAttribute("class").indexOf("shared-dna")<0)
-					continue;
-				let dna_cell = row_n.children[j]; // actually the DNA overlap cell - 3-way shared, not 2-way percentage
-				for(let k=0; k<dna_cell.children.length; k++){
+				if (CHROMOSOME_DATA_AVAILABLE){
+					if(row_n.children[j].getAttribute("class").indexOf("shared-dna")<0)
+						continue;
+					let dna_cell = row_n.children[j]; // actually the DNA overlap cell - 3-way shared, not 2-way percentage
+					for(let k=0; k<dna_cell.children.length; k++){
 
-					if(dna_cell.children[k].href!=null){
+						if(dna_cell.children[k].href!=null){
 
-						var yes_no_text=dna_cell.children[k].innerText.toLowerCase();
-						if(yes_no_text==null) continue;
-						if(yes_no_text=="compare") {
-							overlap_status =  "undisclosed";
-							loadAllRequested  = true;		// when yes/no options have gone then we need to view everything
-						} else {
-							overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
-						}
-						match_data[i].overlaps = overlap_status;
-						if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text== "compare") {
-							foundData=true;
-						} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
-							// I think the "share to see" was replaced by "connect to view"
-							// can also get "Request sent"  when a request to connect has been initiated
-							foundData=true;
-							hidden = true;  // possibly redundant
-							continue;
-						}
-						if( yes_no_text=="yes" || loadAllRequested ) {
-							get_segments = true;
-						}
-
-						// parse the url to get the 3 profile IDs
-						var index=dna_cell.children[k].href.indexOf("p[]=");
-						if(index<0) continue;
-
-						index+=4;
-						ids=dna_cell.children[k].href.substring(index).split("&p[]=");
-						if(ids.length!=3){
-							ids=null;
-							continue;
-						}
-						for(let m=0; m<3; m++){
-							if(ids[m].length!=16){
-								ids=null;
-								break;
+							var yes_no_text=dna_cell.children[k].innerText.toLowerCase();
+							if(yes_no_text==null) continue;
+							if(yes_no_text=="compare") {
+								overlap_status =  "undisclosed";
+								loadAllRequested  = true;		// when yes/no options have gone then we need to view everything
+							} else {
+								overlap_status =  yes_no_text=="yes" ? "yes" : ( yes_no_text=="no" ? "no" : "hidden" );
 							}
+							match_data[i].$overlaps = overlap_status;
+							if(yes_no_text=="yes" || yes_no_text=="no" || yes_no_text== "compare") {
+								foundData=true;
+							} else if(yes_no_text=="share to see" || yes_no_text=="connect to view"  || yes_no_text=="request sent" ) {
+								// I think the "share to see" was replaced by "connect to view"
+								// can also get "Request sent"  when a request to connect has been initiated
+								foundData=true;
+								hidden = true;  // possibly redundant
+								continue;
+							}
+							if( yes_no_text=="yes" || loadAllRequested ) {
+								get_segments = true;
+							}
+
+							// parse the url to get the 3 profile IDs
+							var index=dna_cell.children[k].href.indexOf("p[]=");
+							if(index<0) continue;
+
+							index+=4;
+							ids=dna_cell.children[k].href.substring(index).split("&p[]=");
+							if(ids.length!=3){
+								ids=null;
+								continue;
+							}
+							for(let m=0; m<3; m++){
+								if(ids[m].length!=16){
+									ids=null;
+									break;
+								}
+							}
+							match_data[i].$ID_profile = ids[0];
+							match_data[i].$ID_match = ids[1];
+							match_data[i].$ID_icw_relative = ids[2];
 						}
-						match_data[i].ID_profile = ids[0];
-						match_data[i].ID_match = ids[1];
-						match_data[i].ID_icw_relative = ids[2];
 					}
 				}
 			}
 		}
-		match_data[i].is_hidden = (hidden || (overlap_status === "hidden"));
+		match_data[i].$is_hidden = (hidden || (overlap_status === "hidden"));
 		any_hidden = any_hidden || hidden || (overlap_status === "hidden"); 
-		match_data[i].name_icw_relative = relative_in_common_name;
 		if(relative_in_common_name==null) continue;
 		if(ids==null) continue;
-		
+		if ( !CHROMOSOME_DATA_AVAILABLE ) continue;
+
 
 		if(!ranPrimaryComparison){
 			qQueue.enqueue( {part:1, id1: ids[1], id2: ids[0], pn1: matchName, pn2:profileName, pct_shared:sharedDNAPrimary.pct} );
 			q_debug_log( 2, `Added to Q0: ${matchName} and ${profileName} (sharing ${sharedDNAPrimary.pct}%)`);
 			if ( profileID === null ) {
 				profileID = ids[0];
-			} else 
+				alert( 'resetting profile ID - was null');
+			}
 			pendingComparisons++;
 			document.getElementById("c529r").innerHTML="Collecting DNA segments....";
 			ranPrimaryComparison=true;
@@ -679,32 +692,44 @@ function runComparison(ranPrimaryComparison ){
 		console.log( `comparing ${profileName} and ${matchName} (sharing ${sharedDNAPrimary.pct}%) with min ${minSharedNonOverlap}%:`);
 		for( let i = 0 ; i < match_data.length ; i++ ) {
 			let md = match_data[i];
-			console.log( `   Row ${i}: ${md.name_icw_relative} (ID:${md.ID_icw_relative}) overlap: ${md.overlaps}; sharing ${md.shared_pct_P2B} to profile & ${md.shared_pct_A2B} to match`);
+			console.log( `   Row ${i}: ${md.$name_icw_relative} (ID:${md.$ID_icw_relative}) overlap: ${md.$overlaps}; sharing ${md.$shared_pct_P2B} to profile & ${md.$shared_pct_A2B} to match`);
 		}
 	}
-	
-	if(!foundData){
-		failedInSomeWay = true;
-		if( number_of_rows == 0 ) {
-			alert( 'No rows found, maybe you forgot to click "find Relatives in common"\nYou will need refresh this page first.' );
-		} else {
-			alert("Failed to parse Relatives in Common table - Q len: " + qQueue.length);
+	let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
+	let buttonText = "";
+	if ( CHROMOSOME_DATA_AVAILABLE ){
+		if(!foundData){
+			failedInSomeWay = true;
+			if( number_of_rows == 0 ) {
+				alert( 'No rows found, maybe you forgot to click "find Relatives in common"\nYou will need refresh this page first.' );
+			} else {
+				alert("Failed to parse Relatives in Common table - Q len: " + qQueue.length);
+			}
+			launch_next_IBD_query();
+			return;
 		}
-		launch_next_IBD_query();
-		return;
-	}
-
-	// save the chr 200 records...
-	if( any_hidden ) {
-		let primary_match = { matchName: matchName, profileName:profileName, matchID: matchID, profileID:profileID, pct_shared:sharedDNAPrimary.pct};
+			// save the "chr 200" records - where we have no segment data...
+		if( any_hidden ) {
+			try {
+				chrome.runtime.sendMessage({mode: "store_hidden", primary:primary_match, matchData:match_data } );
+			} catch( e ) {
+				handleMessageCatches( "saving hidden", e );
+			}
+		}
+		buttonText = "Collecting DNA segments...";
+	} else {
+		// just store the results
 		try {
-			chrome.runtime.sendMessage({mode: "store_hidden", primary:primary_match, matchData:match_data } );
+			console.log('sending hidden data:', match_data);
+			chrome.runtime.sendMessage({mode:"store_hidden", primary:primary_match, matchData:match_data } );
 		} catch( e ) {
 			handleMessageCatches( "saving hidden", e );
 		}
+		buttonText = "Collecting ICWs...";
 	}
-	document.getElementById("c529r").innerHTML="Collecting DNA segments...";
+	document.getElementById("c529r").innerHTML=buttonText;
 	launch_next_IBD_query();
+
 	return;
 
 }
@@ -733,6 +758,7 @@ function getMatchName3(){
 		return null;
 	}
 }
+
 function getMatchId(){
 	var url_components = window.location.pathname.split('/');
 	if(url_components == null) return null;
@@ -961,7 +987,3 @@ try {
 	handleMessageCatches( "in storeSegment", e );
 }
 
-/*
-** now scan the page and extract dna summary for primary match
-*/
-sharedDNAPrimary = get_primary_match_details();

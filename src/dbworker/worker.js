@@ -35,7 +35,7 @@ function conerror( ...args) {
 ** this is the main despatch code, taking messages from  the
 ** extension tab and converting to DB I/O 
 */
-self.onmessage = function processMessages( msg ) {
+self.onmessage = function despatchMessages( msg ) {
   let content = msg.data;
   let reason = content.reason;
 
@@ -68,6 +68,8 @@ self.onmessage = function processMessages( msg ) {
         DBwasm.insertAliasmap(content.amap, false, content.useReplace); 
       if( content.hmap.size > 0 )
         DBwasm.insertMatchMap(content.hmap, 'MatchHidden', content.useReplace); 
+      if( content.ICWmap.size > 0 )
+        DBwasm.insertICW(content.ICWmap, 'ICWSets'); 
     break;
 
     case "checkIfInDatabase":
@@ -108,6 +110,11 @@ self.onmessage = function processMessages( msg ) {
       postMessage( {reason: 'selectFromDatabase_return', callback:content.callback, payload: retvalsfD } );
     break;
 
+    case "select23CSVFromDatabase":
+      let retvals23Rels = DBwasm.select23RelsFromDatabase(content.id );  // synchronous, so we can just send result back
+      postMessage( {reason: 'select23CSVFromDatabase_return', callback:content.callback, payload: retvals23Rels } );
+    break;
+
     case "getOverlappingSegments":
       let rowsGOS = DBwasm.getOverlappingSegments(content.segmentId, content.overlap);  // synchronous, so we can just send result back
       postMessage( {reason: 'overlappingSegments_return', callback:content.callbackName, callbackParams:content.cbParams, payload: rowsGOS } );
@@ -133,7 +140,9 @@ self.onmessage = function processMessages( msg ) {
     break;
 
     case "process_relatives":
-      let rowsRelatives = DBwasm.processRelatives(content.profile, content.relatives, content.settings);  // synchronous, so we can just send result back
+      let rowsRelatives = DBwasm.processRelatives(content.profile, content.relatives, content.settings);  // synchronous, 
+      let rowsMsgs = DBwasm.process23Comms(content.messages); 
+      postMessage( {reason: 'relatives_completed', tabID:content.tabID, payload: {relatives:rowsRelatives, msgs: rowsMsgs} } );
     break;
 
     case "dumpDB":
