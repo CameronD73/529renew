@@ -111,8 +111,6 @@ chrome.runtime.onMessage.addListener(
 			}
 			
 		}
-		//let tset = ajQueue.dequeue();
-		// sanity check...
 	} else if(request.mode === "relatives_completed"){
 		tr_el.innerHTML="529-Gather Done";
 	} else
@@ -414,7 +412,9 @@ let b529r=document.createElement('button');
 b529r.id="b529r";
 b529r.innerHTML="scan ICW (maybe)";
 b529r.title="code to apply padding and notes";
-b529r.onclick= fill_relative_details;
+b529r.onclick= function() {
+	run_ICW_scan();
+};
 b529r.style.marginLeft='10px';
 b529r.style['height'] = '100%';
 

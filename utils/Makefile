@@ -1,6 +1,7 @@
 # BUILDxxx represent the target directories in which to build the extension.
 # set BUILDDIR to 529renew-V2-test for local devel installation, or
 #				  529renew-V2-release for a release version
+#BUILDDIR	= 529renew-V2-test
 BUILDDIR	= 529renew-V2-release
 
 BUILD_LOGOS	= ${BUILDDIR}/logos
@@ -48,6 +49,7 @@ JSFILES= \
 	${BUILDDIR}/start_db_tab.js \
 	${BUILDDIR}/save_segments.js \
 	${BUILDDIR}/scan_relatives.js \
+	${BUILDDIR}/scan_icws.js \
 	${BUILDDIR}/whatsnew-2_0.html \
 	${BUILDDIR}/whatsnew-1_3.html \
 	${BUILDDIR}/whatsnew-1_9.html \
@@ -155,6 +157,9 @@ ${BUILDDIR}/save_segments.js:	${V3SRC}/save_segments.js
 	${CP} $< $@
 
 ${BUILDDIR}/scan_relatives.js:	${V3SRC}/scan_relatives.js 
+	${CP} $< $@
+
+${BUILDDIR}/scan_icws.js:	${V3SRC}/scan_icws.js 
 	${CP} $< $@
 
 ${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 

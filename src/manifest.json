@@ -44,8 +44,8 @@
         "util/page_23_utils.js",
         "util/rounding.js",
         "util/validations.js",
-        "scan_relatives.js",
-        "scan_icws.js"
+        "scan_icws.js",
+        "scan_relatives.js"
       ],
       "run_at" : "document_idle",
       "all_frames" : false
