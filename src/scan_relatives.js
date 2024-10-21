@@ -21,10 +21,6 @@ let current_ajax = '';
 let profileName = null;		// name of primary DNA tester (you?)
 let profileID = null;		// UUID string of the profile person ("You")
 
-//let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
-//let matchMatchesMap = new Map();		// all the matches we already have 
-//let sharedSegMapMap = new Map();	// all known 3-way comparisons including parofil+ match person.
-
 let relativesMap = new Map();		// the 1500 relatives that are preloaded on this page
 let notesMap = new Map();			// the annotations preloaded for this page.
 let messagesMap = new Map();			// the messages preloaded for this page.
@@ -113,6 +109,9 @@ chrome.runtime.onMessage.addListener(
 		}
 	} else if(request.mode === "relatives_completed"){
 		tr_el.innerHTML="529-Gather Done";
+		get_DNA_cache();		//ask to reload the cache in case anything changed
+	} else if(request.mode === "ICWPrelude_return"){
+		load_match_cache( request.data );
 	} else
 		return false;			// message not handled here
   }
@@ -255,6 +254,7 @@ function load_ajax_relatives( resparray ) {
 				sex: nobj.sex,
 				messagex: nobj.has_exchanged_message,
 				fav:nobj.is_favorite,
+				predicted_rel: nobj.predicted_relationship_id,
 				known_rel: nobj.overridden_relationship_id,
 				family_locations:JSON.stringify(nobj.raw_family_locations),
 				surnames:JSON.stringify(nobj.surnames)
@@ -480,6 +480,17 @@ function attachObserversToHeader(rl_parent){
 	}
 }
 
+function get_dna_cache() {
+	try {
+		chrome.runtime.sendMessage({mode: "get_ICW_prelude",  matchpair: {pid: profileID, pname: profileName, mid:null, mname:"nobody"}} );
+	} catch( e ) {
+		handleMessageCatches( "preloading cache in main page", e );
+	}
+	
+}
+
+// Since we have the profileID already, then we can ask for cache data...
+get_dna_cache();
 
 let buttoncount = 0;
 /**

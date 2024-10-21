@@ -22,9 +22,9 @@ var DBwasm = {
 
             'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null, familySurnames TEXT DEFAULT NULL, familyLocations TEXT DEFAULT NULL, familyTreeURL TEXT DEFAULT NULL )',
 
-            'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
+            'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, knownRel  TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
 
-            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, largestSeg REAL NOT NULL DEFAULT 0.0, PRIMARY KEY(ID1,ID2,ishidden) )',
+            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden) )',
 
             'ibdsegs(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
 
@@ -139,11 +139,26 @@ var DBwasm = {
             DB529.exec( 'ALTER TABLE idalias ADD COLUMN familyLocations TEXT DEFAULT null');
             DB529.exec( 'ALTER TABLE idalias ADD COLUMN familyTreeURL TEXT DEFAULT null');
             DB529.exec( 'ALTER TABLE DNAmatches ADD COLUMN largestSeg REAL NOT NULL DEFAULT 0.0');
+            DB529.exec( 'ALTER TABLE DNAmatches ADD COLUMN predictedRel TEXT DEFAULT NULL');
+            DB529.exec( 'ALTER TABLE DNArelatives ADD COLUMN knownRel TEXT DEFAULT NULL');
         } catch( e ){
             conerror( `update version 2to3 failed: ${e.msg}` );
             return;
         }
         DBwasm.assign_DB_version( 3 );
+    },
+
+    /*
+    **     utility function to get two IDs in correct sort order
+    */
+    order_id1_id2: function( id1, id2 ) {
+		let firstid = id1;
+		let secondid = id2;
+		if(id1 > id2){
+			firstid = id2;
+			secondid = id1;
+		}
+    return [firstid, secondid];
     },
 
     get_summary: function() {
@@ -551,22 +566,25 @@ var DBwasm = {
         const today = formattedDate2();
         const qry_profile = 'INSERT or IGNORE INTO profiles (IDProfile, pname) VALUES (?, ?);'; 
         const qry_alias_update = 'INSERT or IGNORE INTO idalias (IDText, name, date, familySurnames, familyLocations) VALUES (?, ?, ?, ?, ?);'; 
-        const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side) VALUES (?, ?, ?, ? );';
-        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side) VALUES (?, ?, ?,  ?, ?, ? );`;
+        const qry_rel_ins = 'INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, comment, side, knownRel) VALUES (?, ?, ?, ?, ? );';
+        const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side, knownRel) VALUES (?, ?, ?,  ?, ?, ?, ? );`;
         const qry_upd_surnames = 'UPDATE idalias SET familySurnames = ? WHERE IDtext = ? AND familySurnames is null;';
         const qry_upd_locations = 'UPDATE idalias SET familyLocations = ? WHERE IDtext = ? AND familyLocations is null;';
         const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
         const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
-        const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
-        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, largestSeg ) VALUES (?, ?, ?, ?, ?, ?, 0, ? );';
-        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
-        const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND largestSeg < 1.0 ;';
+        const qry_upd_knownrel = 'UPDATE DNARelatives SET knownRel = ? WHERE  IDprofile = ? AND IDrelative = ? AND knownRel != ?;';
+       // const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, largestSeg, predictedRel ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ? );';
+        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND nsegs is NULL;';
+        const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND  largestSeg < 1.0 ;';
+        const qry_match_upd_predrel = 'UPDATE DNAmatches SET predictedRel = ? WHERE ID1 = ? AND ID2 = ? AND predictedRel is null ;';
         let transState = "start";
         let rowsaffected = 0;
         let total_updates = 0;
         let use_fave = false;
         if (Object.keys(settings).includes( "favouritesAreScanned") ) {
-            use_fave  = settings.favouritesAreScanned;
+            // disbled for the moment (for ever?)
+            use_fave = false;   // (settings.favouritesAreScanned == "1");
         }
         try {
             DB529.exec( 'BEGIN TRANSACTION;');
@@ -576,7 +594,6 @@ var DBwasm = {
             DB529.exec( qry_alias_update, { bind:[profile.id, profile.name, today, "", ""] } );
             // now, for each relative, check/update their presence in the various tables
             for ( let i = 0; i < relativesArr.length; i++ ){
-            //for( const[relkey, obj] of relativesArr ) {
                 relkey = relativesArr[i].key;
                 obj = relativesArr[i].val;
                 // if new, add to alias table...
@@ -608,10 +625,10 @@ var DBwasm = {
                 //  now process the relatives table...
                 if ( use_fave && obj.fav ) {
                     transState = `Rels insert full row ${i}`;
-                    DB529.exec( qry_rel_ins_full, {bind:[profile.id, relkey, 1, today, obj.note, obj.side]} );
+                    DB529.exec( qry_rel_ins_full, {bind:[profile.id, relkey, 2, today, obj.note, obj.side, obj.known_rel]} );
                 } else {
                     transState = `Rels insert row ${i}`;
-                    DB529.exec( qry_rel_ins, {bind:[profile.id, relkey, obj.note, obj.side]} );
+                    DB529.exec( qry_rel_ins, {bind:[profile.id, relkey, obj.note, obj.side, obj.known_rel]} );
                 }
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
@@ -635,37 +652,32 @@ var DBwasm = {
                             total_updates += ra;
                         }
                     }
-                    if ( use_fave && obj.fav  ) {
-                        transState = `Rels upd date row ${i}`;
-                        DB529.exec( qry_upd_date, {bind:[today, profile.id, relkey ]} );
+                    if ( obj.known_rel.length > 0 ) {
+                        transState = `update known relationship, row ${i}`;
+                        DB529.exec( qry_upd_note, {bind:[obj.known_rel, profile.id, relkey, obj.known_rel ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
-                            show_updated( obj, 'date updated');
+                            show_updated( obj, 'known relationship updated');
                             total_updates += ra;
                         }
                     }
                 } else {
-                    show_updated( obj, 'Relative added');
+                    show_updated( obj, 'new Relative added');
                 }
                 // and repeat for the matches table
                 let is_hidden = obj.shared ? 0 : 1;
-                let id1 = profile.id;
-                let id2 = relkey;
-                if ( id2 < id1 ) {
-                    id2 = profile.id;
-                    id1 = relkey;
-                }
+                let ids = DBwasm.order_id1_id2(profile.id, relkey);
                 transState = `match insert  row ${i}`;
-                DB529.exec( qry_match_insert, {bind:[id1, id2, is_hidden, obj.pct_ibd, obj.totalcM, obj.nseg, obj.max_seg]} );
+                DB529.exec( qry_match_insert, {bind:[ids[0], ids[1], is_hidden, obj.pct_ibd, obj.totalcM, obj.nseg, obj.max_seg, obj.predicted_rel]} );
 
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
                 if ( rowsaffected < 1 ) {
-                    // we already had this record, but there are some circumstances where nsegs in DB was null.
-                    // This is usually (always??) when neither match is a profile person.
+                    // we already had this record, but there are some circumstances where data was missing
+                    // This was usually (always??) when neither match is a profile person.
                     if ( obj.nsegs > 0 ) {
                         transState = `match update nsegs row ${i}`;
-                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2, is_hidden ]} );
+                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'numSegments updated');
@@ -674,10 +686,20 @@ var DBwasm = {
                     }
                     if ( obj.max_seg > 1.0 ) {
                         transState = `match update largest, row ${i}`;
-                        DB529.exec( qry_match_upd_largest, {bind:[obj.max_seg, id1, id2, is_hidden ]} );
+                        DB529.exec( qry_match_upd_largest, {bind:[obj.max_seg, id1, id2 ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'largest segment updated');
+                            total_updates += ra;
+                        }
+                    }
+                    let predrel = obj.predicted_rel;
+                    if ( predrel.length > 0 ) {
+                        transState = `match update predicted relationship, row ${i}`;
+                        DB529.exec( qry_match_upd_predrel, {bind:[predrel, id1, id2]} );
+                        let ra = DB529.changes();
+                        if ( ra > 0 ) {
+                            show_updated( obj, 'predicted relationship updated');
                             total_updates += ra;
                         }
                     }
@@ -692,7 +714,6 @@ var DBwasm = {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             logHtml( 'error', `DB processRelatives: error after ${total_updates} and ${rowsaffected} rows at ${transState}: ${e.message}`);
             return 0;
-
         }
         return total_updates;
     },
@@ -760,16 +781,18 @@ var DBwasm = {
             conlog( 2, `profmatches returned ${nrows} items`);
             logHtml( '', `profmatches for ${profileID} returned ${nrows} items` );
 
-            DB529.exec( qry_DNAmatch, 
-                { resultRows: rowsmatch, rowMode: 'object', bind: [matchID, matchID] }
-            );
-            nrows = rowsmatch.length;
-            conlog( 2, `rowsmatch returned ${nrows} items`);
-            logHtml( '', `rowsmatch for ${matchID} returned ${nrows} items` );
-            DB529.exec( qry_ICW, 
-                { resultRows: rowsICW, rowMode: 'object', bind: [profileID, matchID, matchID] }
-            );
-            nrows = rowsICW.length;
+            if ( matchID !== null ) {
+                DB529.exec( qry_DNAmatch, 
+                    { resultRows: rowsmatch, rowMode: 'object', bind: [matchID, matchID] }
+                );
+                nrows = rowsmatch.length;
+                conlog( 2, `rowsmatch returned ${nrows} items`);
+                logHtml( '', `rowsmatch for ${matchID} returned ${nrows} items` );
+                DB529.exec( qry_ICW, 
+                    { resultRows: rowsICW, rowMode: 'object', bind: [profileID, matchID, matchID] }
+                );
+                nrows = rowsICW.length;
+            }
             conlog( 2, `rowsICW returned ${nrows} items`);
             logHtml( '', `rowsICW returned ${nrows} items` );
         
@@ -787,22 +810,132 @@ var DBwasm = {
     ** So, we need to scrape the match's profile page
     */
     setHaplogroups: function( matchHapData ) {
-        const matchID = matchHapData.$mid;
         const matchName = matchHapData.$mname;
-        //const hapMat= matchHapData.hapMat;
-        //const hapPat= matchHapData.hapPat;
         const today = formattedDate2();
 
-        let update_qry = `INSERT OR REPLACE INTO idalias (IDText, name, date, hapMat, hapPat) VALUES ($mid, $mname, '${today}', $hapMat, $hapPat );`;
+        let update_qry = 'UPDATE idalias SET hapMat = $hapMat, hapPat = $hapPat where IDText = $mid;'
+        let insert_qry =  `INSERT OR IGNORE INTO idalias (IDText, name, date, hapMat, hapPat) VALUES ($mid, $mname, '${today}', $hapMat, $hapPat );`;
 
         try {
-            DB529.exec( update_qry, {bind: matchHapData} );
+            DB529.exec( insert_qry, {bind: matchHapData} );
+            let rowsaffected = DB529.changes();
+            if ( rowsaffected < 1 ) {       // insert failed, try an update instead
+                DB529.exec( update_qry, {bind: matchHapData} );
+            }
         } catch( e ) {
             conerror( `DB updating haplogroups for ${matchName} : ${e.message}`);
             return( 0 );
         }
 
         return(1); 
+    },
+
+    setFamilyTreeURL: function( datapkt ) {
+        const matchID = datapkt.$mid;
+        const matchName = datapkt.$mname;
+        const famtree= datapkt.$famtree;
+
+        const update_qry = `UPDATE idalias SET familyTreeURL = $famtree WHERE IDText = $mid;`;
+
+        if ( famtree.length < 5 ) {
+            return( 0 );
+        }
+        try {
+            DB529.exec( update_qry, {bind: datapkt} );
+        } catch( e ) {
+            conerror( `DB updating haplogroups for ${matchName} : ${e.message}`);
+            return( 0 );
+        }
+
+        return(1); 
+    },
+
+    /*
+    ** updateICW - called after we have scanned the ICWs for a give profile and relative.
+    ** ensure the icw match is
+    ** 1. in the DNArelatives table to the profile
+    ** 2. the icw is in the idalias table - if they are not there, then only name and ID can be added.
+    ** 3. in the DNAmatches table for both profile-icw and relative-icw, can add ishidden, pctshared, cMtotal
+    ** 4. add to ICWsets to show the 3-way ICW with chr=-2
+    */
+    updateICW: function( icwset ) {
+        const today = formattedDate2();
+        // this query is for 3rd person, so their "ICWscanned" is not true (leave default)
+        const qry_rel_insert = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative) VALUES (?, ? );`;
+        // this version is for the relative whos ICWs are being scanned - they must already have an entry in DNArelatives, so just update scan status
+        const qry_upd_rels = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ${today} WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned < 2 );`;
+        const qry_alias_insert = `INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?,  ${today});`; 
+        //const qry_upd_xx = 'UPDATE idalias SET xx = ? WHERE IDtext = ? AND xx is null;';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
+        const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
+        const qry_icwsets_insert = 'INSERT OR IGNORE INTO ICWSets (IDprofile, ID1, ID2, chromosome, start, end ) VALUES (?, ?, ?, -2, 0, 0 );';
+
+        const profileID = icwset.ID1;
+        const relativeID = icwset.ID2;
+        let transState = "nothing";
+        let rowsaffected = 0;
+        let total_updates = 0;
+
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            transState = 'BT';
+            // update scan date for this relative...
+            transState = `update dna rel for ${relativeID}`;
+            DB529.exec( qry_upd_rels, { bind:[profileID, relativeID] } );
+            rowsaffected = DB529.changes();
+
+            for( obj of icwset) {
+                let matchID = obj.profile_id;
+                let matchname  = obj.first_name + " " + obj.last_name;
+                let pct_p2match = obj.ibd_proportion_1 * 100;
+                let pct_r2match = obj.ibd_proportion_2 * 100;
+                let relation_p2match = obj.predicted_relationship_id_1;
+                let relation_r2match = obj.predicted_relationship_id_2;
+                let icw_hidden_dna = obj.is_open_sharing ? 0 : 1;       // boolean as integer in DB
+
+                transState = `ICWset for ${matchname}`;
+                let ids = DBwasm.order_id1_id2(relativeID, matchID)
+                DB529.exec( qry_icwsets_insert, { bind:[profileID, ids[0], ids[1] ] } );
+                // this should never have different values, so if no change then ignore it.
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+
+                // create DNArelative for 3rd person (unlikely to be nececssary)
+                transState = `insert dna rel for ${matchname}`;
+                DB529.exec( qry_rel_insert, { bind:[profileID, matchID] } );
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+
+                // create idalias for 3rd person (unlikely to be nececssary)
+                transState = `insert idalias for ${matchname}`;
+                DB529.exec( qry_alias_insert, { bind:[matchID, matchname] } );
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+
+                function update_1_part( id1, id2, is_hidden, pctshared, predictedrel, relship) {
+                    let ids = DBwasm.order_id1_id2( id1, id2);
+                    let cM = pctShared2cM( pctshared);
+
+                    transState = `insert DNAmatch for ${matchname}`;
+                    DB529.exec( qry_match_insert, { bind:[ids[0], ids[1], is_hidden, pctshared, cM, relship] } );
+                    let rowsaff = DB529.changes();
+                    return rowsaff;
+                }
+                total_updates += update_1_part(profileID,  matchID, icw_hidden_dna, pct_p2match, relation_p2match);
+                total_updates += update_1_part(relativeID, matchID, icw_hidden_dna, pct_r2match, relation_r2match);
+            }
+
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch ( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            msg=  `DB updateICW: error after ${total_updates} and ${rowsaffected} rows at ${transState}: ${e.message}`;
+            logHtml('error', msg);
+            alert( msg );
+            return 0;
+
+        }
+    
     },
 
     getTriangTable: function( profileID ) {
@@ -1255,7 +1388,7 @@ var DBwasm = {
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
-            let msg = `DB updateICW ${tablename}: error: ${e.message}`;
+            let msg = `DB insertICW ${tablename}: error: ${e.message}`;
             conerror( msg );
             return false;
         }

@@ -130,8 +130,15 @@ self.onmessage = function despatchMessages( msg ) {
     break;
 
     case "update_haplogroups":
-      let rowsHapUp = DBwasm.setHaplogroups(content.matchHapData);  // synchronous, so we can just send result back
-      //postMessage( {reason: 'haplogroup_return', tabID:content.tabID, payload: rowsICWP } );
+      let rowsHapUp = DBwasm.setHaplogroups(content.matchHapData); 
+    break;
+
+    case "update_familytree":
+      let rowsfamtree = DBwasm.setFamilyTreeURL(content.datapkt);  
+    break;
+
+    case "update_ICWs":
+      let rowsicwupdated = DBwasm.updateICW(content.ICWset);  
     break;
 
     case "requestTriangTable":

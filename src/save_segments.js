@@ -42,10 +42,6 @@ let profileID = null;		// UUID string of the profile person ("You")
 let loadAllRequested = null;	// if shift key was held when "triangulate" button was clicked
 let rereadSegsRequested = null;	// if alt   key was held when "triangulate" button was clicked
 
-let profileMatchesMap = new Map();		// all segment matches to profile person we know about so far.
-let matchMatchesMap = new Map();		// all the matches we already have 
-let sharedSegMapMap = new Map();	// all known 3-way comparisons including profile match person.
-
 let sharedDNAPrimary = {pct:-1.0, cM:0, hapMat:"", hapPat:""};
 
 var dispatchMouseEvent = function(target, var_args) {
@@ -210,67 +206,12 @@ chrome.runtime.onMessage.addListener(
 		}
 		return ;
 	} else if( request.mode === "ICWPrelude_return") {
-		const origpair = request.data.pair;
-		const profileMatchesArr = request.data.profileMatches;
-		const DNArelMatchesArr = request.data.DNArelMatches;
-		const ICWsetArr = request.data.ICWset;
-		// unpack the data that has been returned.
-		try {
-			verifyMatchIDs( profileID, profileName, origpair.pid, origpair.pname);
-			verifyMatchIDs( matchID, matchName, origpair.mid, origpair.mname);
-		} catch( e ) {
-			console.error( e.message );
-			alert( e.message );
-			return;
-		}
-		profileMatchesMap.clear();
-		for( let i = 0 ; i < profileMatchesArr.length; i++ ) {
-			const nr = profileMatchesArr[i];
-			let mkey = nr.ID1;
-			// these will be in alpha order, so pick the non-profile ID as the map key
-			if ( nr.ID1 === profileID ) {
-				mkey = nr.ID2;
-			}
-			profileMatchesMap.set(mkey, nr);
-		}
-		matchMatchesMap.clear();
-		for( let i = 0 ; i < DNArelMatchesArr.length; i++ ) {
-			const nr = DNArelMatchesArr[i];
-			let mkey = nr.ID1;
-			// these will be in alpha order, so pick the non-profile ID as the map key
-			if ( nr.ID1 === matchID ) {
-				mkey = nr.ID2;
-			}
-			matchMatchesMap.set(mkey, nr);
-		}
-		sharedSegMapMap.clear();
-		for( let i = 0 ; i < ICWsetArr.length; i++ ) {
-			const nr = ICWsetArr[i];
-			let mkey = nr.ID2;
-			// these will be in alpha order, so pick the non-profile ID as the map key
-			if ( nr.ID2 === matchID ) {
-				mkey = nr.ID3;
-			}
-			sharedSegMapMap.set(mkey, nr);
-		}
-		if( debug_msg > 0){
-			console.log(  `Initial setup with ${profileMatchesMap.size} matches to ${profileName}; ` +
-						`${matchMatchesMap.size} matches to ${matchName}; ${sharedSegMapMap.size} saved ICW summaries`);
-		}
-
+		load_match_cache( request.data );
 	} else
 		return false;			// message not handled here
   }
 );
 
-  /* confirm that the returned ID matches the one originally sent...
-  */
-function verifyMatchIDs( id1, n1, id2, n2 ) {
-	if( id1 === id2 )
-		return;
-	let msg = `Unexpected ID values ${id1}(${n1}) and ${id2}(${n2}) should be the same`;
-	throw new Error( msg );
-}
 /*
 ** callback function to initiate processing the next IBD segment collection
 ** from the queue

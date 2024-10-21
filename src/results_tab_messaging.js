@@ -206,17 +206,6 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 	msg_conlog( 0, `dbactions listener, mode: ${request.mode}`);
 	switch( request.mode ) {
-		case "checkIfInDatabase":
-			checkIfInDatabase( request, sender );
-		break;	
-
-		case  "storeSegments":
-			storeSegments(request);
-		break;	
-
-		case  "store_hidden" :
-			save_hidden_records( request.primary, request.matchData );
-		break;
 
 		case  "updateSetting" :
 			msg_conlog( 3, `   DBactions updating ${request.item} to ${request.value}` );
@@ -248,7 +237,6 @@ chrome.runtime.onMessage.addListener(
 		case "process_relatives":
 			// we have a list of relatives from the front page...
 			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
-
 		break;
 
 		case  "get_ICW_prelude" :
@@ -262,13 +250,35 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"update_haplogroups", matchHapData:request.matchHapData } );
 		break;
 
+		case  "update_familytree" :
+			// message from content script - need to forward to worker. will not bother returning, just hope it works
+			DBworker.postMessage( {reason:"update_familytree", datapkt:request.datapkt } );
+		break;
+
+		case  "update_ICWs" :
+			// message from content script - need to forward to worker. will not bother returning, just hope it works
+			DBworker.postMessage( {reason:"update_ICWs", ICWset:request.ICWset } );
+		break;
+
+		case "checkIfInDatabase":
+			checkIfInDatabase( request, sender );
+		break;	
+
+		case  "storeSegments":
+			storeSegments(request);
+		break;	
+
+		case  "store_hidden" :
+			save_hidden_records( request.primary, request.matchData );
+		break;
+
 		case  "getProfiles4pop" :
 				// message from popup - need to forward to worker. will return via messaging
 				// we could just return stored array. but for the moment just ask again...
 			msg_conlog( 3, `   getProfiles4pop: dbmessaging to worker  ` );
 			DBworker.postMessage( {reason:"getProfiles"} );
 		break;
-		
+
 		case  "getDebugSettings" :
 			msg_conlog( 3, `   DBactions returning debug settings ` );
 			sendResponse( {	debug_q: settings529["debug_q"],

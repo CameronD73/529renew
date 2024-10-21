@@ -53,7 +53,7 @@ const settings529default = {
 	"relativePixelPadding": "3",
 	"displayNotesLength": "100",
 	"autoLoadICW": "0",
-	"favouritesAreScanned": "0"
+	"favouritesAreScanned": "0"		// useless at the moment (ignored)
 };
 const settings_upgrade_0to1 = {
 	"debug_db": "0",

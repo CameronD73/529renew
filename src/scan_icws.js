@@ -90,6 +90,9 @@ function next_relative_scan() {
 
 }
 
+/*
+** called each time an ICW scan is completed, for profile, matching relative, and n ICWs
+*/
 function finishICWAjax () {
 	fill_ICW_details();
 	return;	
@@ -228,7 +231,7 @@ function load_haplogroup( resparray ) {
 			alert( msg );
 		} else {
 			hapMap.set( IDM, {hapY:Ygroup, hapM: MTgroup, entireJSON:JSON.stringify(resparray) } );
-			console.log( 'got haplos', hapMap.get(ID));
+			console.log( 'got haplogs', hapMap.get(ID));
 		}
 	}
 
@@ -246,7 +249,6 @@ function load_icw_list( resparray ) {
 	msg_debug_log( 1,  `Populated ${icwMap.size} entries into 'icwMap' for ${current_relative_name}` );
 	console.log( 'load_icw_list:', resparray);
 
-	setTimeout( () => next_relative_scan(), increment_ms );
 }
 
 // A timeout routine to trap something - maybe
@@ -258,6 +260,25 @@ function watchdogTimerICW() {
 	}
 }
 
+/* 
+** at the end of a scan for ICWs betwene 2 people, save the data then look at the next combination
+** We _could_ be sneaky and set the timeout first, but that leads to a race condition, so we'll play it safe.
+*/
 function fill_ICW_details() {
+	
+	if( hapMap.size > 0 ) {
+		hobj = hapMap.get(current_relative_id)
+		if( hobj.hapM ) {
+			let datapkt = {$mid:matchID, $mname:current_relative_name, $hapMat:hobj.hapM, $hapPat:hobj.hapM};
+			chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: datapkt });
+		}
+	}
+	if ( famtreeURL.length > 0) {
+		chrome.runtime.sendMessage({mode: "update_familytree", datapkt:{$mid:matchID, $mname:current_relative_name, $famtree:famtreeURL}});
 
+	}
+	const icwarr = Array.from( icwMap, ([key,val]) => ( val ));		// map index is embedded in each object element anyway
+	chrome.runtime.sendMessage({mode: "update_ICWs", ICWset:{ID1:profile_id, ID2:current_relative_id,  icwarray:icwarr}});
+
+	setTimeout( () => next_relative_scan(), increment_ms );
 }

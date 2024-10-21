@@ -36,6 +36,7 @@ JSFILES= \
 	${BUILD_UTIL}/page_23_utils.js \
 	${BUILD_UTIL}/rounding.js \
 	${BUILD_UTIL}/dates.js \
+	${BUILD_UTIL}/DNA_match_cache.js \
 	${BUILD_UTIL}/validations.js \
 	${BUILD_DB}/CSV_input.js \
 	${BUILD_DB}/database_IO.js \
@@ -118,6 +119,9 @@ ${BUILD_UTIL}/rounding.js:	${V3SRC}/util/rounding.js
 	${CP} $< $@
 
 ${BUILD_UTIL}/dates.js:	${V3SRC}/util/dates.js 
+	${CP} $< $@
+
+${BUILD_UTIL}/DNA_match_cache.js:	${V3SRC}/util/DNA_match_cache.js 
 	${CP} $< $@
 
 ${BUILD_UTIL}/validations.js:	${V3SRC}/util/validations.js 
