@@ -570,7 +570,7 @@ var DBwasm = {
         const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side, knownRel) VALUES (?, ?, ?,  ?, ?, ?, ? );`;
         const qry_upd_surnames = 'UPDATE idalias SET familySurnames = ? WHERE IDtext = ? AND familySurnames is null;';
         const qry_upd_locations = 'UPDATE idalias SET familyLocations = ? WHERE IDtext = ? AND familyLocations is null;';
-        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side is null;';
+        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side != ?;';
         const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
         const qry_upd_knownrel = 'UPDATE DNARelatives SET knownRel = ? WHERE  IDprofile = ? AND IDrelative = ? AND knownRel != ?;';
        // const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
@@ -635,8 +635,8 @@ var DBwasm = {
                 if ( rowsaffected < 1 ) {
                     // we already had this record, so do conditional updates, otherwise it will have just been inserted
                     if ( obj.side != 'n') {
-                        transState = `update side row ${i}`;
-                        DB529.exec( qry_upd_side, {bind:[obj.side, profile.id, relkey ]} );
+                        transState = `update side row ${i} to ${obj.side}`;
+                        DB529.exec( qry_upd_side, {bind:[obj.side, profile.id, relkey, obj.side]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'side updated');
@@ -654,7 +654,7 @@ var DBwasm = {
                     }
                     if ( obj.known_rel.length > 0 ) {
                         transState = `update known relationship, row ${i}`;
-                        DB529.exec( qry_upd_note, {bind:[obj.known_rel, profile.id, relkey, obj.known_rel ]} );
+                        DB529.exec( qry_upd_knownrel, {bind:[obj.known_rel, profile.id, relkey, obj.known_rel ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'known relationship updated');
@@ -677,7 +677,7 @@ var DBwasm = {
                     // This was usually (always??) when neither match is a profile person.
                     if ( obj.nsegs > 0 ) {
                         transState = `match update nsegs row ${i}`;
-                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, id1, id2]} );
+                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, ids[0], ids[1]]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'numSegments updated');
@@ -686,7 +686,7 @@ var DBwasm = {
                     }
                     if ( obj.max_seg > 1.0 ) {
                         transState = `match update largest, row ${i}`;
-                        DB529.exec( qry_match_upd_largest, {bind:[obj.max_seg, id1, id2 ]} );
+                        DB529.exec( qry_match_upd_largest, {bind:[obj.max_seg, ids[0], ids[1] ]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'largest segment updated');
@@ -696,7 +696,7 @@ var DBwasm = {
                     let predrel = obj.predicted_rel;
                     if ( predrel.length > 0 ) {
                         transState = `match update predicted relationship, row ${i}`;
-                        DB529.exec( qry_match_upd_predrel, {bind:[predrel, id1, id2]} );
+                        DB529.exec( qry_match_upd_predrel, {bind:[predrel, ids[0], ids[1]]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
                             show_updated( obj, 'predicted relationship updated');

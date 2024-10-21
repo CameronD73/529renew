@@ -109,7 +109,7 @@ chrome.runtime.onMessage.addListener(
 		}
 	} else if(request.mode === "relatives_completed"){
 		tr_el.innerHTML="529-Gather Done";
-		get_DNA_cache();		//ask to reload the cache in case anything changed
+		get_dna_cache();		//ask to reload the cache in case anything changed
 	} else if(request.mode === "ICWPrelude_return"){
 		load_match_cache( request.data );
 	} else
@@ -255,7 +255,7 @@ function load_ajax_relatives( resparray ) {
 				messagex: nobj.has_exchanged_message,
 				fav:nobj.is_favorite,
 				predicted_rel: nobj.predicted_relationship_id,
-				known_rel: nobj.overridden_relationship_id,
+				known_rel: nobj.overridden_relationship_id === null ? "" : nobj.overridden_relationship_id,
 				family_locations:JSON.stringify(nobj.raw_family_locations),
 				surnames:JSON.stringify(nobj.surnames)
 			}
