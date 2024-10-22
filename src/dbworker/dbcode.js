@@ -131,6 +131,7 @@ var DBwasm = {
     update_DB_2_to_3: function  () {
         // Add some more data fields 
         try{
+            DB529.exec( 'BEGIN TRANSACTION;');
             DB529.exec( 'CREATE TABLE IF NOT EXISTS messages ( IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg))' );
             DB529.exec( 'CREATE INDEX IF NOT EXISTS msgsender ON messages ( IDsender )' );
             DB529.exec( 'CREATE INDEX IF NOT EXISTS msgrecipient ON messages ( IDrec )' );
@@ -141,7 +142,11 @@ var DBwasm = {
             DB529.exec( 'ALTER TABLE DNAmatches ADD COLUMN largestSeg REAL NOT NULL DEFAULT 0.0');
             DB529.exec( 'ALTER TABLE DNAmatches ADD COLUMN predictedRel TEXT DEFAULT NULL');
             DB529.exec( 'ALTER TABLE DNArelatives ADD COLUMN knownRel TEXT DEFAULT NULL');
+            // wrong ICWscanned status still found in V2 (maybe I changed its meaning and forgot to note it)
+            DB529.exec( 'UPDATE DNARelatives SET ICWscanned = NULL, dateScanned = NULL WHERE ICWscanned = 1');
+            DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ){
+            DB529.exec( 'ROLLBACK TRANSACTION;');
             conerror( `update version 2to3 failed: ${e.msg}` );
             return;
         }

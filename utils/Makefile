@@ -182,8 +182,8 @@ ${BUILDDIR}/service.js:	${V3SRC}/service.js
 ${BUILD_UTIL}/FileSaver.js: ${FSDIR}/FileSaver.js
 	${CP} $< $@
 
-${BUILD_DBWORKER}/jswasm/sqlite3.wasm: ${SQLITEDIR}/jswasm/sqlite3.wasm
-	${CP} -r ${SQLITEDIR}/jswasm/  ${BUILD_DBWORKER}/jswasm
+${BUILD_DBWORKER}/jswasm/sqlite3.wasm: ${SQLITEDIR}/jswasm/sqlite3.wasm ${BUILD_DBWORKER}
+	${CP} -rv ${SQLITEDIR}/jswasm	${BUILD_DBWORKER}
 
 ${BUILD_UTIL}/papaparse.min.js: ${PAPADIR}/papaparse.min.js
 	${CP} $< $@
