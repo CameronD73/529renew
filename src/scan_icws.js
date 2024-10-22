@@ -133,10 +133,10 @@ function launch_next_icw_ajax_query() {
 				if( this.status == 429 ){
 					console.error("Oops = getAjaxData saw err429 while getting " + datatype );
 				}
-				let errmsg = `Failed to retrieve ${datatype} data from 23andMe.\nServer returned status: ${this.status}`;
+				let errmsg = `Failed to retrieve ${datatype} data from 23andMe.\nServer returned status: ${this.status}\nGiving up`;
 				console.error( errmsg );
 				alert( errmsg );
-				launch_next_icw_ajax_query();
+				//launch_next_icw_ajax_query();  just give up
 				return;
 			}
 			const resp=JSON.parse(this.responseText);
