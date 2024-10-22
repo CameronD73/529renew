@@ -661,7 +661,9 @@ function runComparison(ranPrimaryComparison ){
 	} else {
 		// just store the results
 		try {
-			console.log('sending hidden data:', match_data);
+			if ( debug_msg > 0 ) {
+				console.log('sending hidden data:', match_data);
+			}
 			chrome.runtime.sendMessage({mode:"store_hidden", primary:primary_match, matchData:match_data } );
 		} catch( e ) {
 			handleMessageCatches( "saving hidden", e );
@@ -885,7 +887,9 @@ if(ric_parent!=null && modules!=null){
 }
 // extract the match ID from the page URL...
 let thisurl = document.URL;
-console.log( `This tabs URL is "${thisurl}"`);
+if ( debug_msg > 0 ) {
+	console.log( `This tab's URL is "${thisurl}"`);
+}
 if ( thisurl.length > 0 ) {
 	const sstr = "23andme.com/profile/";
 	let urlpos =  thisurl.indexOf( sstr );

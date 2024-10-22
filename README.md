@@ -3,18 +3,22 @@ Chrome extension to allow "23 and me" customers to extract their DNA segment mat
 
 This is now available on the Chrome Store.
 ## Status October 2024
-I think it has now been a year since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with far fewer matches being identified than before.
+I think it has now been a year since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before (unconfirmed).
 
-Without the chromosomem browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testsers.  And at this time it looks like it is most likely to go broke.
+Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testsers.  And at this time it looks like it is most likely to go broke.
 
-The changes around the enforced migration to sqlite were never completed when the chromosome browser was disabled. The code could be completed as far as getting some ICW match details, but it all seems rather pointless to put the work in at this stage.
+The changes around the enforced migration to sqlite were never completed when 23andMe disabled the chromosome browser. The code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
+
+Once the extension is installed, a page is displayed with the extension notes and instructions for operation in non-DNA times.
+You can also later see them by entering [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.
+
 
 ## Contents:
 * [Installation Guide](#installation)
 * [Database Migration](#database-import)
 * [The special "Results" tab](#the-tabpage-named-529renew-results)
 * [User Settings](#settings)
-* [Normal operation](#day-to-day-operation)
+* [Normal operation (DNA)](#day-to-day-operation)
 * [Strategies to minimise lockout](#strategies-to-minimise-lockout)
 
 ## Background
@@ -44,11 +48,6 @@ The following steps then apply whichever browser you are using:
 * The "extensions" icon (a jigsaw puzzle piece on Chrome, a box on Opera) should be visible on the toolbar.  Click on that and the drop-down should show 529renew. Chrome shows a pin, while edge shows what might be an eye. either case, you want to click that to enable the 529renew icon to appear on the toolbar.  This is needed to give you access to the settings.
 * you are now ready to start.
 * if you have been away for a long time and have old data that you want to migrate from _529 and You_, then go to the section at the end of this page.
-
-## Database Migration from 529Renew before October 2023
-Version 1.9 offers an easy migration process and is documented in a web page that popped up when the extension is installed. It no longer works, so is not documented here.
-
-Once the extension is installed, you should see the migrations notes, and you can also later see them bu typing, (or copy/pasting) [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.
 
 ## The tab/page named "529Renew Results"
 
@@ -109,6 +108,7 @@ When importing results from CSV files, sometimes values are found that already m
 2. _Replace_: overwrite the data in the database with the value in the file.
 
 ### Star means "have triangulated"
+This option is inoperative at the moment (Oct 2024).
 If you  applied the yellow star only to a relative who had been previously triangulated, then set this to yes and 529Renew will change displays accordingly. It has no other meaning and is only useful transitioning data from before version 2. Any triangulations in future will set this parameter directly.
 
 #### Minimum shared DNA (pct):
@@ -135,7 +135,7 @@ The debug levels determine the verbosity of progress notes that are printed on t
 This opens the "devtools"   window, and every tab will have its own separate devtools window, which only persists while the tab is present.
 Select the "console" tab to view the error and debug log messages.
 
-# Day-to-day operation
+# Day-to-day operation - with a working Chromosome browser
 1. Login to your account on the 23and Me web site
 2. start by selecting the kit of the profile you want to compare (if you manage more than one kit)
 3. go to the  _DNA Relatives_ page, either from the quick links or the *Family and friends* menu list.
@@ -190,7 +190,18 @@ It will show the 3rd person's name with one or two coloured bars:
 
 This graphic can be exported as an SVG file, as described in the next section.
 
-## Exporting your data
+## Exporting your data (no DNA)
+
+## CSV Format as from 23andMe
+Coming soon
+
+## Messages
+Content has been saved to the database but no export button is ready
+
+## ICWs
+Content has been saved to the database but no export button is ready
+
+## Exporting your data - if you have DNA Segments
 
 ### CSV format
 
@@ -227,3 +238,8 @@ If you are triangulating on one tab only, but your other activities causes a loc
 * message box eventually says "CSV parsing complete" and you can click OK to continue.
 * you can safely reload the file or load other versions and new entries will be updated. It will ignore matching segments already loaded (which makes it much faster reloading duplicated data), so it would be perhaps safer to load newer files first.
 * you should then be able to examine the `show matches of` list to see testers who have been imported.
+
+## Database Migration from 529Renew before October 2023
+Version 1.9 offers an easy migration process and is documented in a web page that popped up when the extension is installed. It no longer works, so is not documented here.
+
+Once the extension is installed, a page is displayed with the extension notes and instructions, and you can also later see them by typing, (or copy/pasting) [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.

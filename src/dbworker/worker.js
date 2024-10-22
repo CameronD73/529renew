@@ -403,6 +403,7 @@ let sqlite3Js = 'jswasm/sqlite3.js';
 importScripts(sqlite3Js);
 importScripts( '/dbworker/dbcode.js' );
 importScripts( '/util/dates.js' );
+importScripts( '/util/rounding.js' );
 
 conlog( 0,'Initializing sqlite3 module...');
 self.sqlite3InitModule({

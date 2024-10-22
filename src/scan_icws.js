@@ -35,7 +35,12 @@ function run_ICW_scan() {
 
 	// create a fifo queue of matches to the profile person
 	for( let [key, obj] of relativesMap ) {
-		relQueue.enqueue( key );
+		if ( triangMap.has(key) && triangMap.get( key)) {
+			q_debug_log( 2, `Already have ${key}, skipping` );
+			// skipping
+		} else {
+			relQueue.enqueue( key );
+		}
 	}
 	next_relative_scan();
 }
@@ -51,10 +56,12 @@ function next_relative_scan() {
 	let relobj = relativesMap.get(current_relative_id);
 	current_relative_name = relobj.name;
 	b529r.innerHTML=`scan ICW for ${current_relative_name}`;
+	/*
 	if (relcount++ > 2){
 		b529r.innerHTML='scan termminated for testing';
 		return;
 	}
+	*/
 
 	if ( icwQueue.length != 0 ) {
 		let msg = `ICW queue failure - still had ${icwQueue.length} items`;
@@ -75,11 +82,17 @@ function next_relative_scan() {
 						relid:current_relative_id,
 						url:url2 + "/family_background/"
 					});
-	icwQueue.enqueue( { datatype:'haplogroup',
+	if ( relobj.shared ) {
+		// we get a 403 forbidden if we try to read haplogroups for hidden DNA
+		icwQueue.enqueue( { datatype:'haplogroup',
 						pid:profileID,
 						relid:current_relative_id,
 						url:urlhap
-					});
+					}
+		);
+	} else {
+		dummy_haplogroup();
+	}
 	icwQueue.enqueue( { datatype:'listICW',
 						pid:profileID,
 						relid:current_relative_id,
@@ -160,7 +173,7 @@ function launch_next_icw_ajax_query() {
 	}
 	var ajaxURL=tset.url;
 	var oReq = new XMLHttpRequest();
-	msg_debug_log( 1, `calling ${tset.url}`);
+	msg_debug_log( 4, `calling ${tset.url}`);
 	oReq.withCredentials = true;
 	oReq.onload=makeAjaxSaver( tset.datatype );
 	oReq.onerror=makeErrorHandler( tset.datatype );
@@ -179,9 +192,7 @@ function load_family_bgnd( respobj ) {
 	}
 	if (famtreeURL.length > 0) {
 		console.log( `found tree for ${current_relative_name} at ${famtreeURL}`);
-	} else {
-		console.log( `No family tree for ${current_relative_name}` )
-	}
+	} 
 	launch_next_icw_ajax_query();
 }
 
@@ -194,7 +205,6 @@ function load_family_bgnd( respobj ) {
 */
 function load_haplogroup( resparray ) {
 	hapMap.clear();
-	console.log( 'load_hapgrp:', resparray);
 	let msgcount = resparray.length;
 	const re = /^.*:([^:]*)$/;
 	let MTgroup="not given";
@@ -207,7 +217,7 @@ function load_haplogroup( resparray ) {
 		let ID = mobj.profile_id;
 		if ( ID != profileID ) {
 			try {
-				if ( mobj.name.startsWith("myhaplo")) {
+				if ( mobj.name.startsWith("mthaplo")) {
 					let grp = mobj.result.haplogroup_id;
 					MTgroup = grp.replace(re, "$1" );
 					IDM = ID;
@@ -231,12 +241,25 @@ function load_haplogroup( resparray ) {
 			alert( msg );
 		} else {
 			hapMap.set( IDM, {hapY:Ygroup, hapM: MTgroup, entireJSON:JSON.stringify(resparray) } );
-			console.log( 'got haplogs', hapMap.get(ID));
+			//console.log( 'got haplogs', hapMap.get(IDM));
 		}
+	} else {
+		let msg = `MT haplo not found for ??`;
+		console.error( msg );
+		alert( msg );
 	}
 
 	msg_debug_log( 1,  `Populated ${hapMap.size} entries into 'hapMap' out of ${msgcount}` );
+	//console.log( 'hapMap is ', hapMap);
 	launch_next_icw_ajax_query();
+}
+
+function dummy_haplogroup(  ) {
+	hapMap.clear();
+	let MTgroup="hidden";
+	let Ygroup="hidden";
+
+	hapMap.set( current_relative_id, {hapY:Ygroup, hapM: MTgroup, entireJSON:"" } );
 }
 
 function load_icw_list( resparray ) {
@@ -246,9 +269,12 @@ function load_icw_list( resparray ) {
 		let nobj = resparray[i];
 		icwMap.set( nobj.profile_id, nobj );
 	}
+	triangMap.set( current_relative_id, true );
 	msg_debug_log( 1,  `Populated ${icwMap.size} entries into 'icwMap' for ${current_relative_name}` );
-	console.log( 'load_icw_list:', resparray);
 
+	//console.log( 'load_icw_list:', resparray);
+
+	launch_next_icw_ajax_query();
 }
 
 // A timeout routine to trap something - maybe
@@ -261,24 +287,30 @@ function watchdogTimerICW() {
 }
 
 /* 
-** at the end of a scan for ICWs betwene 2 people, save the data then look at the next combination
-** We _could_ be sneaky and set the timeout first, but that leads to a race condition, so we'll play it safe.
+** at the end of a scan for ICWs between 2 people, save the data then look at the next combination
+** We _could_ be sneaky and set the timeout first, but that leads to potential for a race condition, so we'll play it safe.
 */
 function fill_ICW_details() {
 	
 	if( hapMap.size > 0 ) {
-		hobj = hapMap.get(current_relative_id)
+		let hobj = hapMap.get(current_relative_id)
 		if( hobj.hapM ) {
-			let datapkt = {$mid:matchID, $mname:current_relative_name, $hapMat:hobj.hapM, $hapPat:hobj.hapM};
+			let datapkt = {$mid:current_relative_id, $mname:current_relative_name, $hapMat:hobj.hapM, $hapPat:hobj.hapY};
 			chrome.runtime.sendMessage({mode: "update_haplogroups",  matchHapData: datapkt });
 		}
 	}
 	if ( famtreeURL.length > 0) {
-		chrome.runtime.sendMessage({mode: "update_familytree", datapkt:{$mid:matchID, $mname:current_relative_name, $famtree:famtreeURL}});
+		chrome.runtime.sendMessage({mode: "update_familytree", datapkt:{$mid:current_relative_id, $mname:current_relative_name, $famtree:famtreeURL}});
 
 	}
 	const icwarr = Array.from( icwMap, ([key,val]) => ( val ));		// map index is embedded in each object element anyway
-	chrome.runtime.sendMessage({mode: "update_ICWs", ICWset:{ID1:profile_id, ID2:current_relative_id,  icwarray:icwarr}});
+	chrome.runtime.sendMessage({mode: "update_ICWs", ICWset:{
+							ID1:profileID,
+							ID2:current_relative_id,
+							name1:profileName,
+							name2:current_relative_name,
+							icwarray:icwarr}
+						});
 
 	setTimeout( () => next_relative_scan(), increment_ms );
 }

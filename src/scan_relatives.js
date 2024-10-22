@@ -56,17 +56,6 @@ function handleMessageCatches( location, err ) {
 	alert( msg + "\nTry closing all tabs or refreshing" );
 	return;
 }
-/* run_query
-** Start the process to run the query to ...
-
-function run_query(personaId, personbId, personaName, personbName){
-	try {
-		chrome.runtime.sendMessage({mode: "checkIfInDatabase", indexId: personaId, matchId: personbId, indexName: personaName, matchName: personbName, forceSegmentUpdate: rereadSegsRequested});
-		// passes a "returnNeedCompare" message back to this origin tab, with needToCompare set true/false
-	} catch( e ) {
-		handleMessageCatches( "in run_query", e );
-	}
-}*/
 
 /*
 ** prepare the set of ajax calls to get the useful information...
@@ -102,7 +91,7 @@ chrome.runtime.onMessage.addListener(
 		for(  let i = 0 ; i < retarray.length ; i++ ) {
 			let obj = retarray[i];
 			if ( obj.ICWscanned == 1 ) {
-				// only add true ones, ignore others.
+				// FIXME - this is currently just ICWs having been scanned
 				triangMap.set( obj.IDrelative,  true  ) ;
 			}
 			
@@ -131,18 +120,18 @@ function launch_next_ajax_query() {
 
 	function makeAjaxSaver( datatype ){
 		/* This creates a callback function that gets called when the Ajax data requests are returned.
-		** every return path from here should launch_next_ajax_query()
+		** every return path from here should launch_next_ajax_query() - unless you are giving up.
 		*/
 		return function(){
-
 			if(this.status!=200){
-				if( this.status == 429 ){
-					console.error("Oops = getAjaxData saw err429 while getting " + datatype );
-				}
 				let errmsg = `Failed to retrieve ${datatype} data from 23andMe.\nServer returned status: ${this.status}`;
+				if( this.status == 429 ){
+					errmsg += '\nOops - a sign of throttling';
+				} else if( this.status == 403 ){
+					errmsg += '\nPossibly need to login yet again!';
+				}
 				console.error( errmsg );
-				alert( errmsg );
-				launch_next_ajax_query();
+				alert( errmsg );	// giving up
 				return;
 			}
 			const resp=JSON.parse(this.responseText);
@@ -177,14 +166,14 @@ function launch_next_ajax_query() {
 	}
 	var ajaxURL="/p/" + tset.pid + tset.urltail;
 	var oReq = new XMLHttpRequest();
-	msg_debug_log( 1, `calling ${ajaxURL}`);
+	msg_debug_log( 4, `calling ${ajaxURL}`);
 	oReq.withCredentials = true;
 	oReq.onload=makeAjaxSaver( tset.datatype );
 	oReq.onerror=makeErrorHandler( tset.datatype );
 	oReq.open("get", ajaxURL, true);
 	oReq.setRequestHeader('X-Requested-With', 'XMLHttpRequest'  );		// returns 404 without this
 
-	oReq.send();	// no need for time delay - these are permitted simultaneously
+	oReq.send();
 }
 
 function load_ajax_notes( resparray ) {
@@ -246,6 +235,7 @@ function load_ajax_relatives( resparray ) {
 		relativesMap.set( relID, {
 				name: namefull,
 				shared: shared,
+				is_hidden: shared ? false : true,
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
 				totalcM: totcM, 
@@ -256,8 +246,8 @@ function load_ajax_relatives( resparray ) {
 				fav:nobj.is_favorite,
 				predicted_rel: nobj.predicted_relationship_id,
 				known_rel: nobj.overridden_relationship_id === null ? "" : nobj.overridden_relationship_id,
-				family_locations:JSON.stringify(nobj.raw_family_locations),
-				surnames:JSON.stringify(nobj.surnames)
+				family_locations: nobj.raw_family_locations === null ? null : JSON.stringify(nobj.raw_family_locations),
+				surnames: nobj.surnames  === null ? null : JSON.stringify(nobj.surnames)
 			}
 		); 
 		if (notesMap.has( relID ) && (notesMap.get(relID).note.length > 0) ) {
@@ -378,7 +368,9 @@ tr_el.onclick=function(evt){
 		// and we cannot pass a Map, so convert...
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
 		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
-		console.log( 'msg array is ', msgarr );
+		if ( debug_msg > 3) {
+			console.log( 'msg array is ', msgarr );
+		}
 		tr_el.innerHTML="..Busy..";
 		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr, messages:msgarr } );
 	} catch( e ) {
@@ -410,9 +402,10 @@ msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 
 let b529r=document.createElement('button');
 b529r.id="b529r";
-b529r.innerHTML="scan ICW (maybe)";
+b529r.innerHTML="scan ICWs";
 b529r.title="code to apply padding and notes";
 b529r.onclick= function() {
+	chrome.runtime.sendMessage({mode: "clear_HTML_area" } ); // this will just clear the log
 	run_ICW_scan();
 };
 b529r.style.marginLeft='10px';

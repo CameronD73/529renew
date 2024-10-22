@@ -2036,9 +2036,9 @@ function askRestoreSqlite3DB(evt) {
 
 document.addEventListener('DOMContentLoaded',  function () {
 	( async() => {
-	console.log( `DomContent event - getting settings`);
+	//console.log( `DomContent event - getting settings`);
 	const settingStatus = await retrieveSettingsP();
-	console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
+	//console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
 
 	createMatchTableButton();
 	createCSVButton();

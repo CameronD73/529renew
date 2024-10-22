@@ -38,19 +38,6 @@
                 Its only effect is to make displayed values neater and exported csv files smaller.
             </p>
             
-            <!--
-            <h3>Basepair address rounding:
-            <select id="roundingBP" >
-                <option value="0">0</option>
-                <option value="100">100</option>
-                <option value="1000">1000</option>
-                <option value="1000000">1000000</option>
-            </select></h3>
-            <p>To round off Basepair address values. Use zero unless you really need it to be otherwise, because meaningful information is lost.
-                This option is only here to maintain backward-compatibility with 529 and You,
-                which used a high value to maintain backward compatibility with very old 23 and Me results.
-            </p> -->
-
             <h3>Padding on DNA Relatives list:
                 <select id="relativePadding" >
                     <option value="0">0</option>
@@ -224,7 +211,8 @@
             <div id="status_table">                
             </div>
             <hr/>
-            <h4>Status of ICW matching</h4>
+            <h4>Status of ICW chromosome matching</h4>
+            <p>The next tables are related to diagnosing issues with overlapping chromosome matches - it is meaningless while the chromosome browser is unavailable.</p>
             <p>This next table should  appear only if the <i>ICWSets2way</i> or <i>ICWSets3way</i> values are more than zero.
                 <br/>
                 It shows the number of ICW sets on each chromosome.

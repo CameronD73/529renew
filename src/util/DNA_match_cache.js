@@ -8,7 +8,9 @@ let sharedSegMapMap = new Map();	// all known 3-way comparisons including profil
 
 
 function load_match_cache( reqdata ) {
-	console.log( 'cache got ', reqdata);
+	if ( debug_msg > 3) {
+		console.log( 'cache got ', reqdata);
+	}
 	const origpair = reqdata.pair;
 	const profileMatchesArr = reqdata.profileMatches;
 	const DNArelMatchesArr = reqdata.DNArelMatches;

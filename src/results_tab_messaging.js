@@ -6,7 +6,7 @@
 ** 3. the worker
 */
 
-console.log( 'create_db_worker.js started');
+//console.log( 'create_db_worker started');
 
 function logHtml(cssClass, ...args) {
 	const logbox = document.getElementById( "html_log_box");
@@ -51,15 +51,19 @@ DBworker.onmessage = function ( msg ) {
 
     case 'summary_return':
       // payload rows is an array of arrays...
-      console.log( 'summary returned ', data.payload );
-      db_summary = data.payload;   // this seems good enough
+	  if ( debug_db > 1) {
+	      console.log( 'summary returned ', data.payload );
+	  }
+	  db_summary = data.payload;   // this seems good enough
       // db_summary = data.payload.rows.map( (r) => [...r] );
       chrome.runtime.sendMessage( {mode:'pop_dbstatus', data:db_summary} );
     break;
 
     case 'match_summary_return':
       // payload rows is an array of arrays...
-      console.log( 'match summary returned ', data.payload );
+	  if ( debug_db > 1) {
+  	    console.log( 'match summary returned ', data.payload );
+	  }
       db_match_summary = data.payload;   // this seems good enough
       chrome.runtime.sendMessage( {mode:'pop_dbstatusMatches', data:db_match_summary} );
     break;
@@ -124,7 +128,9 @@ DBworker.onmessage = function ( msg ) {
 
     case 'insertProfiles_return':
 		let profile_status = data.payload;
-		console.log( 'profile inserted: ', profile_status );
+		if ( debug_db > 1) {
+			console.log( 'profile inserted: ', profile_status );
+		}
 		logHtml( '', 'profile load completed');
 		document.getElementById("docBody").style.cursor="pointer";
 		DBworker.postMessage( {reason:'getProfiles'});    // now load those values back here
@@ -136,7 +142,9 @@ DBworker.onmessage = function ( msg ) {
 			// only copy over profile identities when we have some. Otherwise, leave the placeholder in place.
 			profile_summary = [...profile_list];
 		}
-		console.log( 'profiles are: ', profile_list );
+		if ( debug_db > 1) {
+			console.log( 'profiles are: ', profile_list );
+		}
 		createKitSelector();
 		chrome.runtime.sendMessage( {mode:'pop_profiles', data:profile_list} );
     break;
@@ -260,6 +268,10 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"update_ICWs", ICWset:request.ICWset } );
 		break;
 
+		case "clear_HTML_area":
+			logHtmlClear();
+		break;	
+
 		case "checkIfInDatabase":
 			checkIfInDatabase( request, sender );
 		break;	
@@ -301,26 +313,14 @@ chrome.runtime.onMessage.addListener(
 				return false;		// leave this for service script to handle
 			} 
 			let errmsg = `dbactions_listen: unhandled message mode ${request.mode}.`;
-			console.log( errmsg, request);
+			console.error( errmsg, request);
 			alert ( errmsg);
 			return false;		// not handled here
 	}
  	return ; // either we replied synchronously, or nothing to say yet.
 });
 
-//  do I need this at all?  Killing this tab might close the worker anyway since it is no longer in scope.
-// in any case we probably need to use the beforeunload event.
-/* - yep - waste of time.
-chrome.tabs.onRemoved.addListener( async ( tabID, remInfo) =>{
-	let thisTab = await chrome.tabs.getCurrent();
-	if( thisTab.id == tabID ) {
-		DBworker.postMessage( {reason: "closing"});
-		alert( 'killed db worker');
-	} else {
-		alert( ' different tab removed' );
-	}
-});
-*/
+
 DBworker.postMessage({reason: "setdebug", value: 2} );
 
-console.log( 'worker instantiation has been started');
+console.log( 'DB worker instantiation completed');
