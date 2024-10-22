@@ -5,12 +5,13 @@ This is now available on the Chrome Store.
 ## Status October 2024
 I think it has now been a year since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before (unconfirmed).
 
-Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testsers.  And at this time it looks like it is most likely to go broke.
+Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testers.  And at this time it looks like it is most likely to go out of business.
 
-The changes around the enforced migration to sqlite were never completed when 23andMe disabled the chromosome browser. The code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
+The changes around the enforced migration to sqlite in this extension were never completed by the time 23andMe disabled the chromosome browser. This code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
 
 Once the extension is installed, a page is displayed with the extension notes and instructions for operation in non-DNA times.
-You can also later see them by entering [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.
+You can also later see them by entering the following (you'll need to copy/paste because this system refuses to make this a clickable link):
+[chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html) .
 
 
 ## Contents:
