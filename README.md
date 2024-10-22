@@ -11,6 +11,7 @@ The changes around the enforced migration to sqlite in this extension were never
 
 Once the extension is installed, a page is displayed with the extension notes and instructions for operation in non-DNA times.
 You can also later see them by entering the following (you'll need to copy/paste because this system refuses to make this a clickable link):
+
 [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html) .
 
 

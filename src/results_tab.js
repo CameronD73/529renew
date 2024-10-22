@@ -470,14 +470,6 @@ function createCSVButton( ){
 	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseForCSV(evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOutRow").appendChild(newButton);
 }
-function create23CSVButton( ){
-	let newButton=document.createElement('button');
-	newButton.innerHTML="D'load 23andMe CSV";
-	newButton.title="Downloads a CSV relatives file in 23andMe format (approximately)";
-	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV(evt.shiftKey, evt.altKey);});
-	document.getElementById("buttonOutRow").appendChild(newButton);
-}
 function createGEXFButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Download GEXF";
@@ -491,6 +483,14 @@ function createSVGButton( ){
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(){downloadSVG();});
 	document.getElementById("buttonOutRow").appendChild(newButton);
+}
+function create23CSVButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load 23andMe CSV";
+	newButton.title="Downloads a CSV relatives file in 23andMe format (approximately)";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV(evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOut23Row").appendChild(newButton);
 }
 
 /*
@@ -521,7 +521,7 @@ function createDBRestoreButton(){
 
 function createDeleteWASMButton(){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="Delete 529Renew Database";
+	newButton.innerHTML="Delete 529Renew DB";
 	newButton.title='Delete all saved DNA data collected by 529Renew';
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', requestDeletionFromDatabase);
@@ -2039,22 +2039,25 @@ document.addEventListener('DOMContentLoaded',  function () {
 	//console.log( `DomContent event - getting settings`);
 	const settingStatus = await retrieveSettingsP();
 	//console.log( `DOMContentLoaded - and settingsP has returned ${settingStatus}.`);
-
-	createMatchTableButton();
-	createCSVButton();
-	create23CSVButton();
-	createGEXFButton();
-	createSVGButton();
-	createDBDumpButton();
-	createDBRestoreButton();
-
 	createKitSelector();
 	createImportProfileButton();
 	createImport23Button();
 	createOverlapCalcButton();
 	createImport529Button();
-	createClearFilterButton();
+		// view/output chromosome content
+	createMatchTableButton();
+	createCSVButton();
+	createGEXFButton();
+	createSVGButton();
+	// Export 23-style csv
+	// not yet
+	//create23CSVButton();
+	// DB actions
+	createDBDumpButton();
+	createDBRestoreButton();
 	createDeleteWASMButton();
+
+	createClearFilterButton();
 
 	setDisplayModeSelector();
 	setTextSizeSelector();

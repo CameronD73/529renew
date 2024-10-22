@@ -71,8 +71,12 @@
 		<input id="hideCloseMatchesCheckBox" type="checkbox">
 		<label for="hideCloseMatchesCheckBox">Don't display close relatives with more than 21 such segments</label>
 	</div>
-	<br/>
-	<div id="buttonInRow">
+	<hr/>
+	<div id="profile_selector" class="displaySettings">
+		Select profile for import/export:
+			<select id="selectKit" title="You must specify the profile kit in order to upload DNA Relatives CSV file from 23 and Me"></select>
+	</div>
+	<div id="buttonInRow"><b>Input/Import:</b><br/>
 		<!-- input file selectors (not visible) - one required for each different file. -->
 		<div class="fileupload" >
 			<input id="upprofile" type="file" value="upload"/>
@@ -80,19 +84,16 @@
 			<input id="upfile529" type="file" value="upload"/>
 			<input id="upfile-restore" type="file" value="upload"/>
 		</div>
-		<div id="profile_selector" class="displaySettings">
-			Select profile for import:
-				<select id="selectKit" title="You must specify the profile kit in order to upload DNA Relatives CSV file from 23 and Me"></select>
-		</div>
-	Input:</div>
+	</div>
 	<br/>
-  	<div id="buttonOutRow">Output (Chromosome data):</div>
+  	<div id="buttonOutRow"><b>Output (Chromosome data):</b><br/></div>
 	
 	<br/>
-	<div id="buttonOut23Row">Output (23andMe misc data):</div>
+	<div id="buttonOut23Row"><b>Export (23andMe misc data):</b><br/></div>
   
   <br/>
-  	<div id="buttonDBRow">Database: </div>
+  	<div id="buttonDBRow"><b>Database:</b><br/></div>
+	<div id="afterbuttons"><hr/></div>
 
   	<div class="special" id="table_div"></div>
 
