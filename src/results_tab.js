@@ -2050,8 +2050,7 @@ document.addEventListener('DOMContentLoaded',  function () {
 	createGEXFButton();
 	createSVGButton();
 	// Export 23-style csv
-	// not yet
-	//create23CSVButton();
+	create23CSVButton();
 	// DB actions
 	createDBDumpButton();
 	createDBRestoreButton();
