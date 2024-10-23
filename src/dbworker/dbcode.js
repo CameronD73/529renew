@@ -572,13 +572,13 @@ var DBwasm = {
         const qry_rel_ins_full = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative, ICWscanned, dateScanned, comment, side, knownRel) VALUES (?, ?, ?,  ?, ?, ?, ? );`;
         const qry_upd_surnames = 'UPDATE idalias SET familySurnames = ? WHERE IDtext = ? AND familySurnames is null;';
         const qry_upd_locations = 'UPDATE idalias SET familyLocations = ? WHERE IDtext = ? AND familyLocations is null;';
-        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND side != ?;';
-        const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND comment != ?;';
-        const qry_upd_knownrel = 'UPDATE DNARelatives SET knownRel = ? WHERE  IDprofile = ? AND IDrelative = ? AND knownRel != ?;';
+        const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND (side IS NULL OR side != ?);';
+        const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND (comment IS NULL OR comment != ?);';
+        const qry_upd_knownrel = 'UPDATE DNARelatives SET knownRel = ? WHERE  IDprofile = ? AND IDrelative = ? AND (knownRel IS NULL OR knownRel != ?);';
        // const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
         const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, largestSeg, predictedRel ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ? );';
         const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND nsegs is NULL;';
-        const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND  largestSeg < 1.0 ;';
+        const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND largestSeg < 1.0;';
         const qry_match_upd_predrel = 'UPDATE DNAmatches SET predictedRel = ? WHERE ID1 = ? AND ID2 = ? AND predictedRel is null ;';
         let transState = "start";
         let rowsaffected = 0;
@@ -810,13 +810,14 @@ var DBwasm = {
     /*
     ** insert/update the match's haplogroup data.
     ** originally we imported from 23nme csv files but these no longer exist.
-    ** So, we need to scrape the match's profile page
+    ** So, we need to extract from the match's profile page
     */
     setHaplogroups: function( matchHapData ) {
         const matchName = matchHapData.$mname;
         const today = formattedDate2();
 
         let update_qry = 'UPDATE idalias SET hapMat = $hapMat, hapPat = $hapPat where IDText = $mid;'
+        let update_qry_hidden = 'UPDATE idalias SET hapMat = $hapMat, hapPat = $hapPat where IDText = $mid AND hapMat IS NULL ;'
         let insert_qry =  `INSERT OR IGNORE INTO idalias (IDText, name, date, hapMat, hapPat) VALUES ($mid, $mname, '${today}', $hapMat, $hapPat );`;
         let qry='insert';
 
@@ -825,8 +826,13 @@ var DBwasm = {
             let rowsaffected = DB529.changes();
             if ( rowsaffected < 1 ) {       // insert failed, try an update instead
                 delete matchHapData.$mname;     // stupid system can't cope if parameters in object are not assigned.
-                let qry='update';
-                DB529.exec( update_qry, {bind: matchHapData} );
+                if ( matchHapData.$hapMat == 'hidden') {
+                    qry='update hidden';
+                    DB529.exec( update_qry_hidden, {bind: matchHapData} );
+                 } else {
+                    qry='update';
+                    DB529.exec( update_qry, {bind: matchHapData} );
+                 }
             }
         } catch( e ) {
             conerror( `DB  haplogroups ${qry} for ${matchName} : ${e.message}`);
