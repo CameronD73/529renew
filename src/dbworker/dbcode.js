@@ -435,7 +435,6 @@ var DBwasm = {
                 GROUP BY a.IDTEXT \
 	            ORDER BY m.pctshared DESC ";
         
-
         let rows = [];
         try{
             DB529.exec( query, {

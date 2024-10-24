@@ -73,8 +73,8 @@ function selectFromDatabase(return_on_success, id, chromosome, limitDates, inclu
 
 /* this version gets a table for export in 23andMe format
 */
-function select23CSVFromDatabase(return_on_success, id ){
-	DBworker.postMessage( {reason:"select23FromDatabase", callback: return_on_success, id: id} );
+function select23CSVFromDatabase(return_on_success, kitid, kitname ){
+	DBworker.postMessage( {reason:"select23CSVFromDatabase", callback: return_on_success, id: kitid, kitname:kitname} );
 	return;
 }
 

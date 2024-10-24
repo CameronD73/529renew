@@ -112,7 +112,7 @@ self.onmessage = function despatchMessages( msg ) {
 
     case "select23CSVFromDatabase":
       let retvals23Rels = DBwasm.select23RelsFromDatabase(content.id );  // synchronous, so we can just send result back
-      postMessage( {reason: 'select23CSVFromDatabase_return', callback:content.callback, payload: retvals23Rels } );
+      postMessage( {reason: 'select23CSVFromDatabase_return', callback:content.callback, id:content.id, kitname:content.kitname, payload: retvals23Rels } );
     break;
 
     case "getOverlappingSegments":

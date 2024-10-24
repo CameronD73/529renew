@@ -101,6 +101,39 @@ DBworker.onmessage = function ( msg ) {
 		}
     break;
 
+    case 'select23CSVFromDatabase_return':
+		let datareturn = data.callback;
+		let table_23CSV = data.payload;
+		if ( table_23CSV.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		//console.log( 'select from DB: ', profile_status );
+		switch ( datareturn ) {
+			case 'create23CSV_noDNA':
+				create23CSV_noDNA( table_23CSV, data.id, data.kitname);
+			break;
+			
+			case 'create23CSV_DNA':
+				create23CSV_DNA( table_23CSV, data.id, data.kitname);
+			break;
+
+			case 'create23TSV_noDNA':
+				create23TSV_noDNA( table_23CSV, data.id, data.kitname);
+			break;
+			
+			case 'create23TSV_DNA':
+				create23TSV_DNA( table_23CSV, data.id, data.kitname);
+			break;
+
+			default:
+				let errmsg = `get DB selection, unhandled callback: ${datareturn}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
     case 'overlappingSegments_return':
 		let callback_olap_return = data.callback;
 		let callback_olap_params = data.callbackParams;
