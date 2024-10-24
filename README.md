@@ -10,9 +10,7 @@ Without the chromosome browser, 23 and Me is the least useful site for genealogi
 The changes around the enforced migration to sqlite in this extension were never completed by the time 23andMe disabled the chromosome browser. This code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
 
 Once the extension is installed, a page is displayed with the extension notes and instructions for operation in non-DNA times.
-You can also later see them by entering the following (you'll need to copy/paste because this system refuses to make this a clickable link):
-
-[chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html) .
+Instructions on this mode of operation are now [in the wiki for this project](https://github.com/CameronD73/529renew/wiki/2024-%E2%80%90-Extracting-Relatives-Data)
 
 
 ## Contents:
@@ -24,7 +22,7 @@ You can also later see them by entering the following (you'll need to copy/paste
 * [Strategies to minimise lockout](#strategies-to-minimise-lockout)
 
 ## Background
-This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code will cease working for Chrome users past early-mid 2023, and has been blocked for fresh installations beyond July 2022.
+This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code ceased working for Chrome users some time in 2023, and has been blocked for fresh installations beyond July 2022.
 
 Most of the original source was public domain and we have been unable to contact the original developer.
 
