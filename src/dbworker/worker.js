@@ -110,6 +110,11 @@ self.onmessage = function despatchMessages( msg ) {
       postMessage( {reason: 'selectFromDatabase_return', callback:content.callback, payload: retvalsfD } );
     break;
 
+    case "selectICWFromDatabase":
+      let retvalsICW = DBwasm.selectICWFromDatabase(content.id );  // synchronous, so we can just send result back
+      postMessage( {reason: 'selectICWFromDatabase_return', id:content.id, kitname:content.kitname, payload: retvalsICW } );
+    break;
+
     case "select23CSVFromDatabase":
       let retvals23Rels = DBwasm.select23RelsFromDatabase(content.id );  // synchronous, so we can just send result back
       postMessage( {reason: 'select23CSVFromDatabase_return', callback:content.callback, id:content.id, kitname:content.kitname, payload: retvals23Rels } );
@@ -148,8 +153,12 @@ self.onmessage = function despatchMessages( msg ) {
 
     case "process_relatives":
       let rowsRelatives = DBwasm.processRelatives(content.profile, content.relatives, content.settings);  // synchronous, 
+      postMessage( {reason: 'relatives_completed', tabID:content.tabID, payload: {relatives:rowsRelatives} } );
+    break;
+
+    case "process_messages":
       let rowsMsgs = DBwasm.process23Comms(content.messages); 
-      postMessage( {reason: 'relatives_completed', tabID:content.tabID, payload: {relatives:rowsRelatives, msgs: rowsMsgs} } );
+      postMessage( {reason: 'messages_completed', tabID:content.tabID, payload: {msgs: rowsMsgs} } );
     break;
 
     case "dumpDB":

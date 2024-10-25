@@ -75,7 +75,7 @@ function finishAjax () {
 	return;	
 }
 
-/* this listener handles the return from - don't know yet.
+/* this listener handles the return from DB interactions
 */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -94,11 +94,12 @@ chrome.runtime.onMessage.addListener(
 				// FIXME - this is currently just ICWs having been scanned
 				triangMap.set( obj.IDrelative,  true  ) ;
 			}
-			
 		}
 	} else if(request.mode === "relatives_completed"){
 		tr_el.innerHTML="529-Gather Done";
 		get_dna_cache();		//ask to reload the cache in case anything changed
+	} else if(request.mode === "messages_completed"){
+		tr_el.innerHTML="529-Gather Done.";
 	} else if(request.mode === "ICWPrelude_return"){
 		load_match_cache( request.data );
 	} else
@@ -369,10 +370,12 @@ tr_el.onclick=function(evt){
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
 		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
 		if ( debug_msg > 3) {
-			console.log( 'msg array is ', msgarr );
+			console.log( `message sizes are Relatives: ${relativearr.length} elements to ${(JSON.stringify(relativearr)).length} bytes` );
+			console.log( `message sizes are Relatives: ${msgarr.length} elements to ${JSON.stringify(msgarr).length} bytes` );
 		}
 		tr_el.innerHTML="..Busy..";
-		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr, messages:msgarr } );
+		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } );
+		chrome.runtime.sendMessage({mode: "process_messages", profile:{id: profileID, name:profileName}, messages:msgarr } );
 	} catch( e ) {
 		// never catches anything!?
 		handleMessageCatches( "process relatives list ", e );

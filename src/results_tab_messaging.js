@@ -230,6 +230,10 @@ DBworker.onmessage = function ( msg ) {
 		chrome.tabs.sendMessage( data.tabID, {mode:'relatives_completed', data:data.payload} );
 	break;
 
+	case 'messages_completed' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'messages_completed', data:data.payload} );
+	break;
+
     default:
       console.log( 'DBWorker msg: ', msgevt );
       logHtml('error', 'Unhandled DBworker msg:', data.reason);
@@ -277,7 +281,13 @@ chrome.runtime.onMessage.addListener(
 
 		case "process_relatives":
 			// we have a list of relatives from the front page...
-			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, settings:settings529, tabID: sender.tab.id} ); 
+		break;
+
+
+		case "process_messages":
+			// we have a list of relatives from the front page...
+			DBworker.postMessage( {reason:"process_messages", profile:request.profile, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
 		break;
 
 		case  "get_ICW_prelude" :
