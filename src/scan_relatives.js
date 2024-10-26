@@ -53,7 +53,7 @@ function msg_debug_log( level, msg ) {
 function handleMessageCatches( location, err ) {
 	let msg =  ` failed to send message ${location}\n Reply was "${err.message}"`;
 	console.error( msg );
-	alert( msg + "\nTry closing all tabs or refreshing" );
+	alert( msg + "\nTry closing all tabs or refreshing DNA Relatives page" );
 	return;
 }
 
@@ -240,7 +240,7 @@ function load_ajax_relatives( resparray ) {
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
 				totalcM: totcM, 
-				max_seg: Math.round(largest_seg, 2),
+				max_seg: round_cM(largest_seg),
 				side: side,
 				sex: nobj.sex,
 				messagex: nobj.has_exchanged_message,
@@ -354,7 +354,7 @@ div529.style['justify-content'] = 'flex-start';
 let tr_el=document.createElement('button');
 tr_el.innerHTML="529-Gather";
 tr_el.id="c529r";
-tr_el.title="Click to update database with any changes to relatives list";
+tr_el.title="Click to update database with any changes to relatives list and communication messages (Shift-click to omit messages)";
 tr_el.style['height'] = '100%';
 
 div529.appendChild(tr_el);
@@ -364,21 +364,30 @@ div529.appendChild(tr_el);
 ** It sends the result of various Ajax calls to the DB and gets an amended (more detailed) list back.
 */
 tr_el.onclick=function(evt){
+	let warn_msg = "process relatives list ";
+	let mbytes_rel = 0.0;
+	let mbytes_msg = 0.0;
 	try{
 		// don't use a callback, as we cannot pass it through the worker... Just rely on the returned message
 		// and we cannot pass a Map, so convert...
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
 		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
-		if ( debug_msg > 3) {
-			console.log( `message sizes are Relatives: ${relativearr.length} elements to ${(JSON.stringify(relativearr)).length} bytes` );
-			console.log( `message sizes are Relatives: ${msgarr.length} elements to ${JSON.stringify(msgarr).length} bytes` );
+		if ( debug_msg > 1) {
+			mbytes_rel = ((JSON.stringify(relativearr)).length * 1e-6).toFixed(2);
+			mbytes_msg = ((JSON.stringify(msgarr)).length * 1e-6).toFixed(2);
+			console.log( `message sizes for Relatives: ${relativearr.length} elements to ${mbytes_rel} Mbytes` );
+			console.log( `message sizes for Messages: ${msgarr.length} elements to ${mbytes_msg} Mbytes` );
 		}
 		tr_el.innerHTML="..Busy..";
+		warn_msg = `process relatives list ${mbytes_rel} Mbytes `;
 		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } );
-		chrome.runtime.sendMessage({mode: "process_messages", profile:{id: profileID, name:profileName}, messages:msgarr } );
+		warn_msg = `process messages list  ${mbytes_msg} Mbytes`;
+		if ( ! evt.shiftKey ){
+			chrome.runtime.sendMessage({mode: "process_messages", profile:{id: profileID, name:profileName}, messages:msgarr } );
+		}
 	} catch( e ) {
 		// never catches anything!?
-		handleMessageCatches( "process relatives list ", e );
+		handleMessageCatches( warn_msg, e );
 	}
 }
 
