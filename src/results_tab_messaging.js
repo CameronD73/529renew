@@ -101,6 +101,15 @@ DBworker.onmessage = function ( msg ) {
 		}
     break;
 
+	case 'selectICWFromDatabase_return':
+		let table_ICW = data.payload;
+		if ( table_ICW.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		createICW_CSV( table_ICW, data.id, data.kitname );
+	break;
+
     case 'select23CSVFromDatabase_return':
 		let datareturn = data.callback;
 		let table_23CSV = data.payload;

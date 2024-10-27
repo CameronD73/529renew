@@ -17,13 +17,21 @@
     <br/>
     <h2>Changelog for 529Renew.</h2>
     <h3>Changes between version between 2.1 and 2.2</h3>
-    <p>This version adds export of 23 and me data, in a CSV format similar, but not identical, to how 23andMe provided export of DNA Relatives</p>
-    <p>Differences are:</p>
+    <p>This version adds various file export options:</p>
+      <ol>
+        <li>A Relatives list, in a CSV format similar, but not identical, to how 23andMe provided export of DNA Relative</li>
+        <li>A list of people in common with the selected profile.</li>
+      </ol>
+    <p>Both types of file require to you first select a profile person (DNA kit) from the drop-down list above the rows of buttons.
+      You need to repeat the export for each profile of interest.</p>
+    <p>Differences in the DNA Relatives table are:</p>
     <ul>
       <li>There is no DNA data, however the columns are still given as in the original;</li>
       <li>An extra column at the end of each line shows the largest matching segment size in cM;</li>
-      <li>The file has a Byte-order-Mark header. This was not given in the original 23andMe exports, and caused MS-excel to incorrectly interpret special characters like apostrophes, accented characters and non-Roman alphabets - unless you took special measures;</li>
+      <li>The file has a Byte-order-Mark header. This was not given in the original 23andMe exports, and caused MS-Excel to incorrectly interpret special characters like apostrophes, accented characters and non-Roman alphabets - unless you took special measures;</li>
       <li>Family name lists and places are formatted differently.</li>
+      <li>A separate option is available to have the same content in a file using TAB characters as the separator.
+         This may be more reliable system locales other than English.</li>
     </ul>
     <h3>Changes between version between 2.0 and 2.1</h3>
     <p>

@@ -70,6 +70,10 @@ function selectFromDatabase(return_on_success, id, chromosome, limitDates, inclu
 			dateLimit: limitDates ?   getSetting('lastCSVExportDate'): '' , incChr100: includeChr100} );
 	return;
 }
+function selectICWFromDatabase(kitID, kitName){
+	DBworker.postMessage( {reason:"selectICWFromDatabase", id: kitID, kitname:kitName} );
+	return;
+}
 
 /* this version gets a table for export in 23andMe format
 */

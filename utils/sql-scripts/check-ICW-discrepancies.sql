@@ -1,4 +1,5 @@
--- NOTE - at the moment these fail dismally as we have added chromosome = -2 for times 23andMe hide all segment data.
+-- NOTE - at the moment these don't work well in combination of old recorded segments and new ICW (2024 scanning)
+-- as we have added chromosome = -2 for times 23andMe hide all segment data.
 
 -- look at discrepancies between 3-way and 2-way ICW tables..
 -- if w3 chr = -1 then we have not yet checked the ID2-ID3 segments

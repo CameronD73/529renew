@@ -372,11 +372,11 @@ tr_el.onclick=function(evt){
 		// and we cannot pass a Map, so convert...
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
 		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
-		if ( debug_msg > 1) {
+		if ( debug_msg >= 0) {
 			mbytes_rel = ((JSON.stringify(relativearr)).length * 1e-6).toFixed(2);
 			mbytes_msg = ((JSON.stringify(msgarr)).length * 1e-6).toFixed(2);
-			console.log( `message sizes for Relatives: ${relativearr.length} elements to ${mbytes_rel} Mbytes` );
-			console.log( `message sizes for Messages: ${msgarr.length} elements to ${mbytes_msg} Mbytes` );
+			console.log( `message size for Relatives: ${relativearr.length} elements to ${mbytes_rel} Mbytes` );
+			console.log( `message size for Messages: ${msgarr.length} elements to ${mbytes_msg} Mbytes` );
 		}
 		tr_el.innerHTML="..Busy..";
 		warn_msg = `process relatives list ${mbytes_rel} Mbytes `;

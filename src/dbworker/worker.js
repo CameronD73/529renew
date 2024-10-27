@@ -173,7 +173,7 @@ self.onmessage = function despatchMessages( msg ) {
             if( dbtables.length < 10) {
               let msg = `Only ${dbtables.length} tables in summary of DB.`;
               console.log( msg, dbtables );
-              conerror( msg + '\nLooks like your file was not a 529Renew database - or it has been corrupted\nYou should delete it and identify the problem');
+              conerror( msg + '\nLooks like your new file was not a 529Renew database - or it has been corrupted\nYou should delete it and identify the problem');
             }
             postMessage( {reason: 'restoredDB_return' } );
           }); 

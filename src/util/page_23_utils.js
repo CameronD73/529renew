@@ -40,8 +40,8 @@ function get_profile_from_header() {
             break;
         }
     }
-
-    let prname = pNameraw.replaceAll( '\n', ' ').trim();
+    // this can generate lots of space padding
+    let prname = pNameraw.replaceAll( '\n', ' ').replace( /   */g, ' ').trim();
 
     return [ pid, prname];
 }
