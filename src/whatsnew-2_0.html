@@ -9,52 +9,30 @@
     <p>You will find some documentation (and source code) at
       <a href="https://github.com/CameronD73/529renew?tab=readme-ov-file#status-october-2024" target="_blank">the 529Renew page on GitHub.</a>
     </p>
-    <p>Instructions here will assume you have read at least the installation instructions there, and have pinned the 529Renew icon.</p>
-    <p>The operating buttons required here are:
-      <ol>
-        <li><b>DNA Relatives page:</b> "529-Gather" and "scan ICW"</li>
-        <li><b>529Renew Results tab:</b> A line of 3 buttons under "Database", labelled : "Backup Sqlite DB", "Restore Sqlite DB" and "Delete 529Renew DB</li>
-        <li><b>529Renew Results tab:</b> A line of buttons under "Export 23andMe misc data" (coming in next release)</li>
-        <li>There is <i>no need</i> to go to any DNA match's profile page, nor do you need to click the "Find Relatives in Common" button (which was required for triangulation searches).</li>
-      </ol>
+    <p>Instructions for the 2024 changes are now 
+      <a href="https://github.com/CameronD73/529renew/wiki/2024-‐-Extracting-Relatives-Data" target="_blank">the wiki page on GitHub.</a>
     </p>
-    <h2>Current status of DNA matching on 23 and Me</h2>
-    <p>This extension was rendered close to useless  in November 2023 when 23 and Me "temporarily" dropped access to all useful information 
-      about DNA relatives.
-      Nearly a year later and the chromosome browser remains blocked and this extension cannot carry out its original function.
-      Instead it has been modified to allow you to save as much of the information that 23 and Me provides you.
-    </p>
-    <h3>Process to collect and save your data</h3>
-    Remember: it is very easy to backup and to restore a working database.  If you manage multiple, unrelated DNA test profiles then it might be simpler to use separate databases for unrelated kits - see below for more details.
-    <ol>
-      <li><i>If you have any segment data</i> from earlier use of 529Renew then <b>use the "Backup Sqlite DB" button</b>. I have done no testing to confirm whether the earlier data is completely compatible with the recent changes. That can only happen if the chromosome browser is ever returned.</li>
-      <li>You can see a summary of the database content at any time by using the 529Renew button (left click) to get the Settings pop-up and scrolling to the bottom of the page under the options and settings. Useful tables are <i>DNARels</i>: how many relatives  have been "gathered" (generally increemnts by 1500 per test profile); <i>DNAMats:</i> the dna match detail comparing two people (e.g. pct shared); <i>idalias:</i> the details of unique individuals - e.g. name, <i>idali+hap:</i> how many in idalias have haplogroup data; <I>ICW3way:</I>list of ICW sets.</li>
-      <li>Go to the "View all DNA Relatives" page, wait some seconds for it to finish loading, and then press the "529-Gather" button near the bottom of the page.  This should take a short time, and end up saying "529-Gather Done". </li>
-      <li><i>Repeat this Gather step for each profile</i> that you manage who are related (or even if they are not DNA-related but you want to keep all data in the one place)</li>
-      <li>At this stage you have a list of basic information about each match, plus a copy of internal messages. Not all of the information is stored - for example grandparents' birthplaces are not saved.</li>
-      <li>Now you can press the "Scan ICWs", which will record ICW's, haplogroups, and family tree urls (if any). This will take <i>a long time (hours)</i> based partly on the deliberate delays imposed to avoid triggering 23andMe's high data rate lockouts but mainly that is how long it takes the servers to provide the data.</li>
-      <li>Progress is indicated by adding the current relative's name to the button and also by adding a line to the bottom of the 529Renew Results page. Any lines there with red backgrounds indicate errors of some form - some will be fatal, some not.</li>
-      <li>The scan process seems to be fairly robust, and you can safely view other pages (in separate tabs) and the 529Renew popup page. What <i>you <b>cannot</b> do is refresh</i> either the DNA Relatives  or the 529 Results page - either will cause the scan to stop.</li>
-      <li>If the scan stops for any reason then you should save a backup of the DB and then refresh the DNArelatives page. Those relatives already scanned should now be shown with a green background. Simply click the "Scan ICWs" button again and it will start where it left off.  In other words, it will not rescan any combination of tester and dna relative that it has already scanned.</li>
-      <li>when all relatives have been scanned for ICWs, the button will change to "scan complete". If the same name stays for minutes (10s per match is typical -  1 minute might be too long) then you can assume something has gone wrong.</li>
-      <li>Now select another test profile and repeat the scan for ICWs.</li>
-      <li>When finished, save a backup of the DB and wait for the next upgrade to the extension to be able to export the results to CSV. If you are keen, you can use any of a number of free Sqlite client software programs to view the data and export your own. My choice is <a href="https://sqlitebrowser.org/">DB Browser for SQLite</a> </li>
 
-    </ol>
-    <h4>Multiple unrelated kits</h4>
-    I would strongly recommend using separate browser profiles in each set of kits - each browser profile maintains its own set of data storage, passwords, etc. However, if you do not wish to do it that way then it can also be done sequentially with a bit of care.
-    <h5>Sequential operation in one browser profile</h5>
-    <ol>
-      <li>create a new empty database by using the <I>"Delete 529Renew Database"</I> button</li>
-      <li>go through the scanning process outlined above.</li>
-      <li>save the database, and name it carefully</li>
-      <li>go back to step 1 - and start a new DB.</li>
-      <li>Any time you need to check who is in this DB, the 529 Settings pop-up page lists the testers in this profile - scroll down and look for the table of "Profile Kits"</li>
-      <li>You can switch DBs any time you are not scanning, but make sure you back up the old one before overwriting with the other. What could possibly go wrong? I still recommend using separate browser profiles. </li>
-    </ol>
     <hr/>
     <br/>
     <h2>Changelog for 529Renew.</h2>
+    <h3>Changes between version between 2.1 and 2.2</h3>
+    <p>This version adds various file export options:</p>
+      <ol>
+        <li>A Relatives list, in a CSV format similar, but not identical, to how 23andMe provided export of DNA Relative</li>
+        <li>A list of people in common with the selected profile.</li>
+      </ol>
+    <p>Both types of file require to you first select a profile person (DNA kit) from the drop-down list above the rows of buttons.
+      You need to repeat the export for each profile of interest.</p>
+    <p>Differences in the DNA Relatives table are:</p>
+    <ul>
+      <li>There is no DNA data, however the columns are still given as in the original;</li>
+      <li>An extra column at the end of each line shows the largest matching segment size in cM;</li>
+      <li>The file has a Byte-order-Mark header. This was not given in the original 23andMe exports, and caused MS-Excel to incorrectly interpret special characters like apostrophes, accented characters and non-Roman alphabets - unless you took special measures;</li>
+      <li>Family name lists and places are formatted differently.</li>
+      <li>A separate option is available to have the same content in a file using TAB characters as the separator.
+         This may be more reliable system locales other than English.</li>
+    </ul>
     <h3>Changes between version between 2.0 and 2.1</h3>
     <p>
       This has been cobbled together to simply scan and store ICW, since segments are still unavailable.

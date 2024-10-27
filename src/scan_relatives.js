@@ -53,7 +53,7 @@ function msg_debug_log( level, msg ) {
 function handleMessageCatches( location, err ) {
 	let msg =  ` failed to send message ${location}\n Reply was "${err.message}"`;
 	console.error( msg );
-	alert( msg + "\nTry closing all tabs or refreshing" );
+	alert( msg + "\nTry closing all tabs or refreshing DNA Relatives page" );
 	return;
 }
 
@@ -75,7 +75,7 @@ function finishAjax () {
 	return;	
 }
 
-/* this listener handles the return from - don't know yet.
+/* this listener handles the return from DB interactions
 */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -94,11 +94,12 @@ chrome.runtime.onMessage.addListener(
 				// FIXME - this is currently just ICWs having been scanned
 				triangMap.set( obj.IDrelative,  true  ) ;
 			}
-			
 		}
 	} else if(request.mode === "relatives_completed"){
 		tr_el.innerHTML="529-Gather Done";
 		get_dna_cache();		//ask to reload the cache in case anything changed
+	} else if(request.mode === "messages_completed"){
+		tr_el.innerHTML="529-Gather Done.";
 	} else if(request.mode === "ICWPrelude_return"){
 		load_match_cache( request.data );
 	} else
@@ -239,7 +240,7 @@ function load_ajax_relatives( resparray ) {
 				pct_ibd: pctshared,
 				nseg: nobj.num_segments,
 				totalcM: totcM, 
-				max_seg: Math.round(largest_seg, 2),
+				max_seg: round_cM(largest_seg),
 				side: side,
 				sex: nobj.sex,
 				messagex: nobj.has_exchanged_message,
@@ -353,7 +354,7 @@ div529.style['justify-content'] = 'flex-start';
 let tr_el=document.createElement('button');
 tr_el.innerHTML="529-Gather";
 tr_el.id="c529r";
-tr_el.title="Click to update database with any changes to relatives list";
+tr_el.title="Click to update database with any changes to relatives list and communication messages (Shift-click to omit messages)";
 tr_el.style['height'] = '100%';
 
 div529.appendChild(tr_el);
@@ -363,19 +364,30 @@ div529.appendChild(tr_el);
 ** It sends the result of various Ajax calls to the DB and gets an amended (more detailed) list back.
 */
 tr_el.onclick=function(evt){
+	let warn_msg = "process relatives list ";
+	let mbytes_rel = 0.0;
+	let mbytes_msg = 0.0;
 	try{
 		// don't use a callback, as we cannot pass it through the worker... Just rely on the returned message
 		// and we cannot pass a Map, so convert...
 		const relativearr = Array.from( relativesMap, ([key,val]) => ({ key, val }));
 		const msgarr = Array.from( messagesMap, ([key,val]) => ( val ));
-		if ( debug_msg > 3) {
-			console.log( 'msg array is ', msgarr );
+		if ( debug_msg >= 0) {
+			mbytes_rel = ((JSON.stringify(relativearr)).length * 1e-6).toFixed(2);
+			mbytes_msg = ((JSON.stringify(msgarr)).length * 1e-6).toFixed(2);
+			console.log( `message size for Relatives: ${relativearr.length} elements to ${mbytes_rel} Mbytes` );
+			console.log( `message size for Messages: ${msgarr.length} elements to ${mbytes_msg} Mbytes` );
 		}
 		tr_el.innerHTML="..Busy..";
-		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr, messages:msgarr } );
+		warn_msg = `process relatives list ${mbytes_rel} Mbytes `;
+		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } );
+		warn_msg = `process messages list  ${mbytes_msg} Mbytes`;
+		if ( ! evt.shiftKey ){
+			chrome.runtime.sendMessage({mode: "process_messages", profile:{id: profileID, name:profileName}, messages:msgarr } );
+		}
 	} catch( e ) {
 		// never catches anything!?
-		handleMessageCatches( "process relatives list ", e );
+		handleMessageCatches( warn_msg, e );
 	}
 }
 

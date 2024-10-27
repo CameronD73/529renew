@@ -101,6 +101,48 @@ DBworker.onmessage = function ( msg ) {
 		}
     break;
 
+	case 'selectICWFromDatabase_return':
+		let table_ICW = data.payload;
+		if ( table_ICW.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		createICW_CSV( table_ICW, data.id, data.kitname );
+	break;
+
+    case 'select23CSVFromDatabase_return':
+		let datareturn = data.callback;
+		let table_23CSV = data.payload;
+		if ( table_23CSV.length == 0 ){
+			alert( 'Empty results set returned from request');
+			return;
+		}
+		//console.log( 'select from DB: ', profile_status );
+		switch ( datareturn ) {
+			case 'create23CSV_noDNA':
+				create23CSV_noDNA( table_23CSV, data.id, data.kitname);
+			break;
+			
+			case 'create23CSV_DNA':
+				create23CSV_DNA( table_23CSV, data.id, data.kitname);
+			break;
+
+			case 'create23TSV_noDNA':
+				create23TSV_noDNA( table_23CSV, data.id, data.kitname);
+			break;
+			
+			case 'create23TSV_DNA':
+				create23TSV_DNA( table_23CSV, data.id, data.kitname);
+			break;
+
+			default:
+				let errmsg = `get DB selection, unhandled callback: ${datareturn}`;
+				console.error( errmsg );
+				alert( errmsg );
+			break;
+		}
+    break;
+
     case 'overlappingSegments_return':
 		let callback_olap_return = data.callback;
 		let callback_olap_params = data.callbackParams;
@@ -197,6 +239,10 @@ DBworker.onmessage = function ( msg ) {
 		chrome.tabs.sendMessage( data.tabID, {mode:'relatives_completed', data:data.payload} );
 	break;
 
+	case 'messages_completed' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'messages_completed', data:data.payload} );
+	break;
+
     default:
       console.log( 'DBWorker msg: ', msgevt );
       logHtml('error', 'Unhandled DBworker msg:', data.reason);
@@ -244,7 +290,13 @@ chrome.runtime.onMessage.addListener(
 
 		case "process_relatives":
 			// we have a list of relatives from the front page...
-			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
+			DBworker.postMessage( {reason:"process_relatives", profile:request.profile, relatives:request.relatives, settings:settings529, tabID: sender.tab.id} ); 
+		break;
+
+
+		case "process_messages":
+			// we have a list of relatives from the front page...
+			DBworker.postMessage( {reason:"process_messages", profile:request.profile, messages:request.messages, settings:settings529, tabID: sender.tab.id} ); 
 		break;
 
 		case  "get_ICW_prelude" :

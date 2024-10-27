@@ -404,54 +404,82 @@ var DBwasm = {
     ** select all the summary data for matching relatives
     ** id: is the 16-digit ID text (for a specific tester profile)
     ** This is to simulate the xxxx_relatives_download CSV format.
+    ** The GROUPing is to avoid duplications where testers have changed 
+    ** DNA sharing status and acquired two entries
     */
     select23RelsFromDatabase( id ) {
-        let qry_sel = "SELECT \
-                    s0.ROWID as ROWID, \
-                    t1.name AS name1, \
-                    t2.name AS name2, \
-                    t1.IDText AS id1, \
-                    t2.IDText AS id2, \
-                    chromosome, start, end, cM, snps, \
-                    m.lastdate as segdate \
-                FROM ibdsegs AS s0 \
-                JOIN idalias t1 ON (t1.IDText=s0.id1) \
-                JOIN idalias t2 ON (t2.IDText=s0.id2)  \
-                LEFT JOIN DNAmatches as m ON m.ID1 = s0.ID1 AND  m.ID2 = s0.ID2 AND m.hasSegs = 1 ";
-        const qry_condc = '(chromosome = ?) ';
-        const qry_condid =  '((s0.id1=?) OR (s0.id2=?))';
-        // convert to julianday to do a floating point comparison rather than string
-        const qry_date = ' julianday(m.lastdate) >= julianday(?)'
-        const qry_order =  ' ORDER BY chromosome, start, end DESC, s0.ROWID'
-        const extra_order = ', julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
-        let query = qry_sel;
-        let needsand = false;
-        let chrNum=parseInt(chromosome);
-        if ( chrNum > 0 && chrNum < 24 ) {
-            query += `WHERE (chromosome = ${chrNum}) `;
-            needsand = true;
-        }
-        if ( id.length == 16 ) {
-            query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
-            needsand = true;
-        }
-        if( dateLimit.length> 10 ) {
-            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
-        }
-            
-        query += qry_order;
-        conlog(3, `query = ${query} with chr ${chrNum} and ID ${id}`);
-
-
+        let query = "SELECT \
+                    a.name as name, \
+                    '' as surname, '' as chr, '' as MBstart, '' as MBend, \
+                    m.cMtotal as Genetic_Distance, \
+                    '' as SNPs, '' as FullIBD, '' as LinkProfile, '' as Sex, '' as Birth_Year, \
+                    r.knownRel as Set_Relationship, \
+                    m.predictedRel as Predicted_Rel, \
+                    '' as RelRange, \
+                    m.pctshared as Percent_DNA_Shared, \
+                    m.nsegs as Segments, \
+                    CASE WHEN r.side in ('M', 'B') THEN 'TRUE' ELSE '' END as MaternalSide, \
+                    CASE WHEN r.side in ('P', 'B') THEN 'TRUE' ELSE '' END as PaternalSide, \
+                    a.hapMat as Maternal_Haplogroup, \
+                    a.hapPat as Paternal_Haplogroup, \
+                    a.familySurnames, a.familyLocations, \
+                    '' as mgmabc,  '' as mgpabc,  '' as pgmabc,  '' as pgpabc,  \
+                    r.comment as Notes, \
+                    '' as ShareStatus, \
+                    CASE WHEN m.ishidden THEN '' ELSE 'TRUE' END as Showing_Ancestry, \
+                a.familyTreeURL, m.largestSeg as largest_Segment \
+                FROM  DNARelatives as r \
+                JOIN idalias as a on r.IDrelative = a.IDtext \
+                JOIN DNAmatches as m on ((r.IDrelative = m.ID1 AND m.ID2 = ?) OR (r.IDrelative = m.ID2 AND m.ID1 = ?) ) \
+                WHERE r.IDprofile = ? \
+                GROUP BY a.IDTEXT \
+	            ORDER BY m.pctshared DESC ";
+        
         let rows = [];
         try{
             DB529.exec( query, {
                     resultRows: rows,
-                    rowMode: 'object'
+                    rowMode: 'object',
+                    bind:[id, id, id]
                 }
             );
         } catch( e ) {
-            conerror( `DB get_segments list: ${e.message}, from request ${query}`);
+            conerror( `DB get list for 23 CSV : ${e.message}, from request ${query}`);
+            return( [ ] );
+        }
+        return rows;
+    },
+
+        /*
+        ** this routine interrogates the DB and returns a list of all ICWs for the given profile id
+        ** in a form suitable for saving to csv.
+        */
+    selectICWFromDatabase( id ) {
+        let query = "SELECT s.IDprofile, s.ID2, s.ID3, count(*) as num, max(chromosome) as maxchr, \
+                a2.name as name2, a3.name as name3, \
+                m1.cMtotal as cMtotal1, m1.nsegs as nsegs1, \
+                m2.cMtotal as cMtotal2, m2.nsegs as nsegs2, \
+                m3.cMtotal as cMtotal3, m3.nsegs as nsegs3 \
+            FROM ICWSets as s \
+            JOIN idalias as a2 on (s.ID2 = a2.IDtext) \
+            JOIN idalias as a3 on (s.ID3 = a3.IDtext) \
+            JOIN DNAmatches as m3 ON s.ID2 = M3.ID1 AND s.ID3 = M3.ID2 \
+            JOIN DNAmatches as m1 ON (s.IDprofile = m1.ID1 AND s.ID2 = m1.ID2) OR  (s.IDprofile = m1.ID2 AND s.ID2 = m1.ID1) \
+            JOIN DNAmatches as m2 ON (s.IDprofile = m2.ID1 AND s.ID3 = m2.ID2) OR  (s.IDprofile = m2.ID2 AND s.ID3 = m2.ID1) \
+            WHERE IDprofile = ? \
+            GROUP BY s.IDprofile, s.ID2, s.ID3 \
+            ORDER by cMtotal1 DESC, cMtotal2 DESC;" ;
+        
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object',
+                    bind:[id]
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get list for ICWs : ${e.message}, for ${id}`);
             return( [ ] );
         }
         return rows;

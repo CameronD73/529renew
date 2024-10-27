@@ -484,12 +484,31 @@ function createSVGButton( ){
 	newButton.addEventListener('click', function(){downloadSVG();});
 	document.getElementById("buttonOutRow").appendChild(newButton);
 }
+/*
+** buttons for exporting 23andMe data, apart from DNA segments
+*/
 function create23CSVButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="D'load 23andMe CSV";
-	newButton.title="Downloads a CSV relatives file in 23andMe format (approximately)";
+	newButton.title="Downloads a CSV relatives file for the profile person selected above, in 23andMe format (approximately)";
 	newButton.setAttribute("type","button");
-	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV(evt.shiftKey, evt.altKey);});
+	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV('c', evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOut23Row").appendChild(newButton);
+}
+function create23TSVButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load 23andMe TSV";
+	newButton.title="Downloads a TAB-separated relatives file for the profile person selected above, in 23andMe format (approximately)";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectFromDatabaseFor23CSV('t', evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOut23Row").appendChild(newButton);
+}
+function create23ICWButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load 23andMe ICW";
+	newButton.title="Downloads a TSV file for the in-common matches to the profile person selected above";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectICWFromDatabaseForCSV( evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOut23Row").appendChild(newButton);
 }
 
@@ -499,7 +518,7 @@ function create23CSVButton( ){
 function createDBDumpButton(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Backup Sqlite DB";
-	newButton.title="Export the internal database to your computer's filesystem (current version cannot restore)";
+	newButton.title="Export the internal database to your computer's filesystem";
 	newButton.setAttribute("type", "button");
 	newButton.addEventListener('click', function(){askDumpSqlite3DB();});
 	document.getElementById("buttonDBRow").appendChild(newButton);
@@ -522,7 +541,7 @@ function createDBRestoreButton(){
 function createDeleteWASMButton(){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="Delete 529Renew DB";
-	newButton.title='Delete all saved DNA data collected by 529Renew';
+	newButton.title='Delete internal DB of all saved DNA data collected by 529Renew';
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', requestDeletionFromDatabase);
 	document.getElementById("buttonDBRow").appendChild(newButton);
@@ -1152,6 +1171,143 @@ function createCSV12( resultRows,  includeNonMatch){
 	let chromosome = parseInt( document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value );
 	if ( expectedIdStr == 0 && chromosome == 0 )
 		setSetting( "lastCSVExportDate", formattedDate2() );
+}
+
+/*
+** create the CSV file in 23andMe format, using content returned from the DB select
+*/
+function create23TSV_noDNA( resultRows,  kitid, kitname){
+	const sep = '\t';    // the separator character - use tab or semicolon - comma messes up with json-encoded text.
+	create23CorTSV_noDNA( resultRows, sep, kitid, kitname );
+}
+
+function create23CSV_noDNA( resultRows,  kitid, kitname){
+	const sep = ',';
+	create23CorTSV_noDNA( resultRows, sep, kitid, kitname );
+}
+
+function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
+
+	var csvarray=new Array();
+
+	let extension = ".txt"		// excel is too stupid to automatically identify the separator char unless you open the file in certain ways.
+									// Recent versions also cannot cope with .tsv
+	if (sep == ',') {
+		extension = ".csv"
+	}
+	const quote = '"';
+	const eol = '\r\n';
+	const ByteOrderMark = "\uFEFF";
+
+	const CSV23Header= ByteOrderMark + "Display Name;Surname;Chromosome Number;Chromosome Start Point;Chromosome End Point;Genetic Distance;# SNPs;Full IBD;Link to Profile Page;Sex;Birth Year;Set Relationship;Predicted Relationship;Relative Range;Percent DNA Shared;# Segments Shared;Maternal Side;Paternal Side;Maternal Haplogroup;Paternal Haplogroup;Family Surnames;Family Locations;Maternal Grandmother Birth Country;Maternal Grandfather Birth Country;Paternal Grandmother Birth Country;Paternal Grandfather Birth Country;Notes;Sharing Status;Showing Ancestry Results;Family Tree URL;Largest Segment" + eol;
+	csvarray.push(CSV23Header.replace(/;/g, sep));
+
+	let nrows = resultRows.length;
+	var theName=kitname;		// profile person name
+
+	for(let i=0; i<nrows; i++) {	//nrows
+
+		let row = resultRows[i];
+
+		// trim the names to avoid csv and string delimiters inside name fields.
+		let relname = quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		// convert all internal dbl quotes to single, then surround entire field with quotes.
+		let surnames = '';
+		if (row.familySurnames !== null && row.familySurnames.length > 0 ) {
+			surnames = quote + row.familySurnames.replace(/"/g, "'") + quote;
+		}
+		let locations = '';
+		if (row.familyLocations !== null && row.familyLocations.length > 0 ) {
+			locations = quote + row.familyLocations.replace(/"/g, "'") + quote;
+		}
+		let treeURL = '';
+		if (row.familyTreeURL !== null && row.familyTreeURL.length > 0 ) {
+			treeURL = quote + row.familyTreeURL + quote;
+		}
+		let note = '';
+		if (row.Notes !== null && row.Notes.length > 0 ) {
+			note = quote + row.Notes.replace(/"/g, "'") + quote;
+		}
+
+
+		csvarray.push(relname + sep.repeat(5)+
+				row.Genetic_Distance+sep.repeat(6)+
+				row.Set_Relationship+sep+
+				row.Predicted_Rel+sep.repeat(2)+
+				row.Percent_DNA_Shared+sep+
+				row.Segments+sep+
+				row.MaternalSide+sep+
+				row.PaternalSide+sep+
+				row.Maternal_Haplogroup+sep+
+				row.Paternal_Haplogroup+sep+
+				surnames+sep+
+				locations+sep.repeat(5)+
+				note+sep.repeat(2)+
+				row.Showing_Ancestry+sep+
+				treeURL + sep+
+				row.largest_Segment +
+				eol);
+
+	}
+	if(theName){
+		// replace characters that might be problematic in a filename in different OSs
+		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
+	}
+	else theName="";
+
+	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "529relatives_" + theName+ "_" + formattedDate()+ extension);
+
+}
+
+function createICW_CSV( resultRows, kitid, kitname){
+
+	var csvarray=new Array();
+	let sep = '\t';
+	let extension = ".txt";		// excel is too stupid to automatically identify the separator char unless you open the file in certain ways.
+									// Recent versions also cannot cope with .tsv
+	if (sep == ',') {
+		extension = ".csv"
+	}
+	const quote = '"';
+	const eol = '\r\n';
+	const ByteOrderMark = "\uFEFF";
+
+	const CSV23Header= ByteOrderMark + "Relative 1;Relative 2;Prof to R1 cM;Prof to R1 nsegs;Prof to R2 cM;Prof to R2 nsegs;R1 to R2 cM;R1 to R2 nsegs;Kit ID 1; Kit ID 2" + eol;
+	csvarray.push(CSV23Header.replace(/;/g, sep));
+
+	let nrows = resultRows.length;
+	var theName=kitname;		// profile person name
+
+	for(let i=0; i<nrows; i++) {	//nrows
+
+		let row = resultRows[i];
+
+		// trim the names to avoid csv and string delimiters inside name fields. 
+		// Yes, the numbers are offset: relative name 1 here is ID2 in the DB table
+		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
+		let relname1 = quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let relname2 = quote + row.name3.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		// other fields are numeric or guaranteed free of problem chars.
+		
+		csvarray.push(relname1 + sep + relname2 + sep +
+				row.cMtotal1 + sep + row.nsegs1 + sep +
+				row.cMtotal2 + sep + row.nsegs2 + sep +
+				row.cMtotal3 + sep + row.nsegs3 + sep +
+				quote + row.ID2 + quote + sep +
+				quote + row.ID3 + quote + sep +
+				eol);
+
+	}
+	if(theName){
+		// replace characters that might be problematic in a filename in different OSs
+		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
+	}
+	else theName="";
+
+	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "ICW_" + theName+ "_" + formattedDate()+ extension);
+
 }
 
 
@@ -1800,7 +1956,31 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 		selectFromDatabase('createCSV', expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
 	}
 }
-function requestSelectFromDatabaseFor23CSV(shiftIsDown, altIsDown){
+function requestSelectFromDatabaseFor23CSV(mode, shiftIsDown, altIsDown){
+
+	let namesel = document.getElementById("selectKit");
+	if(namesel.selectedIndex<0)
+		 return;
+	let kitName=namesel.options[namesel.selectedIndex].text;
+	let kitID=namesel.options[namesel.selectedIndex].value;
+	let returnfunc = 'create23';
+	if ( mode == 't'){
+		returnfunc += "TSV";
+	} else {
+		returnfunc += "CSV";
+	}
+
+	db_conlog( 1, `writing DNA relatives for profile: ${kitName} ret to ${returnfunc}`);
+	if(altIsDown){
+		returnfunc += "_DNA";
+	}
+	else{
+		returnfunc += "_noDNA";
+	}
+	select23CSVFromDatabase( returnfunc, kitID, kitName);
+}
+
+function requestSelectICWFromDatabaseForCSV(shiftIsDown, altIsDown){
 
 	let namesel = document.getElementById("selectKit");
 	if(namesel.selectedIndex<0)
@@ -1808,18 +1988,8 @@ function requestSelectFromDatabaseFor23CSV(shiftIsDown, altIsDown){
 	let kitName=namesel.options[namesel.selectedIndex].text;
 	let kitID=namesel.options[namesel.selectedIndex].value;
 
-	if(kitID=='all')
-		kitIDStr=0;
-	else
-		kitIDStr=kitID;
-	let limitDates = false;
-	db_conlog( 1, `writing 23andMe format CSV relatives for profile: ${kitName}`);
-	if(altIsDown){
-		select23CSVFromDatabase('create23CSV', kitID);
-	}
-	else{
-		select23CSVFromDatabase('create23CSV', kitID);
-	}
+	db_conlog( 1, `writing CSV of ICW relatives for profile: ${kitName}`);
+	selectICWFromDatabase(kitID, kitName);
 }
 
 function requestSelectFromDatabaseForGEXF(){
@@ -2050,8 +2220,9 @@ document.addEventListener('DOMContentLoaded',  function () {
 	createGEXFButton();
 	createSVGButton();
 	// Export 23-style csv
-	// not yet
-	//create23CSVButton();
+	create23CSVButton();
+	create23TSVButton();
+	create23ICWButton();
 	// DB actions
 	createDBDumpButton();
 	createDBRestoreButton();

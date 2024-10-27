@@ -59,21 +59,26 @@ function getSegsFailed_wasm( trans, error ) {
 ** Queries for matches
 ** this returns the rows of segment data suitable for subsequent processing
 ** either as display on page or save to csv or gexf files.
-** - in: id, either the 16-char UID string, or
+** - in:  return_on_success is a string specifying which function should handle the returned content
+**		 id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
-** limitDates is a boolean
+**       limitDates is a boolean
 ** if dateLimit is a date then we only select those newer than previous save. (otherwise empty string)
 */
-function selectFromDatabase(callbackSuccess, id, chromosome, limitDates, includeChr100){
-	DBworker.postMessage( {reason:"selectFromDatabase", callback: callbackSuccess, id: id, chr: chromosome, 
+function selectFromDatabase(return_on_success, id, chromosome, limitDates, includeChr100){
+	DBworker.postMessage( {reason:"selectFromDatabase", callback: return_on_success, id: id, chr: chromosome, 
 			dateLimit: limitDates ?   getSetting('lastCSVExportDate'): '' , incChr100: includeChr100} );
+	return;
+}
+function selectICWFromDatabase(kitID, kitName){
+	DBworker.postMessage( {reason:"selectICWFromDatabase", id: kitID, kitname:kitName} );
 	return;
 }
 
 /* this version gets a table for export in 23andMe format
 */
-function select23CSVFromDatabase(callbackSuccess, id ){
-	DBworker.postMessage( {reason:"select23FromDatabase", callback: callbackSuccess, id: id} );
+function select23CSVFromDatabase(return_on_success, kitid, kitname ){
+	DBworker.postMessage( {reason:"select23CSVFromDatabase", callback: return_on_success, id: kitid, kitname:kitname} );
 	return;
 }
 
