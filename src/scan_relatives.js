@@ -199,9 +199,15 @@ function load_ajax_messages( resp ) {
 
 	for( let i = 0 ; i < resparray.length; i++ ) {
 		let mobj = resparray[i];
-		let msgID = mobj.id;
-		let senderid = mobj.sender.id
-		messagesMap.set( mobj.id, {$id:mobj.id, $sender:mobj.sender.id, $recip:mobj.recipient.id, $content:mobj.body, $entireJSON:JSON.stringify(resparray) } );
+		let pkt = JSON.stringify(mobj);
+		if (pkt.length > 20000 ) {
+			let sname = mobj.sender.first_name + " " + mobj.sender.last_name;
+			let rname = mobj.recipient.first_name + " " + mobj.recipient.last_name;
+			let warnmsg = `Message ${i} from ${sname} to ${rname} too large: (${(pkt.length/1000).toFixed(1)} kB), partial save only`;
+			msg_debug_log(1, warnmsg);
+			pkt = "too large to save";
+		}
+		messagesMap.set( mobj.id, {$id:mobj.id, $sender:mobj.sender.id, $recip:mobj.recipient.id, $content:mobj.body, $entireJSON:pkt } );
 	}
 	msg_debug_log( 1,  `Populated ${messagesMap.size} entries into 'messagesMap' out of ${msgcount}` );
 	msg_debug_log( 4,  `trace end 'load_ajax_messages'` );

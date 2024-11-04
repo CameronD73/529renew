@@ -32,16 +32,21 @@ function run_ICW_scan() {
 		icwQueue.dequeue();
 	}
 	relcount = 0;
+	let skipcount = 0;
+	let added = 0;
 
 	// create a fifo queue of matches to the profile person
 	for( let [key, obj] of relativesMap ) {
 		if ( triangMap.has(key) && triangMap.get( key)) {
-			q_debug_log( 2, `Already have ${key}, skipping` );
+			q_debug_log( 4, `Already have ${key}, skipping` );
+			skipcount++;
 			// skipping
 		} else {
 			relQueue.enqueue( key );
+			added++;
 		}
 	}
+	q_debug_log( 1, `Enqueued ${added} to scan, skipped ${skipcount} already recorded`);
 	next_relative_scan();
 }
 

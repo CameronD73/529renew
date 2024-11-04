@@ -52,8 +52,6 @@ JSFILES= \
 	${BUILDDIR}/scan_relatives.js \
 	${BUILDDIR}/scan_icws.js \
 	${BUILDDIR}/whatsnew-2_0.html \
-	${BUILDDIR}/whatsnew-1_3.html \
-	${BUILDDIR}/whatsnew-1_9.html \
 	${BUILDDIR}/service.js
 
 LOGOFILES= \
@@ -164,12 +162,6 @@ ${BUILDDIR}/scan_relatives.js:	${V3SRC}/scan_relatives.js
 	${CP} $< $@
 
 ${BUILDDIR}/scan_icws.js:	${V3SRC}/scan_icws.js 
-	${CP} $< $@
-
-${BUILDDIR}/whatsnew-1_3.html:	${V3SRC}/whatsnew-1_3.html 
-	${CP} $< $@
-
-${BUILDDIR}/whatsnew-1_9.html:	${V3SRC}/whatsnew-1_9.html 
 	${CP} $< $@
 
 ${BUILDDIR}/whatsnew-2_0.html:	${V3SRC}/whatsnew-2_0.html 

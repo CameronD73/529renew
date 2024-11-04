@@ -86,7 +86,7 @@ var DBwasm = {
                     returnValue: "resultRows"
                 } );
             }
-            DBwasm.assign_DB_version( 3 );
+            DBwasm.assign_DB_version( 4 );
 
 
         } catch( e ) {
@@ -115,8 +115,12 @@ var DBwasm = {
         } catch( e ) {
             conerror( `update version ${oldversion} failed: ${e.msg}` );
         }
-        if ( oldversion != 3) {
+        if ( oldversion < 3) {
             DB529.exec( 'UPDATE DNAmatches set pctshared = round(cMtotal / 74.4, 2) WHERE pctshared is NULL')
+        }
+        if ( oldversion < 4) {
+            DB529.exec( 'UPDATE messages set entireJSON = NULL WHERE entireJSON is not NULL');
+            DBwasm.assign_DB_version( 4 );
         }
 
     },
@@ -760,16 +764,30 @@ var DBwasm = {
             logHtml( '', msg);
         };
         
-        const today = formattedDate2();
+        //const today = formattedDate2();
+        const count_nulls = 'SELECT count(*) as empties from messages where entireJSON is null;'
         const update_qry = 'INSERT or IGNORE INTO messages (IDmsg, IDsender, IDrec, content, entireJSON) VALUES \
                 ($id, $sender, $recip, $content, $entireJSON);';
+        const update_json = 'UPDATE messages set entireJSON = ? WHERE IDmsg = ? AND entireJSON is NULL;';
         let rowsaffected = 0;
+        let emptycount = [];
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
             for( obj of messages ) {
                 DB529.exec( update_qry, { bind:obj } );
-                rowsaffected = DB529.changes();
-            }    
+                rowsaffected += DB529.changes();
+            }
+            DB529.exec( count_nulls, 
+                { resultRows: emptycount, rowMode: 'object'  }
+            );
+            if ( emptycount[0].empties > 0 ){
+                // one-off update fixing the old entireJSON bug
+                conlog( 1, `Updating ${emptycount[0].empties} null msg entries`);
+                
+                for( obj of messages ) {
+                    DB529.exec( update_json, {bind:[obj.$entireJSON, obj.$id]} );
+                }
+            }
             DB529.exec( 'COMMIT TRANSACTION;');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');

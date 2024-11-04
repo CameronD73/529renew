@@ -69,3 +69,9 @@ V2.1.0 submitted to store 2024-Oct-nn
     A quick hack for people to get as much data as possible in case 23andMe goes down the gurgler.
     Sqlite-WASM v 3.60.0
     PapaParse v 5.4.0
+
+V2.2.0 submitted to Chrome store 2024-Oct-20
+    Added export operations for 23andMe relatives and ICW
+V2.2.1 subm to store 2024-Nov-04
+    Fix stupid bug exploding size of stored messages
+    
