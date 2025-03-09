@@ -512,6 +512,22 @@ function create23ICWButton( ){
 	document.getElementById("buttonOut23Row").appendChild(newButton);
 }
 
+function createGDATRelsButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load GDAT Relatives CSV";
+	newButton.title="Downloads a CSV file with DNA Relatives for the profile person selected above, for import into GDAT";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectRelsforGDAT(evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOut23Row").appendChild(newButton);
+}
+function createGDATICWButton( ){
+	let newButton=document.createElement('button');
+	newButton.innerHTML="D'load 23andMe ICW";
+	newButton.title="Downloads a TSV file for the in-common matches to the profile person selected above";
+	newButton.setAttribute("type","button");
+	newButton.addEventListener('click', function(evt){requestSelectICWforGDAT( evt.shiftKey, evt.altKey);});
+	document.getElementById("buttonOut23Row").appendChild(newButton);
+}
 /*
 ** =======  rows of buttons for DB operations
 */
@@ -1260,12 +1276,111 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 
 }
 
+/*
+** Functions to accept the DB query return and write it to CSV in a format suitable for GDAT
+**
+** 1. table of all ICWs that do not include the profile kits. 
+*/
+function createICW_CSV4GDAT( resultRows, kitid, kitname){
+
+	var csvarray=new Array();
+	let sep = ',';
+	let extension = ".csv";		
+	
+	const quote = '"';
+	const eol = '\r\n';
+	const ByteOrderMark = "\uFEFF";
+
+	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;" + eol;
+	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
+
+	let nrows = resultRows.length;
+
+	for(let i=0; i<nrows; i++) {	//nrows
+
+		let row = resultRows[i];
+
+		// trim the names to avoid csv and string delimiters inside name fields. 
+		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
+		let relname1 = quote + row.name1.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let relname2 = quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		// other fields are numeric or guaranteed free of problem chars.
+		
+		csvarray.push(  quote + row.Profile_key + quote + sep +
+						quote + row.Relative_key + quote + sep +
+						row.cMtotal + sep + row.nsegs + sep +
+						row.largest + sep  +
+						relname1 + sep + relname2 + sep +
+						eol);
+
+	}
+
+	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "529_ICWs_" + formattedDate()+ extension);
+}
+
+/*
+** GDAT, cont....
+** 2. table of all DNA relatives to teh specified profile person.
+*/
+
+function createRels_CSV4GDAT( resultRows, kitid, kitname){
+
+	var csvarray=new Array();
+	let sep = ',';
+	let extension = ".csv";		
+	
+	const quote = '"';
+	const eol = '\r\n';
+	const ByteOrderMark = "\uFEFF";
+
+	const CSVGDATHeader= ByteOrderMark + "Profile ID;Relative ID;Name;cM total;Assigned Relship;Predicted Relship;pct DNA Shared;nSegments;side;Mat Hapl;Pat Hapl;surnames;family Locations;Notes;Showing DNA;tree URL;largest Seg;" + eol;
+	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
+
+	let nrows = resultRows.length;
+	var theName=kitname;		// profile person name
+
+	for(let i=0; i<nrows; i++) {	//nrows
+
+		let row = resultRows[i];
+
+		// trim the names to avoid csv and string delimiters inside name fields. 
+		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
+		let relname = quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		// other fields are numeric or guaranteed free of problem chars.
+		
+		csvarray.push(  quote + row.Profile_key + quote + sep +
+						quote + row.Relative_key + quote + sep +
+						relname + sep +
+						row.Genetic_Distance + sep + row.Set_Relationship + sep +
+						row.Predicted_Rel + sep + row.Percent_DNA_Shared + sep +
+						row.Segments + sep + row.side + sep +
+						row.Maternal_Haplogroup + sep + row.Paternal_Haplogroup + sep +
+						row.familySurnames + sep + row.familyLocations + sep +
+						row.Notes + sep + row.Showing_Ancestry + sep +
+						row.familyTreeURL + sep + row.largest_Segment + sep +
+						eol);
+
+	}
+	if(theName){
+		// replace characters that might be problematic in a filename in different OSs
+		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
+	}
+	else theName="";
+
+	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "529Relatives_" + theName+ "_" + formattedDate()+ extension);
+}
+
+/*
+** a 3-way table of profile, match and ICW
+*/
 function createICW_CSV( resultRows, kitid, kitname){
 
 	var csvarray=new Array();
 	let sep = '\t';
 	let extension = ".txt";		// excel is too stupid to automatically identify the separator char unless you open the file in certain ways.
-									// Recent versions also cannot cope with .tsv
+									// Recent versions also cannot cope with .tsv by default
 	if (sep == ',') {
 		extension = ".csv"
 	}
@@ -1956,6 +2071,7 @@ function requestSelectFromDatabaseForCSV(shiftIsDown, altIsDown){
 		selectFromDatabase('createCSV', expectedId, chromsel.options[chromsel.selectedIndex].value, limitDates, false);
 	}
 }
+
 function requestSelectFromDatabaseFor23CSV(mode, shiftIsDown, altIsDown){
 
 	let namesel = document.getElementById("selectKit");
@@ -1990,6 +2106,30 @@ function requestSelectICWFromDatabaseForCSV(shiftIsDown, altIsDown){
 
 	db_conlog( 1, `writing CSV of ICW relatives for profile: ${kitName}`);
 	selectICWFromDatabase(kitID, kitName);
+}
+
+function requestSelectRelsforGDAT(shiftIsDown, altIsDown){
+
+	let namesel = document.getElementById("selectKit");
+	if(namesel.selectedIndex<0)
+		 return;
+	let kitName=namesel.options[namesel.selectedIndex].text;
+	let kitID=namesel.options[namesel.selectedIndex].value;
+
+	db_conlog( 1, `writing GDAT CSV of relatives for profile: ${kitName}`);
+	selectRelsforGDAT(kitID, kitName);
+}
+
+function requestSelectICWforGDAT(shiftIsDown, altIsDown){
+
+	let namesel = document.getElementById("selectKit");
+	if(namesel.selectedIndex<0)
+		 return;
+	let kitName=namesel.options[namesel.selectedIndex].text;
+	let kitID=namesel.options[namesel.selectedIndex].value;
+
+	db_conlog( 1, `writing GDAT CSV of all ICWs`);
+	selectICWforGDAT(kitID, kitName);
 }
 
 function requestSelectFromDatabaseForGEXF(){
@@ -2223,6 +2363,8 @@ document.addEventListener('DOMContentLoaded',  function () {
 	create23CSVButton();
 	create23TSVButton();
 	create23ICWButton();
+	createGDATRelsButton();
+	createGDATICWButton();
 	// DB actions
 	createDBDumpButton();
 	createDBRestoreButton();

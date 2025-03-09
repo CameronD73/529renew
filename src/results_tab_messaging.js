@@ -101,6 +101,25 @@ DBworker.onmessage = function ( msg ) {
 		}
     break;
 
+	case 'selectGDAT_ICW_return':
+		let table_ICW_GDAT = data.payload;
+		if ( table_ICW_GDAT.length == 0 ){
+			alert( 'selectGDAT_ICW_return: Empty results set returned from request');
+			return;
+		}
+		createICW_CSV4GDAT( table_ICW_GDAT, data.id, data.kitname );
+	break;
+
+    case 'selectGDAT_rels_return':
+		let table_Rels_GDAT = data.payload;
+		if ( table_Rels_GDAT.length == 0 ){
+			alert( 'selectGDAT_rels_return: Empty results set returned from request');
+			return;
+		}
+		//console.log( 'select from DB: ', profile_status );
+		createRels_CSV4GDAT( table_Rels_GDAT, data.id, data.kitname);
+    break;
+
 	case 'selectICWFromDatabase_return':
 		let table_ICW = data.payload;
 		if ( table_ICW.length == 0 ){

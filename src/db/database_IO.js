@@ -81,6 +81,20 @@ function select23CSVFromDatabase(return_on_success, kitid, kitname ){
 	DBworker.postMessage( {reason:"select23CSVFromDatabase", callback: return_on_success, id: kitid, kitname:kitname} );
 	return;
 }
+/*
+** These two functions get DB records for writing to csv files for GDAT
+*/
+function selectICWforGDAT(kitID, kitName){
+	DBworker.postMessage( {reason:"selectGDAT_ICW", id: kitID, kitname:kitName} );
+	return;
+}
+
+/* this version gets a table for export in  format suitable for GDAT csv file
+*/
+function selectRelsforGDAT( kitid, kitname ){
+	DBworker.postMessage( {reason:"selectGDAT_rels", id: kitid, kitname:kitname} );
+	return;
+}
 
 
 /*

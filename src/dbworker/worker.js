@@ -110,6 +110,17 @@ self.onmessage = function despatchMessages( msg ) {
       postMessage( {reason: 'selectFromDatabase_return', callback:content.callback, payload: retvalsfD } );
     break;
 
+    case "selectGDAT_ICW":
+      let retvalsICWGD = DBwasm.selectICWForGDAT( );  // synchronous, so we can just send result back
+      postMessage( {reason: 'selectGDAT_ICW_return', id:content.id, kitname:content.kitname, payload: retvalsICWGD } );
+    break;
+
+    case "selectGDAT_rels":
+      let retvalsRelsGD = DBwasm.selectDNARelsForGDAT(content.id );  // synchronous, so we can just send result back
+      postMessage( {reason: 'selectGDAT_rels_return',  id:content.id, kitname:content.kitname, payload: retvalsRelsGD } );
+    break;
+
+
     case "selectICWFromDatabase":
       let retvalsICW = DBwasm.selectICWFromDatabase(content.id );  // synchronous, so we can just send result back
       postMessage( {reason: 'selectICWFromDatabase_return', id:content.id, kitname:content.kitname, payload: retvalsICW } );

@@ -454,6 +454,80 @@ var DBwasm = {
         return rows;
     },
 
+    /*
+    ** Create a list of DNA relatives for import to GDAT
+    ** id: is the 16-digit ID text (for a specific tester profile)
+    ** The GROUPing is to avoid duplications where testers have changed 
+    ** DNA sharing status and acquired two entries
+    */
+    selectDNARelsForGDAT( id ) {
+        let query = "SELECT  r.IDprofile as Profile_key, r.IDrelative as Relative_key, \
+                        a.name as name,  \
+                        m.cMtotal as Genetic_Distance,  \
+                        r.knownRel as Set_Relationship,  \
+                        m.predictedRel as Predicted_Rel,  \
+                        m.pctshared as Percent_DNA_Shared,  \
+                        m.nsegs as Segments,  \
+                        r.side as side, \
+                        a.hapMat as Maternal_Haplogroup,  \
+                        a.hapPat as Paternal_Haplogroup,  \
+                        a.familySurnames, a.familyLocations,   \
+                        r.comment as Notes, \
+                        CASE WHEN m.ishidden THEN '' ELSE 'TRUE' END as Showing_DNA,  \
+                    a.familyTreeURL, m.largestSeg as largest_Segment  \
+                    FROM  DNARelatives as r  \
+                    JOIN idalias as a on r.IDrelative = a.IDtext  \
+                    JOIN DNAmatches as m on ((r.IDrelative = m.ID1 AND m.ID2 = r.IDprofile) OR (r.IDrelative = m.ID2 AND m.ID1 = r.IDprofile) )  \
+                    WHERE r.IDprofile = '9cf093bb6ebacc18' \
+                    GROUP BY a.IDText \
+                    ORDER BY m.pctshared DESC ;";
+        
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object',
+                    bind:[id]
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get DNA rels list for GDAT : ${e.message}, from request ${query}`);
+            return( [ ] );
+        }
+        return rows;
+    },
+
+        /*
+        ** this routine interrogates the DB and returns a list of all ICWs who dio not match a profile person
+        ** in a form suitable for saving to csv.
+        */
+    selectICWForGDAT(  ) {
+        let query = "SELECT m.ID1, m.ID2, \
+                        max(m.cMtotal) as cMtotal, max(m.nsegs) as nsegs, max(m.largestSeg) as largest, \
+                        a1.name as name1, a2.name as name2, \
+                        count(*) as num \
+                    FROM DNAmatches as m \
+                    JOIN idalias as a1 on (m.ID1 = a1.IDtext)  \
+                    JOIN idalias as a2 on (m.ID2 = a2.IDtext)  \
+                    WHERE    m.ID1 not in (select IDprofile from profiles) \
+                        AND  m.ID2 not in (select IDprofile from profiles) \
+                    GROUP BY m.ID1, m.ID2 \
+                    ORDER by cMtotal DESC;" ;
+        
+        let rows = [];
+        try{
+            DB529.exec( query, {
+                    resultRows: rows,
+                    rowMode: 'object'
+                }
+            );
+        } catch( e ) {
+            conerror( `DB get ICWs fro GDAT : ${e.message}, for ${id}`);
+            return( [ ] );
+        }
+        return rows;
+    },
+
         /*
         ** this routine interrogates the DB and returns a list of all ICWs for the given profile id
         ** in a form suitable for saving to csv.
