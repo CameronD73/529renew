@@ -74,4 +74,7 @@ V2.2.0 submitted to Chrome store 2024-Oct-20
     Added export operations for 23andMe relatives and ICW
 V2.2.1 subm to store 2024-Nov-04
     Fix stupid bug exploding size of stored messages
+V2.3.0
+    Add export function for GDAT relatives and ICWs (without needing DNA segments)
+    update sqliteWASM to v 3.90
     
