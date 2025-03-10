@@ -5,6 +5,7 @@
 
 // local copy of settings.
 var settings529 = {};
+let current529Version = "0.0";
 var db_status_test = [
 	['DB Version', 1],
 	['no data', 0],
@@ -340,8 +341,10 @@ function load_settings() {
 	} catch( e ) {
 		handleMessageCatches( "getting Settings.", e );
 	}
-	console.log( "load_settings in popup complete.");
+	current529Version = chrome.runtime.getManifest().version;
+	console.log( `load_settings in popup complete for ver ${current529Version}.`);
     document.getElementById("allOptions")?.classList.remove( "invisible");
+	document.getElementById("ver529").innerText = current529Version;
 	
 }
 
