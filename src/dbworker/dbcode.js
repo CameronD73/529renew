@@ -498,7 +498,7 @@ var DBwasm = {
     },
 
         /*
-        ** this routine interrogates the DB and returns a list of all ICWs who dio not match a profile person
+        ** this routine interrogates the DB and returns a list of all ICWs who did not match a profile person
         ** in a form suitable for saving to csv.
         */
     selectICWForGDAT(  ) {
