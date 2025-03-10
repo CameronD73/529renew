@@ -9,7 +9,7 @@ Obtain the latest stable distributions of:
 3. PapaParse [from GitHub](https://github.com/mholt/PapaParse) only papaparse.min.js is needed, but you might want the git repo.
 
 ## Layout
-At the top level folder, the instructions assume you have git repos or downloaded packages in directories named: 529renew, FileSaver-js, PapaParse, sqlite-wasm.
+At the top level folder, the instructions assume you have git repos or downloaded packages in directories named: 529renew, FileSaver-js, PapaParse, sqlite-wasm (first renaming or deleting the previous version).
 When the sqlite-wasm package is unzipped, rename the folder by removing the version number.
 
 ## Using Makefile
@@ -20,6 +20,6 @@ This should work directly under GNU/Linux systems, BSD, etc but it  abit trickie
 Git Bash does not seem to provide a Make, so I use one from WSL running in windows terminal.
 You should also be able to get a system working under cygwin or msys.
 
-The command _make_ should create an unpacked installable folder for Chrome/etc in developer mode, while 
-the command _make_ _zip_ will produce a file 529renew.zip in the top level.
+The command _make_ should create an unpacked installable folder that is suitable for Chrome/etc to load when in developer mode, while 
+The command _make_ _zip_ will produce a file 529renew.zip in the top level.
 You should ensure the zip file does not exist already.
