@@ -522,8 +522,8 @@ function createGDATRelsButton( ){
 }
 function createGDATICWButton( ){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="D'load 23andMe ICW";
-	newButton.title="Downloads a TSV file for the in-common matches to the profile person selected above";
+	newButton.innerHTML="D'load GDAT ICW";
+	newButton.title="Downloads a CSV file for all  matches excluding profile kits";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectICWforGDAT( evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOut23Row").appendChild(newButton);
@@ -1306,8 +1306,8 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 		let relname2 = quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
 		// other fields are numeric or guaranteed free of problem chars.
 		
-		csvarray.push(  quote + row.Profile_key + quote + sep +
-						quote + row.Relative_key + quote + sep +
+		csvarray.push(  quote + row.ID1 + quote + sep +
+						quote + row.ID2 + quote + sep +
 						row.cMtotal + sep + row.nsegs + sep +
 						row.largest + sep  +
 						relname1 + sep + relname2 + sep +
@@ -1347,6 +1347,22 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 		// trim the names to avoid csv and string delimiters inside name fields. 
 		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
 		let relname = quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let surnames = '';
+		if (row.familySurnames !== null && row.familySurnames.length > 0 ) {
+			surnames = quote + row.familySurnames.replace(/"/g, "'") + quote;
+		}
+		let locations = '';
+		if (row.familyLocations !== null && row.familyLocations.length > 0 ) {
+			locations = quote + row.familyLocations.replace(/"/g, "'") + quote;
+		}
+		let treeURL = '';
+		if (row.familyTreeURL !== null && row.familyTreeURL.length > 0 ) {
+			treeURL = quote + row.familyTreeURL + quote;
+		}
+		let note = '';
+		if (row.Notes !== null && row.Notes.length > 0 ) {
+			note = quote + row.Notes.replace(/"/g, "'") + quote;
+		}
 		// other fields are numeric or guaranteed free of problem chars.
 		
 		csvarray.push(  quote + row.Profile_key + quote + sep +
@@ -1356,9 +1372,9 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 						row.Predicted_Rel + sep + row.Percent_DNA_Shared + sep +
 						row.Segments + sep + row.side + sep +
 						row.Maternal_Haplogroup + sep + row.Paternal_Haplogroup + sep +
-						row.familySurnames + sep + row.familyLocations + sep +
-						row.Notes + sep + row.Showing_Ancestry + sep +
-						row.familyTreeURL + sep + row.largest_Segment + sep +
+						surnames + sep + locations + sep +
+						note + sep + row.Showing_Ancestry + sep +
+						treeURL + sep + row.largest_Segment + sep +
 						eol);
 
 	}
