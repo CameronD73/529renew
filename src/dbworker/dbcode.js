@@ -587,7 +587,7 @@ var DBwasm = {
                     t1.IDText AS id1, \
                     t2.IDText AS id2, \
                     chromosome, start, end, cM, snps, \
-                    m.lastdate as segdate \
+                    m.lastUpdated as segdate \
                 FROM ibdsegs AS s0 \
                 JOIN idalias t1 ON (t1.IDText=s0.id1) \
                 JOIN idalias t2 ON (t2.IDText=s0.id2)  \
@@ -595,7 +595,6 @@ var DBwasm = {
         const qry_condc = '(chromosome = ?) ';
         const qry_condid =  '((s0.id1=?) OR (s0.id2=?))';
         // convert to julianday to do a floating point comparison rather than string
-        const qry_date = ' julianday(m.lastdate) >= julianday(?)'
         const qry_order =  ' ORDER BY chromosome, start, end DESC, s0.ROWID'
         const extra_order = ', julianday(t1.date)+julianday(t2.date), t1.ROWID+t2.ROWID;';
         let query = qry_sel;
@@ -609,8 +608,8 @@ var DBwasm = {
             query += (needsand ? 'AND': 'WHERE') + ` ((s0.id1='${id}') OR (s0.id2='${id}'))`;
             needsand = true;
         }
-        if( dateLimit.length> 10 ) {
-            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastdate) >= julianday('${dateLimit}'))`;
+        if( dateLimit.length > 9 ) {
+            query += (needsand ? 'AND': 'WHERE') + `(julianday(m.lastUpdated) >= julianday('${dateLimit}'))`;
         }
             
         query += qry_order;
@@ -688,8 +687,8 @@ var DBwasm = {
     ** The GROUPing is to avoid duplications where testers have changed 
     ** DNA sharing status and acquired two entries
     */
-    selectDNARelsForGDAT( id ) {
-        let query = "SELECT  r.IDprofile as Profile_key, r.IDrelative as Relative_key, \
+    selectDNARelsForGDAT( id, dateLimit ) {
+        const qry_sel = "SELECT  r.IDprofile as Profile_key, r.IDrelative as Relative_key, \
                         a.name as name,  \
                         m.cMtotal as Genetic_Distance,  \
                         r.knownRel as Set_Relationship,  \
@@ -706,12 +705,19 @@ var DBwasm = {
                     FROM  DNARelatives as r  \
                     JOIN idalias as a on r.IDrelative = a.IDtext  \
                     JOIN DNAmatches as m on ((r.IDrelative = m.ID1 AND m.ID2 = r.IDprofile) OR (r.IDrelative = m.ID2 AND m.ID1 = r.IDprofile) )  \
-                    WHERE r.IDprofile = '9cf093bb6ebacc18' \
-                    GROUP BY a.IDText \
-                    ORDER BY m.pctshared DESC ;";
-        
+                    WHERE r.IDprofile = ?";
+
+        const qry_order = " GROUP BY a.IDText  ORDER BY m.pctshared DESC ;";
+
+        let query = qry_sel;
+        if( dateLimit.length > 9 ) {
+            query += ` AND (julianday(r.lastUpdated) >= julianday('${dateLimit}'))`;
+        }
+        query += qry_order;
+
         let rows = [];
         try{
+            // logHtml('', `Applying getRel to ID: ${id}; limit: ${dateLimit}; query: ${query}`);
             DB529.exec( query, {
                     resultRows: rows,
                     rowMode: 'object',
@@ -729,8 +735,8 @@ var DBwasm = {
         ** this routine interrogates the DB and returns a list of all ICWs who did not match a profile person
         ** in a form suitable for saving to csv.
         */
-    selectICWForGDAT(  ) {
-        let query = "SELECT m.ID1, m.ID2, \
+    selectICWForGDAT( dateLimit ) {
+        const qry_sel = "SELECT m.ID1, m.ID2, \
                         max(m.cMtotal) as cMtotal, max(m.nsegs) as nsegs, max(m.largestSeg) as largest, \
                         a1.name as name1, a2.name as name2, \
                         count(*) as num \
@@ -738,10 +744,15 @@ var DBwasm = {
                     JOIN idalias as a1 on (m.ID1 = a1.IDtext)  \
                     JOIN idalias as a2 on (m.ID2 = a2.IDtext)  \
                     WHERE    m.ID1 not in (select IDprofile from profiles) \
-                        AND  m.ID2 not in (select IDprofile from profiles) \
-                    GROUP BY m.ID1, m.ID2 \
-                    ORDER by cMtotal DESC;" ;
-        
+                        AND  m.ID2 not in (select IDprofile from profiles) ";
+        const qry_order =" GROUP BY m.ID1, m.ID2  ORDER by cMtotal DESC;" ;
+ 
+        let query = qry_sel;
+        if( dateLimit.length > 9 ) {
+            query += `AND (julianday(m.lastUpdated) >= julianday('${dateLimit}'))`;
+        }
+        query += qry_order;
+
         let rows = [];
         try{
             DB529.exec( query, {
@@ -750,7 +761,7 @@ var DBwasm = {
                 }
             );
         } catch( e ) {
-            conerror( `DB get ICWs fro GDAT : ${e.message}, for ${id}`);
+            conerror( `DB get ICWs for GDAT : ${e.message}, for ${id}`);
             return( [ ] );
         }
         return rows;
@@ -807,7 +818,7 @@ var DBwasm = {
             s0.end AS end,\
             s0.cM AS cM,\
             s0.snps AS snps,\
-            m.lastdate AS segdate";
+            m.lastUpdated AS segdate";
 
         const joinlist = "ibdsegs as s0 \
             JOIN idalias AS t1 ON (t1.IDText=s0.id1 ) \
@@ -909,11 +920,12 @@ var DBwasm = {
         const qry_upd_side = 'UPDATE DNARelatives SET side = ? WHERE IDprofile = ? AND IDrelative = ? AND (side IS NULL OR side != ?);';
         const qry_upd_note = 'UPDATE DNARelatives SET comment = ? WHERE  IDprofile = ? AND IDrelative = ? AND (comment IS NULL OR comment != ?);';
         const qry_upd_knownrel = 'UPDATE DNARelatives SET knownRel = ? WHERE  IDprofile = ? AND IDrelative = ? AND (knownRel IS NULL OR knownRel != ?);';
-       // const qry_upd_date = 'UPDATE DNARelatives SET ICWscanned = 1, dateScanned = ? WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned is NULL or ICWscanned = 0 );';
+
         const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, largestSeg, predictedRel ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ? );';
         const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND nsegs is NULL;';
         const qry_match_upd_largest = 'UPDATE DNAmatches SET largestSeg = ? WHERE ID1 = ? AND ID2 = ? AND largestSeg < 1.0;';
         const qry_match_upd_predrel = 'UPDATE DNAmatches SET predictedRel = ? WHERE ID1 = ? AND ID2 = ? AND predictedRel is null ;';
+
         let transState = "start";
         let rowsaffected = 0;
         let total_updates = 0;
@@ -1001,6 +1013,7 @@ var DBwasm = {
                 } else {
                     show_updated( obj, 'new Relative added');
                 }
+
                 // and repeat for the matches table
                 let is_hidden = obj.shared ? 0 : 1;
                 let ids = DBwasm.order_id1_id2(profile.id, relkey);
@@ -1407,10 +1420,9 @@ var DBwasm = {
         /*
         ** this table is of pairs of testers where we have segment data
         */ 
-   insertMatchMap: function( matmap, matchtype, useReplace ) {
+    insertMatchMap: function( matmap, matchtype, useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
-        const today = formattedDate2();
-        const update_qry_part =  ' (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, lastdate) '+
+        const update_qry_part =  ' (ID1, ID2, ishidden, pctshared, cMtotal, nsegs, hasSegs, lastUpdated) '+
                 `VALUES ($id1,$id2,$ishidden,$pctshared,$cMtotal,$nsegs, $hasSegs, $lastdate);`;
         const update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO DNAmatches' + update_qry_part;
         let total_rows_updated = 0;
@@ -1437,7 +1449,6 @@ var DBwasm = {
 
     insertDNArelatives: function( matmap,  useReplace ) {
         //logHtml( null, `Storing ${matchtype}  pair summary ...`);
-        const today = formattedDate2();
         const update_qry_part =  ' (IDprofile, IDrelative, comment, side) VALUES ($id1, $id2, $note, $side );';
         const update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO DNARelatives' + update_qry_part;
         let total_rows_updated = 0;
@@ -1464,8 +1475,7 @@ var DBwasm = {
     
     migrateMatchMapHidden: function( matmap, useReplace ) {
         //logHtml( null, 'Storing  pair summary when one is hidden ...');
-        const today = formattedDate2();
-        const update_qry_part =  ` (ID1, ID2, ishidden, pctshared, cM, nsegs, hasSegs, lastdate) VALUES (?,?,0,?,?,?,?,'${today}');`;
+        const update_qry_part =  ` (ID1, ID2, ishidden, pctshared, cM, nsegs, hasSegs ) VALUES (?,?,0,?,?,?,?);`;
         let update_qry = 'INSERT OR ' + (useReplace ? 'REPLACE' : 'IGNORE') + ' INTO DNAmatches' + update_qry_part;
         let rows = [];
         let total_rows_updated = 0;
@@ -1496,7 +1506,6 @@ var DBwasm = {
 
     insertProfiles: function( profilemap ) {
         logHtml( null, 'Storing  profile (kit) IDs ...');
-        const today = formattedDate2();
         const update_qry =  'INSERT OR REPLACE INTO profiles (IDProfile, pname) VALUES (?,?);';
         let total_rows_updated = 0;
         //conlog( 0,'DB MigrateMatchHidden: skipped 4');
@@ -1733,31 +1742,6 @@ var DBwasm = {
             // do not update dates, since have not verified 3 way ICW has been checked.
             return;
         }
-
-        /*  LET's NOT - I misinterpreted the ICWscanned meaning
-        let total_date_rows_updated = 0;
-        const update_date1 = `UPDATE  DNArelatives set ICWscanned = 1, dateScanned = $today where` +
-                ' IDprofile = $IDp and (IDrelative = $ID2 OR IDrelative = $ID3);';
-        try{
-            DB529.exec( 'BEGIN TRANSACTION;');
-            let loopcount = 1;
-            for( const[key, o] of icwmap ) {
-                DB529.exec( update_date1, { bind:{$today:today, $IDp:o.$IDp, $ID2:o.$ID2, $ID3:o.$ID3 } });
-                total_date_rows_updated += 2;        // lets just guess
-
-                if ( ++loopcount % 10000 == 0 ) {
-                    DB529.exec( 'COMMIT TRANSACTION;');         
-                    DB529.exec( 'BEGIN TRANSACTION;');
-                }
-            }
-            DB529.exec( 'COMMIT TRANSACTION;');
-        } catch( e ) {
-            DB529.exec( 'ROLLBACK TRANSACTION;');
-            let msg = `DB insertICW ${tablename}: error: ${e.message}`;
-            conerror( msg );
-            return false;
-        }
-        */
         return true;
     },
 

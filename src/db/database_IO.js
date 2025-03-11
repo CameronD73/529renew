@@ -63,7 +63,7 @@ function getSegsFailed_wasm( trans, error ) {
 **		 id, either the 16-char UID string, or
 **			 "All" for when we ask to export the entire DB.
 **       limitDates is a boolean
-** if dateLimit is a date then we only select those newer than previous save. (otherwise empty string)
+** if dateLimit is a date then we only select those newer than that one. (otherwise empty string)
 */
 function selectFromDatabase(return_on_success, id, chromosome, limitDates, includeChr100){
 	DBworker.postMessage( {reason:"selectFromDatabase", callback: return_on_success, id: id, chr: chromosome, 
@@ -81,21 +81,6 @@ function select23CSVFromDatabase(return_on_success, kitid, kitname ){
 	DBworker.postMessage( {reason:"select23CSVFromDatabase", callback: return_on_success, id: kitid, kitname:kitname} );
 	return;
 }
-/*
-** These two functions get DB records for writing to csv files for GDAT
-*/
-function selectICWforGDAT(kitID, kitName){
-	DBworker.postMessage( {reason:"selectGDAT_ICW", id: kitID, kitname:kitName} );
-	return;
-}
-
-/* this version gets a table for export in  format suitable for GDAT csv file
-*/
-function selectRelsforGDAT( kitid, kitname ){
-	DBworker.postMessage( {reason:"selectGDAT_rels", id: kitid, kitname:kitname} );
-	return;
-}
-
 
 /*
 ********************************************************
@@ -114,6 +99,10 @@ function requestDeletionFromDatabase(){
 function updateDBSettings( key, value ) {
 	if ( db_initialised ) {
 		// nothing we can do if this is called too early
-		DBworker.postMessage( { reason: 'updateDBSettings', newsetting: {key: key, value:value} });
+		let newval = value;
+		if( typeof value !== "string"){
+			newval = JSON.stringify(value);
+		}
+		DBworker.postMessage( { reason: 'updateDBSettings', newsetting: {key: key, value:newval} });
 	}
 }

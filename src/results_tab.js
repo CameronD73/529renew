@@ -15,6 +15,9 @@ let selectedPersonID = null;	// user requests "show matches of" to be set to thi
 
 let db_initialised = false;		// set true once worker messages completion
 let db_summary = [];
+const csv_quote = '"';
+const csv_eol = '\r\n';
+const ByteOrderMark = "\uFEFF";
 	// object keys match column names from DB.profiles
 	// initial value is something we can create a dummy select list from
 let profile_summary = [{IDprofile:"none", pname:"no profiles loaded"}];
@@ -514,8 +517,8 @@ function create23ICWButton( ){
 
 function createGDATRelsButton( ){
 	let newButton=document.createElement('button');
-	newButton.innerHTML="D'load GDAT Relatives CSV";
-	newButton.title="Downloads a CSV file with DNA Relatives for the profile person selected above, for import into GDAT";
+	newButton.innerHTML="D'load GDAT Relatives";
+	newButton.title="Downloads a CSV file with recently updated DNA Relatives for the profile person selected above, for import into GDAT - Shift-click to include all data";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectRelsforGDAT(evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOut23Row").appendChild(newButton);
@@ -523,7 +526,7 @@ function createGDATRelsButton( ){
 function createGDATICWButton( ){
 	let newButton=document.createElement('button');
 	newButton.innerHTML="D'load GDAT ICW";
-	newButton.title="Downloads a CSV file for all  matches excluding profile kits";
+	newButton.title="Downloads a CSV file with recently updated match pairs (excludes profile kits) - Shift-click to include all data";
 	newButton.setAttribute("type","button");
 	newButton.addEventListener('click', function(evt){requestSelectICWforGDAT( evt.shiftKey, evt.altKey);});
 	document.getElementById("buttonOut23Row").appendChild(newButton);
@@ -875,6 +878,31 @@ function colorizeButton( resultRows, buttondata ) {
 }
 
 /*
+** Utility functions for saving to CSV file ...
+** convert json array format to slightly more useful for csv 
+** (i.e. it won't break it)
+*/
+function fix_23_nameLists( names ){
+	let newlist = '';
+	if (names == '[]') {
+				// special case - happens occasionally
+		return newlist;
+	}
+	if (names !== null && names.length > 0 ) {
+		newlist = csv_quote + names.replace(/"/g, "'") + csv_quote;
+	}
+	return newlist;
+}
+// stick quotes around strings and replace dbl quotes with single
+function quotify_23( str ){
+	let newstr = '';
+	if (str !== null && str.length > 0 ) {
+		newstr = csv_quote + str.replace(/"/g, "'") + csv_quote;
+	}
+	return newstr;
+}
+
+/*
 ** createTable12
 ** does the bulk of the processing after the big join
 ** Lays out the "Match Table" for the selected person.
@@ -1211,11 +1239,8 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 	if (sep == ',') {
 		extension = ".csv"
 	}
-	const quote = '"';
-	const eol = '\r\n';
-	const ByteOrderMark = "\uFEFF";
 
-	const CSV23Header= ByteOrderMark + "Display Name;Surname;Chromosome Number;Chromosome Start Point;Chromosome End Point;Genetic Distance;# SNPs;Full IBD;Link to Profile Page;Sex;Birth Year;Set Relationship;Predicted Relationship;Relative Range;Percent DNA Shared;# Segments Shared;Maternal Side;Paternal Side;Maternal Haplogroup;Paternal Haplogroup;Family Surnames;Family Locations;Maternal Grandmother Birth Country;Maternal Grandfather Birth Country;Paternal Grandmother Birth Country;Paternal Grandfather Birth Country;Notes;Sharing Status;Showing Ancestry Results;Family Tree URL;Largest Segment" + eol;
+	const CSV23Header= ByteOrderMark + "Display Name;Surname;Chromosome Number;Chromosome Start Point;Chromosome End Point;Genetic Distance;# SNPs;Full IBD;Link to Profile Page;Sex;Birth Year;Set Relationship;Predicted Relationship;Relative Range;Percent DNA Shared;# Segments Shared;Maternal Side;Paternal Side;Maternal Haplogroup;Paternal Haplogroup;Family Surnames;Family Locations;Maternal Grandmother Birth Country;Maternal Grandfather Birth Country;Paternal Grandmother Birth Country;Paternal Grandfather Birth Country;Notes;Sharing Status;Showing Ancestry Results;Family Tree URL;Largest Segment" + csv_eol;
 	csvarray.push(CSV23Header.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1226,24 +1251,13 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 		let row = resultRows[i];
 
 		// trim the names to avoid csv and string delimiters inside name fields.
-		let relname = quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let relname = csv_quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
+
 		// convert all internal dbl quotes to single, then surround entire field with quotes.
-		let surnames = '';
-		if (row.familySurnames !== null && row.familySurnames.length > 0 ) {
-			surnames = quote + row.familySurnames.replace(/"/g, "'") + quote;
-		}
-		let locations = '';
-		if (row.familyLocations !== null && row.familyLocations.length > 0 ) {
-			locations = quote + row.familyLocations.replace(/"/g, "'") + quote;
-		}
-		let treeURL = '';
-		if (row.familyTreeURL !== null && row.familyTreeURL.length > 0 ) {
-			treeURL = quote + row.familyTreeURL + quote;
-		}
-		let note = '';
-		if (row.Notes !== null && row.Notes.length > 0 ) {
-			note = quote + row.Notes.replace(/"/g, "'") + quote;
-		}
+		let surnames = fix_23_nameLists( row.familySurnames );
+		let locations = fix_23_nameLists(row.familyLocations);
+		let treeURL = quotify_23(row.familyTreeURL);
+		let note = quotify_23(row.Notes);
 
 
 		csvarray.push(relname + sep.repeat(5)+
@@ -1262,7 +1276,7 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 				row.Showing_Ancestry+sep+
 				treeURL + sep+
 				row.largest_Segment +
-				eol);
+				csv_eol);
 
 	}
 	if(theName){
@@ -1287,11 +1301,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 	let sep = ',';
 	let extension = ".csv";		
 	
-	const quote = '"';
-	const eol = '\r\n';
-	const ByteOrderMark = "\uFEFF";
-
-	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;" + eol;
+	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;" + csv_eol;
 	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1302,21 +1312,22 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 
 		// trim the names to avoid csv and string delimiters inside name fields. 
 		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
-		let relname1 = quote + row.name1.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
-		let relname2 = quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let relname1 = csv_quote + row.name1.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
+		let relname2 = csv_quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
 		// other fields are numeric or guaranteed free of problem chars.
 		
-		csvarray.push(  quote + row.ID1 + quote + sep +
-						quote + row.ID2 + quote + sep +
+		csvarray.push(  csv_quote + row.ID1 + csv_quote + sep +
+						csv_quote + row.ID2 + csv_quote + sep +
 						row.cMtotal + sep + row.nsegs + sep +
 						row.largest + sep  +
 						relname1 + sep + relname2 + sep +
-						eol);
+						csv_eol);
 
 	}
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529_ICWs_" + formattedDate()+ extension);
+	setSetting( "lastGDAT_ICW_ExportDate", formattedDate2() );
 }
 
 /*
@@ -1330,11 +1341,8 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 	let sep = ',';
 	let extension = ".csv";		
 	
-	const quote = '"';
-	const eol = '\r\n';
-	const ByteOrderMark = "\uFEFF";
 
-	const CSVGDATHeader= ByteOrderMark + "Profile ID;Relative ID;Name;cM total;Assigned Relship;Predicted Relship;pct DNA Shared;nSegments;side;Mat Hapl;Pat Hapl;surnames;family Locations;Notes;Showing DNA;tree URL;largest Seg;" + eol;
+	const CSVGDATHeader= ByteOrderMark + "Profile ID;Relative ID;Name;cM total;Assigned Relship;Predicted Relship;pct DNA Shared;nSegments;side;Mat Hapl;Pat Hapl;surnames;family Locations;Notes;Showing DNA;tree URL;largest Seg;" + csv_eol;
 	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1346,36 +1354,24 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 
 		// trim the names to avoid csv and string delimiters inside name fields. 
 		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
-		let relname = quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
-		let surnames = '';
-		if (row.familySurnames !== null && row.familySurnames.length > 0 ) {
-			surnames = quote + row.familySurnames.replace(/"/g, "'") + quote;
-		}
-		let locations = '';
-		if (row.familyLocations !== null && row.familyLocations.length > 0 ) {
-			locations = quote + row.familyLocations.replace(/"/g, "'") + quote;
-		}
-		let treeURL = '';
-		if (row.familyTreeURL !== null && row.familyTreeURL.length > 0 ) {
-			treeURL = quote + row.familyTreeURL + quote;
-		}
-		let note = '';
-		if (row.Notes !== null && row.Notes.length > 0 ) {
-			note = quote + row.Notes.replace(/"/g, "'") + quote;
-		}
+		let relname = csv_quote + row.name.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
+		let surnames = fix_23_nameLists( row.familySurnames );
+		let locations = fix_23_nameLists(row.familyLocations);
+		let treeURL = quotify_23(row.familyTreeURL);
+		let note = quotify_23(row.Notes);
 		// other fields are numeric or guaranteed free of problem chars.
 		
-		csvarray.push(  quote + row.Profile_key + quote + sep +
-						quote + row.Relative_key + quote + sep +
+		csvarray.push(  csv_quote + row.Profile_key + csv_quote + sep +
+						csv_quote + row.Relative_key + csv_quote + sep +
 						relname + sep +
 						row.Genetic_Distance + sep + row.Set_Relationship + sep +
 						row.Predicted_Rel + sep + row.Percent_DNA_Shared + sep +
 						row.Segments + sep + row.side + sep +
 						row.Maternal_Haplogroup + sep + row.Paternal_Haplogroup + sep +
 						surnames + sep + locations + sep +
-						note + sep + row.Showing_Ancestry + sep +
+						note + sep + row.Showing_DNA + sep +
 						treeURL + sep + row.largest_Segment + sep +
-						eol);
+						csv_eol);
 
 	}
 	if(theName){
@@ -1386,6 +1382,10 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
 	saveAs(blob, "529Relatives_" + theName+ "_" + formattedDate()+ extension);
+	// this convoluted code seems to be the only way I can get the profile ID to be a key
+	let newobj = {};
+	newobj[kitid] = formattedDate2();
+	setSetting( "lastGDAT_Rels_ExportPerProf", newobj );
 }
 
 /*
@@ -1400,11 +1400,8 @@ function createICW_CSV( resultRows, kitid, kitname){
 	if (sep == ',') {
 		extension = ".csv"
 	}
-	const quote = '"';
-	const eol = '\r\n';
-	const ByteOrderMark = "\uFEFF";
-
-	const CSV23Header= ByteOrderMark + "Relative 1;Relative 2;Prof to R1 cM;Prof to R1 nsegs;Prof to R2 cM;Prof to R2 nsegs;R1 to R2 cM;R1 to R2 nsegs;Kit ID 1; Kit ID 2" + eol;
+	
+	const CSV23Header= ByteOrderMark + "Relative 1;Relative 2;Prof to R1 cM;Prof to R1 nsegs;Prof to R2 cM;Prof to R2 nsegs;R1 to R2 cM;R1 to R2 nsegs;Kit ID 1; Kit ID 2" + csv_eol;
 	csvarray.push(CSV23Header.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1417,17 +1414,17 @@ function createICW_CSV( resultRows, kitid, kitname){
 		// trim the names to avoid csv and string delimiters inside name fields. 
 		// Yes, the numbers are offset: relative name 1 here is ID2 in the DB table
 		// For some unknown reason, profile names sometimes padded out with many spaces, so remove
-		let relname1 = quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
-		let relname2 = quote + row.name3.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + quote;
+		let relname1 = csv_quote + row.name2.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
+		let relname2 = csv_quote + row.name3.replace(/,/g,'').replace(/"/g,'').replace(/   */g, ' ') + csv_quote;
 		// other fields are numeric or guaranteed free of problem chars.
 		
 		csvarray.push(relname1 + sep + relname2 + sep +
 				row.cMtotal1 + sep + row.nsegs1 + sep +
 				row.cMtotal2 + sep + row.nsegs2 + sep +
 				row.cMtotal3 + sep + row.nsegs3 + sep +
-				quote + row.ID2 + quote + sep +
-				quote + row.ID3 + quote + sep +
-				eol);
+				csv_quote + row.ID2 + csv_quote + sep +
+				csv_quote + row.ID3 + csv_quote + sep +
+				csv_eol);
 
 	}
 	if(theName){
@@ -2131,9 +2128,19 @@ function requestSelectRelsforGDAT(shiftIsDown, altIsDown){
 		 return;
 	let kitName=namesel.options[namesel.selectedIndex].text;
 	let kitID=namesel.options[namesel.selectedIndex].value;
+	let dateLimit = '';
+	if (!shiftIsDown) {
+		let dateLimits = getSetting('lastGDAT_Rels_ExportPerProf');
+		if (kitID in dateLimits){
+			dateLimit = dateLimits[kitID];
+		} else {
+			dateLimit = dateLimits.default;
+		}
+	}
 
 	db_conlog( 1, `writing GDAT CSV of relatives for profile: ${kitName}`);
-	selectRelsforGDAT(kitID, kitName);
+	DBworker.postMessage( {reason:"selectGDAT_rels", id: kitID, kitname:kitName, dateLimit:dateLimit} );
+	// selectRelsforGDAT(kitID, kitName);
 }
 
 function requestSelectICWforGDAT(shiftIsDown, altIsDown){
@@ -2143,9 +2150,14 @@ function requestSelectICWforGDAT(shiftIsDown, altIsDown){
 		 return;
 	let kitName=namesel.options[namesel.selectedIndex].text;
 	let kitID=namesel.options[namesel.selectedIndex].value;
+	let dateLimit = '';
+	if (!shiftIsDown) {
+		dateLimit = getSetting('lastGDAT_ICW_ExportDate');
+	}
 
 	db_conlog( 1, `writing GDAT CSV of all ICWs`);
-	selectICWforGDAT(kitID, kitName);
+	DBworker.postMessage( {reason:"selectGDAT_ICW", id: kitID, kitname:kitName, dateLimit:dateLimit} );
+	// selectICWforGDAT(kitID, kitName);
 }
 
 function requestSelectFromDatabaseForGEXF(){

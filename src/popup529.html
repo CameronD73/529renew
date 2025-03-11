@@ -94,7 +94,7 @@
                 <option value="0">Ignore</option>
                 <option value="1">Replace</option>
             </select></h3>
-            <p>When importing results from CSV files, sometimes values are found that already match the conditions 
+            <p>When <i>importing</i> results from CSV files, sometimes values are found that already match the conditions 
                 for a record in the database.
                 This option determines whether the import should
                 <ul>
@@ -168,11 +168,12 @@
         <hr>
         <div id="debugOptions"> 
             <H2>Debugging options</H2>
-            <H3> Date of last CSV export: <input type="date" id="exportDate" >
+            <H3> Date of last GDAT Relatives export: <input type="date" id="exportDate" >
             </H3> 
+            <p><i>This date applies to several CSV exports</i>:  GDAT relatives, GDAT ICW as well as older segment lists. </p>
             <p>You can adjust this date back if you think something went wrong with an export or GDAT import.
                 Each segment match has a date that is either "when read from 23 and me" or "when imported from CSV".
-                Segments are normally only exported when their date is equal to or newer than the "Date of last CSV export" on the assumption that GDAT will already have older data.
+                Segments are normally only exported when their date is equal to or newer than the "Date of last CSV export" on the assumption that GDAT will already have older data.  Dates are also updated if anything in the relatives or the ICW records are changed.
             </p>
             <h3>Debug level adjustment</h3>
             <p>Set all these to zero unless you need to report some debugging information.

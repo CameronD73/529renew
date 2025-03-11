@@ -104,7 +104,7 @@ DBworker.onmessage = function ( msg ) {
 	case 'selectGDAT_ICW_return':
 		let table_ICW_GDAT = data.payload;
 		if ( table_ICW_GDAT.length == 0 ){
-			alert( 'selectGDAT_ICW_return: Empty results set returned from request');
+			alert( 'select GDAT_ICW: No suitable records found');
 			return;
 		}
 		createICW_CSV4GDAT( table_ICW_GDAT, data.id, data.kitname );
@@ -113,7 +113,7 @@ DBworker.onmessage = function ( msg ) {
     case 'selectGDAT_rels_return':
 		let table_Rels_GDAT = data.payload;
 		if ( table_Rels_GDAT.length == 0 ){
-			alert( 'selectGDAT_rels_return: Empty results set returned from request');
+			alert( 'select GDAT_rels: No suitable records found');
 			return;
 		}
 		//console.log( 'select from DB: ', profile_status );

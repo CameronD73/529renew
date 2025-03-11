@@ -16,21 +16,21 @@ function setcMRoundingSelector(){
 	var widget=document.getElementById("roundingcM");
 	widget.value=getSetting( "cMRounding" ).toString();
 	widget.onchange=function(){
-		setSetting( "cMRounding", parseInt(widget.value));
+		setSettingPopup( "cMRounding", parseInt(widget.value));
 	};
 }
 function setDelaySelector(){
 	var widget=document.getElementById("delay");
 	widget.value=getSetting( "delay" );
 	widget.onchange=function(){
-		setSetting( "delay", widget.value);
+		setSettingPopup( "delay", widget.value);
 	};
 }
 function setRelPaddingSelector(){
 	var widget=document.getElementById("relativePadding");
 	widget.value=getSetting( "relativePixelPadding" ).toString();
 	widget.onchange=function(){
-		setSetting( "relativePixelPadding", parseInt(widget.value));
+		setSettingPopup( "relativePixelPadding", parseInt(widget.value));
 	};
 }
 
@@ -38,14 +38,14 @@ function setNoteLengthSelector(){
 	var widget=document.getElementById("maxNoteLength");
 	widget.value=getSetting( "displayNotesLength" ).toString();
 	widget.onchange=function(){
-		setSetting( "displayNotesLength", parseInt(widget.value));
+		setSettingPopup( "displayNotesLength", parseInt(widget.value));
 	};
 }
 function setOverlapValue(){
 	var widget=document.getElementById("minimumOverlap");
 	widget.value=getSetting( "minimumOverlap" );
 	widget.onchange=function(){
-		setSetting( "minimumOverlap", widget.value);
+		setSettingPopup( "minimumOverlap", widget.value);
 	};
 }
 
@@ -53,7 +53,7 @@ function setReplaceSelector(){
 	var widget=document.getElementById("importReplaces");
 	widget.value=(getSetting( "importReplaces" ) == 0? "0" : "1" );
 	widget.onchange=function(){
-		setSetting( "importReplaces", widget.value);
+		setSettingPopup( "importReplaces", widget.value);
 	};
 }
 
@@ -61,7 +61,7 @@ function setFavouriteSelector(){
 	var widget=document.getElementById("favouritesScanned");
 	widget.value=(getSetting( "favouritesAreScanned" ) == 0? "0" : "1" );
 	widget.onchange=function(){
-		setSetting( "favouritesAreScanned", widget.value);
+		setSettingPopup( "favouritesAreScanned", widget.value);
 	};
 }
 
@@ -69,7 +69,7 @@ function setMinSharedInput() {
 	var widget=document.getElementById("minSharedNonOverlap");
 	widget.value=getSetting( "minSharedNonOverlap" );
 	widget.onchange=function(){
-		setSetting( "minSharedNonOverlap", widget.value);
+		setSettingPopup( "minSharedNonOverlap", widget.value);
 	};
 }
 
@@ -77,7 +77,7 @@ function setCloseTabSelector(){
 	var widget=document.getElementById("closeTabImmediate");
 	widget.value=(getSetting( "closeTabImmediate" ) == 0? "0" : "1" );
 	widget.onchange=function(){
-		setSetting( "closeTabImmediate", widget.value);
+		setSettingPopup( "closeTabImmediate", widget.value);
 	};
 }
 
@@ -85,19 +85,21 @@ function setNonOverlapSelector(){
 	var widget=document.getElementById("alwaysIncludeNonOverlap");
 	widget.value=(getSetting( "alwaysIncludeNonOverlap" ) == 0? "0" : "1" );
 	widget.onchange=function(){
-		setSetting( "alwaysIncludeNonOverlap", widget.value);
+		setSettingPopup( "alwaysIncludeNonOverlap", widget.value);
 	};
 }
 
 
 function setCSVSaveDate() {
 	var widget = document.getElementById("exportDate");
-	widget.value=getSetting( "lastCSVExportDate" );
+	widget.value=getSetting( "lastGDAT_ICW_ExportDate" );
 	widget.onchange=function(){
 		let val = document.getElementById("exportDate").value;
 		// using the date type should always result in a valid date, in yyyy-mm-dd format,
 		// so we don't need to test anything.
-		setSetting(  "lastCSVExportDate", val) ;
+		setSettingPopup(  "lastCSVExportDate", val) ;
+		setSettingPopup(  "lastGDAT_Rels_ExportPerProf", val) ;
+		setSettingPopup(  "lastGDAT_ICW_ExportDate", val) ;
 	}
 }
 
@@ -105,7 +107,7 @@ function setDebugDBSelector(){
 	var widget=document.getElementById("debug_db");
 	widget.value=getSetting( "debug_db" );
 	widget.onchange=function(){
-		setSetting( "debug_db", widget.value);
+		setSettingPopup( "debug_db", widget.value);
 	};
 }
 
@@ -113,21 +115,21 @@ function setDebugMSGSelector(){
 	var widget=document.getElementById("debug_msg");
 	widget.value=getSetting( "debug_msg" );
 	widget.onchange=function(){
-		setSetting( "debug_msg", widget.value);
+		setSettingPopup( "debug_msg", widget.value);
 	};
 }
 function setDebugQSelector(){
 	var widget=document.getElementById("debug_q");
 	widget.value=getSetting( "debug_q" );
 	widget.onchange=function(){
-		setSetting( "debug_q", widget.value);
+		setSettingPopup( "debug_q", widget.value);
 	};
 }
 function setVersionSelector(){
 	var widget=document.getElementById("versioning");
 	widget.value=getSetting( "version" );
 	widget.onchange=function(){
-		setSetting( "version", widget.value);
+		setSettingPopup( "version", widget.value);
 	};
 }
 
@@ -265,10 +267,10 @@ function showProfileTable( profiles ) {
 
 }
 
-function setSetting(item,value){
+function setSettingPopup(item,value){
 	//check that item is in settings
 	if(!Object.keys(settings529).includes(item)){
-        let errmsg = `WEIRD! Error in setSettings: lost item ${item}`;
+        let errmsg = `WEIRD! Error in setSettingPopup: lost item ${item}`;
 		console.error( errmsg );	
         alert( errmsg );
 		// otherwise fall through and apply new value (a different bug)

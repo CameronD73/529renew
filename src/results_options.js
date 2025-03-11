@@ -31,7 +31,7 @@ function msg_conlog( level, msg ) {
 // default values for first time.
 // Use string for integers to stop conversion to float in DB.
 const settings529default = {
-	"version": 3,		// version of this structure
+	"version": 4,		// version of this structure
 	"displayMode": "2",
 	"textSize": "small",	// never set in old code
 	"build": "37",
@@ -53,7 +53,9 @@ const settings529default = {
 	"relativePixelPadding": "3",
 	"displayNotesLength": "100",
 	"autoLoadICW": "0",
-	"favouritesAreScanned": "0"		// useless at the moment (ignored)
+	"favouritesAreScanned": "0",		// useless at the moment (ignored)
+	"lastGDAT_ICW_ExportDate": "1900-01-01",
+	"lastGDAT_Rels_ExportPerProf": {default:"1900-01-01",},
 };
 const settings_upgrade_0to1 = {
 	"debug_db": "0",
@@ -74,6 +76,11 @@ const settings_upgrade_2to3 = {
 	"autoLoadICW": "0",					// if we should auto-click the "load relatives in common" button.
 	"favouritesAreScanned": "0"
 };
+
+const settings_upgrade_3to4 = {
+	"lastGDAT_ICW_ExportDate": "1900-01-01",
+	"lastGDAT_Rels_ExportPerProf": {default:"1900-01-01",},
+}
 
 // in-page cache of settings
 var settings529 = {};
@@ -114,6 +121,11 @@ function retrieveSettingsP() {
 							Object.assign(settings529, settings_upgrade_2to3);
 							setSetting( "version", 3 );
 						}
+						if(settings529["version"] < 4 ) {
+							// merge in new values...
+							Object.assign(settings529, settings_upgrade_3to4);
+							setSetting( "version", 4 );
+						}
 						settings_from_storage = true;
 						console.log("Stored settings retrieved:", settings529); 
 						// update local copies...
@@ -146,17 +158,31 @@ function setSetting(item,value){
 		console.log("WEIRD! Error in setSettings: lost item ",item );	
 		// otherwise fall through and apply new value (a different bug)
 	};
-	settings529[item] = value;
-	if ( item == "debug_db" ) {
-		debug_db = value;
-		//set_option_visibility( 1 );		// results tab only (not popup)
+	if ( item == "lastGDAT_Rels_ExportPerProf" ) {
+		// value in this case is a string, or an object indexed by profile ID...
+		if ( typeof value === "string") {
+			// then assign this value to all 
+			for( const key of  Object.keys(settings529["lastGDAT_Rels_ExportPerProf"]) ) {
+				settings529["lastGDAT_Rels_ExportPerProf"][key] = value;
+			}
+		} else if( typeof value === "object" ) {
+			Object.assign( settings529["lastGDAT_Rels_ExportPerProf"], value);
+		} else {
+			console.error( `setSetting(lastGDAT_Rels_ExportPerProf) was passed value type ${typeof value}`);
+		}
+	} else {
+		settings529[item] = value;
+		if ( item == "debug_db" ) {
+			debug_db = value;
+			//set_option_visibility( 1 );		// results tab only (not popup)
+		}
+		else if ( item == "debug_msg" )  {
+			debug_msg = value;
+		};
 	}
-	else if ( item == "debug_msg" )  {
-		debug_msg = value;
-	};
 	chrome.storage.local.set( {'set529':settings529 });
 	console.log("Settings updated: ",item," ", value);
-	updateDBSettings( item, value );
+	updateDBSettings( item, settings529[item] );
 	return true;
 };
 
