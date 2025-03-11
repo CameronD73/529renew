@@ -6,6 +6,191 @@ console.log( 'dbcode loaded');
 
 var DBwasm = {
 
+    DB_Version: 5,
+
+    /*
+    ** these are the table definitions for building a new database
+    ** (Or updating an older one)
+    */
+    gTableDefs: [
+        {   tb:'DBVersion',
+            version_last_modified: 2,
+            cols:'version INTEGER, date TEXT, PRIMARY KEY( version)'
+        },{
+            tb:'profiles',
+            version_last_modified: 2,
+           cols:'IDprofile TEXT, pname TEXT NOT NULL UNIQUE, PRIMARY KEY(IDprofile)'
+        },{
+            tb:'settings',
+            version_last_modified: 2,
+            cols:'setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting)'
+        },{
+            tb:'idalias',
+            version_last_modified: 5,
+            cols:'IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null, sex TEXT DEFAULT null, familySurnames TEXT DEFAULT NULL, familyLocations TEXT DEFAULT NULL, familyTreeURL TEXT DEFAULT NULL, lastUpdated TEXT DEFAULT CURRENT_DATE',
+        },{
+            tb:'DNARelatives',
+            version_last_modified: 5,
+            cols:'IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT CURRENT_DATE, side TEXT DEFAULT null, comment TEXT DEFAULT null, knownRel  TEXT DEFAULT null, lastUpdated TEXT DEFAULT CURRENT_DATE, PRIMARY KEY(IDprofile,IDrelative)',
+        },{
+            tb:'DNAmatches',
+            version_last_modified: 5,
+            cols:'ID1 TEXT  NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastUpdated TEXT DEFAULT CURRENT_DATE, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden)',
+        },{
+            tb:'ibdsegs',
+            version_last_modified: 5,
+            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL',
+        },{
+            tb:'ibdsegsFull',
+            version_last_modified: 5,
+            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL',
+        },{
+            tb:'ICWSets',
+            version_last_modified: 5,
+            cols:'IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL',
+        },{
+            tb:'ICWSets2way',
+            version_last_modified: 5,
+            cols:'IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL',
+        },{
+            tb:'ICWSegXref',
+            version_last_modified: 2,
+            cols:'ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL',
+        },{
+            tb:'messages',
+            version_last_modified: 3,
+            cols:'IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg)'
+        }
+    ],
+
+    /*
+    ** this is a list of components to construct extra non-unique indexes
+    */
+    indexDefs: [
+        {
+            tb:'idalias',
+            indexname:'idalias_name',
+            version_last_modified: 5,       // tables rather than indexes modified, but indexes need rebuilding.
+            cols:' name',
+        },{
+            tb:'ibdsegs',
+            indexname:'ibdsegs_id1',
+            version_last_modified: 5,
+            cols:' ID1',
+        },{
+            tb:'ibdsegs',
+            indexname:'ibdsegs_id2',
+            version_last_modified: 5,
+            cols:' ID2',
+        },{
+            tb:'ibdsegs',
+            indexname:'ibssegs_chromosomes',
+            version_last_modified: 5,
+            cols:' chromosome',
+        },{
+            tb:'ICWSegXref',
+            indexname:'xref_icw',
+            version_last_modified: 2,
+            cols:' ICWset_row',
+        },{
+            tb:'ICWSets',
+            indexname:'icwset_idp',
+            version_last_modified: 5,
+            cols:' IDprofile',
+        },{
+            tb:'ICWSets',
+            indexname:'icwset_id2',
+            version_last_modified: 5,
+            cols:' ID2',
+        },{
+            tb:'ICWSets',
+            indexname:'icwset_id3',
+            version_last_modified: 5,
+            cols:' ID3',
+        },{
+            tb:'ICWSets2way',
+            indexname:'icwset2_idp',
+            version_last_modified: 5,
+            cols:' IDprofile',
+        },{
+            tb:'ICWSets2way',
+            indexname:'icwset2_id2',
+            version_last_modified: 5,
+            cols:' ID2',
+        },{
+            tb:'ICWSets2way',
+            indexname:'icwset2_id3',
+            version_last_modified: 5,
+            cols:' ID3',
+        },{
+            tb:'messages',
+            indexname:'msgsender',
+            version_last_modified: 2,
+            cols:'IDsender',
+        },{
+            tb:'messages',
+            indexname:'msgrecipient',
+            version_last_modified: 2,
+            cols:'IDrec'
+        },
+    ],
+
+    /*
+    ** this is a list of components to construct extra unique indexes apart form the primary key
+    */
+    indexDefsUnique: [
+        {
+            tb:'ibdsegs',
+            indexname:'ibdsegs_kitchen_sink',
+            version_last_modified: 5,       // tables rather than indexes modified, but indexes need rebuilding.
+            cols:' ID1, ID2, chromosome, start',
+        },{
+            tb:'ibdsegsFull',
+            indexname:'ibdsegsFull_kitchen_sink',
+            version_last_modified: 5,
+            cols:' ID1, ID2, chromosome, start',
+        },{
+            tb:'ICWSegXref',
+            indexname:'xref_icw',
+            version_last_modified: 2,
+            cols:' ICWset_row, segment_row',
+        },{
+            tb:'ICWSets',
+            indexname:'ICW_kitchen_sink',
+            version_last_modified: 5,
+            cols:' IDprofile, ID2, ID3, chromosome, start',
+        },{
+            tb:'ICWSets2way',
+            indexname:'ICW2_kitchen_sink',
+            version_last_modified: 5,
+            cols:' IDprofile, ID2, ID3, chromosome, start',
+        },
+    ],
+
+    /*
+    ** this is a list of components to construct trigger statements to update
+    ** the row date when contents have been changed.
+    */
+    updateTriggers: [
+        {
+            name: 'bumpDate_idalias',
+            tb:  'idalias',
+            version_last_modified: 5,
+            action: 'UPDATE idalias SET lastUpdated = CURRENT_DATE WHERE _rowid_ = new._rowid_;',
+        },
+        {
+            name: 'bumpDate_relatives',
+            tb:  'DNARelatives',
+            version_last_modified: 5,
+            action: 'UPDATE DNARelatives SET lastUpdated = CURRENT_DATE WHERE _rowid_ = new._rowid_;',
+        },
+        {
+            name: 'bumpDate_matches',
+            tb:  'DNAMatches',
+            version_last_modified: 5,
+            action: 'UPDATE DNAmatches SET lastUpdated = CURRENT_DATE WHERE _rowid_ = new._rowid_;',
+        },
+    ],
 
     /*
     ** define tables in the sqlite database.
@@ -15,79 +200,45 @@ var DBwasm = {
     ** The Table organisation is described to some extent in the GitHub Wiki.
     */
     create_db_tables: function() {
-        const tableDefs = [
-            'DBVersion (version INTEGER, date TEXT, PRIMARY KEY( version) )',
-            'profiles ( IDprofile TEXT, pname TEXT NOT NULL UNIQUE, PRIMARY KEY(IDprofile) )',
-            'settings (setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting))',
-
-            'idalias(IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null, familySurnames TEXT DEFAULT NULL, familyLocations TEXT DEFAULT NULL, familyTreeURL TEXT DEFAULT NULL )',
-
-            'DNARelatives ( IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT null, side TEXT DEFAULT null, comment TEXT DEFAULT null, knownRel  TEXT DEFAULT null, PRIMARY KEY(IDprofile,IDrelative) )',
-
-            'DNAmatches  ( ID1 TEXT  NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastdate TEXT DEFAULT null, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden) )',
-
-            'ibdsegs(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
-
-            'ibdsegsFull(ID1 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL)',
-
-            'ICWSets (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
-
-            'ICWSets2way (IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL)',
-
-            'ICWSegXref ( ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL )',
-
-            'messages ( IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg) )'
-        ];
-
-        const indexDefs = [
-            'idalias_name ON idalias ( name )',
-            'ibdsegs_id1 ON ibdsegs ( ID1 )',
-            'ibdsegs_id2 ON ibdsegs ( ID2 )',
-            'ibssegs_chromosomes ON ibdsegs ( chromosome )',
-            'xref_icw ON ICWSegXref ( ICWset_row )',
-            'icwset_idp ON ICWSets ( IDprofile )',
-            'icwset_id2 ON ICWSets ( ID2 )',
-            'icwset_id3 ON ICWSets ( ID3 )',
-            'icwset2_idp ON ICWSets2way ( IDprofile )',
-            'icwset2_id2 ON ICWSets2way ( ID2 )',
-            'icwset2_id3 ON ICWSets2way ( ID3 )',
-            'msgsender ON messages ( IDsender )',
-            'msgrecipient ON messages ( IDrec )'
-        ];
-        const indexDefsUnique = [
-            'ibdsegs_kitchen_sink ON ibdsegs ( ID1, ID2, chromosome, start )',
-            'ibdsegsFull_kitchen_sink ON ibdsegsFull ( ID1, ID2, chromosome, start )',
-            'xref_icw ON ICWSegXref ( ICWset_row, segment_row )',
-            'ICW_kitchen_sink ON ICWSets ( IDprofile, ID2, ID3, chromosome, start )',
-            'ICW2_kitchen_sink ON ICWSets2way ( IDprofile, ID2, ID3, chromosome, start )',
-        ];
-    
 
         try {
-            for( let tabledef of tableDefs ) {
-                let instruction = 'CREATE TABLE IF NOT EXISTS ' + tabledef;
+            for( let tdef of DBwasm.gTableDefs ) {
+                let instruction = 'CREATE TABLE IF NOT EXISTS ' + tdef.tb + '(' + tdef.cols + ');';
+                console.log( 'creating table using '+ instruction);
                 r = DB529.exec( {
                     sql: instruction,
                     returnValue: "resultRows"
                 } );
                 // console.log( 'create tbl returned ', r );
             }
-            for( let indexdef of indexDefs ) {
-                let instruction = 'CREATE INDEX IF NOT EXISTS ' + indexdef;
+            for( let idef of DBwasm.indexDefs ) {
+                let instruction = 'CREATE INDEX IF NOT EXISTS ' +
+                    idef.indexname + ' ON ' + idef.tb + '(' + idef.cols + ');';
+                console.log( 'creating INDEX using '+ instruction);
                 DB529.exec( {
                     sql: instruction,
                     returnValue: "resultRows"
                 } );
             }
-            for( let indexdef of indexDefsUnique ) {
-                let instruction = 'CREATE UNIQUE INDEX IF NOT EXISTS ' + indexdef;
+            for( let idef of DBwasm.indexDefsUnique ) {
+                let instruction = 'CREATE UNIQUE INDEX IF NOT EXISTS ' + 
+                    idef.indexname + ' ON ' + idef.tb + '(' + idef.cols + ');';
+                console.log( 'creating uindex using '+ instruction);
                 DB529.exec( {
                     sql: instruction,
                     returnValue: "resultRows"
                 } );
             }
-            DBwasm.assign_DB_version( 4 );
-
+            for( let tdef of DBwasm.updateTriggers ) {
+                let instruction = 'CREATE TRIGGER IF NOT EXISTS ' + 
+                    tdef.name + ' AFTER UPDATE ON ' + tdef.tb + ' FOR EACH ROW BEGIN ' + tdef.action + ' END;';
+                console.log( 'creating trigger using '+ instruction);
+                DB529.exec( {
+                    sql: instruction,
+                    returnValue: "resultRows"
+                } );
+            }
+            DBwasm.assign_DB_version( DBwasm.DB_Version );
 
         } catch( e ) {
             console.error( 'DB Table creation failed: ', e.message);
@@ -103,6 +254,9 @@ var DBwasm = {
         let version = [];
         let oldversion = 0;
         try {
+                // the update triggers are not recursion-safe, so enforce "no recursion"
+                //  in case they ever become "on" by default.
+            DB529.exec( 'PRAGMA  recursive_triggers = off;');
             DB529.exec( 'SELECT version from DBVersion ORDER by version DESC LIMIT 1;', {resultRows:version, rowMode: 'array'} );
             oldversion = version[0][0];
             if ( oldversion == 1 ) {
@@ -112,16 +266,90 @@ var DBwasm = {
             if ( oldversion == 2 ) {
                 DBwasm.update_DB_2_to_3();
             }
+            if ( oldversion < 3) {
+                DB529.exec( 'UPDATE DNAmatches set pctshared = round(cMtotal / 74.4, 2) WHERE pctshared is NULL')
+            }
+            if ( oldversion < 4) {
+                DB529.exec( 'UPDATE messages set entireJSON = NULL WHERE entireJSON is not NULL');
+            }
+            if ( oldversion < 5 ) {
+                DBwasm.update_DB_4_to_5();
+            }
         } catch( e ) {
             conerror( `update version ${oldversion} failed: ${e.msg}` );
         }
-        if ( oldversion < 3) {
-            DB529.exec( 'UPDATE DNAmatches set pctshared = round(cMtotal / 74.4, 2) WHERE pctshared is NULL')
-        }
-        if ( oldversion < 4) {
-            DB529.exec( 'UPDATE messages set entireJSON = NULL WHERE entireJSON is not NULL');
-            DBwasm.assign_DB_version( 4 );
-        }
+        DB529.exec( 'PRAGMA  optimize;');   // recommended every so often...
+
+    },
+
+        /*
+        ** this one is really messy - alter table is not permitted for this change,so we go the long way...
+        */
+    update_DB_4_to_5: function  () {
+        const NL = '<BR/>\n';
+        let updateSql = "";
+        try {
+            DB529.exec( 'PRAGMA foreign_keys=OFF; BEGIN TRANSACTION;');
+            // this extra column is to align column numbers for copying to new tbl.
+            DB529.exec( 'ALTER TABLE idalias  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
+            DB529.exec( 'ALTER TABLE DNARelatives  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
+            for( let tdef of DBwasm.gTableDefs ) {
+                if (tdef.version_last_modified != 5) {
+                    continue;
+                }
+                let xfertbl = tdef.tb + 'NEW';
+                let instruction = 'CREATE TABLE ' + xfertbl + '(' + tdef.cols + ');';
+                updateSql += instruction + NL;
+                r = DB529.exec( { sql: instruction } );
+                instruction = 'INSERT INTO ' + xfertbl + ' SELECT * FROM ' + tdef.tb + ';';
+                updateSql += instruction + NL;
+                r = DB529.exec( { sql: instruction } );
+                instruction = 'DROP TABLE ' + tdef.tb + ';ALTER TABLE ' + xfertbl + ' RENAME TO ' + tdef.tb +';';
+                updateSql += instruction + NL;
+                r = DB529.exec( { sql: instruction } );
+            }
+            // at this stage, the modified tables are in place, so recreate necessary indexes
+            for( let idef of DBwasm.indexDefs ) {
+                if (idef.version_last_modified != 5) {
+                    continue;
+                }
+                let instruction = 'CREATE INDEX IF NOT EXISTS ' +
+                    idef.indexname + ' ON ' + idef.tb + '(' + idef.cols + ');';
+                console.log( 'creating INDEX using '+ instruction);
+                updateSql += instruction + NL;
+                DB529.exec( {sql: instruction} );
+            }
+            for( let idef of DBwasm.indexDefsUnique ) {
+                if (idef.version_last_modified != 5) {
+                    continue;
+                }
+                let instruction = 'CREATE UNIQUE INDEX IF NOT EXISTS ' + 
+                    idef.indexname + ' ON ' + idef.tb + '(' + idef.cols + ');';
+                console.log( 'creating uindex using '+ instruction);
+                updateSql += instruction + NL;
+                DB529.exec( {sql: instruction} );
+            }
+            for( let tdef of DBwasm.updateTriggers ) {
+                let instruction = 'CREATE TRIGGER IF NOT EXISTS ' + 
+                    tdef.name + ' AFTER UPDATE ON ' + tdef.tb + ' FOR EACH ROW BEGIN ' + tdef.action + ' END;';
+                console.log( 'creating trigger using '+ instruction);
+                updateSql += instruction + NL;
+                DB529.exec( {sql: instruction} );
+            }
+
+            DBwasm.assign_DB_version( 5 );
+            DB529.exec( 'COMMIT TRANSACTION;');
+            DB529.exec( 'PRAGMA foreign_keys=ON;');
+            DB529.exec( 'UPDATE idalias set lastUpdated = CURRENT_DATE where lastUpdated is null;');
+            DB529.exec( 'UPDATE DNARelatives set lastUpdated = CURRENT_DATE where lastUpdated is null;');
+            DB529.exec( 'UPDATE DNAMatches set lastUpdated = CURRENT_DATE where lastUpdated is null;');
+
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            conerror( 'DB Table Update to V5 failed: ', e.message);
+            conerror( `previous SQL instructions were:\n${updateSql}`);
+        }   
+
 
     },
 
