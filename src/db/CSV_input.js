@@ -15,7 +15,7 @@ function get_ID_from_URL( url ) {
 	if( offset < 10 || offset > 40 ) {
 		let msg = `Warning: unexpected profile url, found at ${offset} - expecting 24 in '${url}` ;
 		console.log( msg );
-		logHtml( msg );
+		logHtml( '', msg );
 		return '';
 	}
 	let idoff = offset + 9;
