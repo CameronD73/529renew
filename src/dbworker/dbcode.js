@@ -1287,12 +1287,12 @@ var DBwasm = {
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
 
-                function update_1_part( id1, id2, is_hidden, pctshared, predictedrel, relship) {
+                function update_1_part( id1, id2, is_hidden, pctshared, predictedrel) {
                     let ids = DBwasm.order_id1_id2( id1, id2);
                     let cM = pctShared2cM( pctshared);
 
                     transState = `insert DNAmatch for ${matchname}`;
-                    DB529.exec( qry_match_insert, { bind:[ids[0], ids[1], is_hidden, pctshared, cM, relship] } );
+                    DB529.exec( qry_match_insert, { bind:[ids[0], ids[1], is_hidden, pctshared, cM, predictedrel] } );
                     let rowsaff = DB529.changes();
                     return rowsaff;
                 }
