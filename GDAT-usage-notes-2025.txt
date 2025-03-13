@@ -1,15 +1,16 @@
 Collecting data from 23andMe using 529Renew
-** Status as of January 2025 **
-Access to the chromosome browser is blocked.
+** Status as of March 2025 **
+Access to the chromosome browser is blocked, so this is focussing on extracting match details and in-common matches.
+
 More detailed documentation for 529Renew is on the project page: 
 General information (installation, setup): https://github.com/CameronD73/529renew
 Content relating to generic data export:  https://github.com/CameronD73/529renew/wiki/2024-%E2%80%90-Extracting-Relatives-Data
 Content on getting new data into GDAT:  https://github.com/CameronD73/529renew/wiki/2025-%E2%80%90-Working-with-GDAT
 
-If you have only recently installed it, you will have no DNA segments.
+If you have only recently installed 529Renew, you will have no DNA segments.
 If you have already saved matches including DNA segments then these will be retained, and new ICWs will be recorded, albeit without segments.
 
-1.  Use the "Gather-529" button on every kit you manage.  (earlier versions required you to create a list of profile people and import it via "Import DNA Kit List".  This is no longer required, and Kit names and keys are extracted as the data is gathered)
+1. Use the "Gather-529" button on every kit you manage.  (earlier versions required you to create a list of profile people and import it via "Import DNA Kit List".  This is no longer required, and Kit names and keys are extracted as the data is gathered)
 2. Click the "scan ICW" button to scan through the details for every match to the current kit. Repeat for each kit.
 3. Every month or so, repeat the above two steps and any new matches will be added.
 
@@ -19,10 +20,12 @@ A monthly rescan will also update items you may have changed such as notes.
 
 To do anything with the saved data, you should see a separate tab labelled "529Renew Results". Select that tab to expose the user interface and log area.
 
-To export the results to GDAT, the instructions are on
+================================================================================
+==== Either just include this line....
+To export the results to GDAT, the instructions are on  https://github.com/CameronD73/529renew/wiki/2025-%E2%80%90-Working-with-GDAT
 
 =============================================================================================================
-here is the source in Markdown for the 2025 wiki page....
+==== Or...  here is the source in Markdown for the 2025 wiki page....
 
 This page describes aspects of operation that relate specifically to exporting data without DNA segments to [GDAT (the Genealogical DNA Analysis Tool)](https://www.getgdat.com/home).
 
