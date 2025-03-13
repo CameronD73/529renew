@@ -35,7 +35,7 @@ var DBwasm = {
         },{
             tb:'DNAmatches',
             version_last_modified: 5,
-            cols:'ID1 TEXT  NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastUpdated TEXT DEFAULT CURRENT_DATE, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden)',
+            cols:'ID1 TEXT  NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastUpdated TEXT DEFAULT CURRENT_DATE, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRelOld  TEXT DEFAULT null, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden)',
         },{
             tb:'ibdsegs',
             version_last_modified: 5,
@@ -270,6 +270,7 @@ var DBwasm = {
                 DB529.exec( 'UPDATE DNAmatches set pctshared = round(cMtotal / 74.4, 2) WHERE pctshared is NULL')
             }
             if ( oldversion < 4) {
+                logHtml( null, 'Upgrading DB from V3 to V4');
                 DB529.exec( 'UPDATE messages set entireJSON = NULL WHERE entireJSON is not NULL');
             }
             if ( oldversion < 5 ) {
@@ -286,6 +287,8 @@ var DBwasm = {
         ** this one is really messy - alter table is not permitted for this change,so we go the long way...
         */
     update_DB_4_to_5: function  () {
+        console.log( 'Upgrading DB from V4 to V5..this will take a few seconds');
+        logHtml( '', 'Upgrading DB from V4 to V5..this will take a few seconds');
         const NL = '<BR/>\n';
         let updateSql = "";
         try {
@@ -293,6 +296,8 @@ var DBwasm = {
             // this extra column is to align column numbers for copying to new tbl.
             DB529.exec( 'ALTER TABLE idalias  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
             DB529.exec( 'ALTER TABLE DNARelatives  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
+            DB529.exec( 'ALTER TABLE DNAmatches  ADD COLUMN predictedRelNew  TEXT DEFAULT NULL;');
+            logHtml( '', 'Modifying table structures');
             for( let tdef of DBwasm.gTableDefs ) {
                 if (tdef.version_last_modified != 5) {
                     continue;
@@ -309,6 +314,7 @@ var DBwasm = {
                 r = DB529.exec( { sql: instruction } );
             }
             // at this stage, the modified tables are in place, so recreate necessary indexes
+            logHtml( '', 'updating Indexes');
             for( let idef of DBwasm.indexDefs ) {
                 if (idef.version_last_modified != 5) {
                     continue;
@@ -329,6 +335,7 @@ var DBwasm = {
                 updateSql += instruction + NL;
                 DB529.exec( {sql: instruction} );
             }
+            logHtml( '', 'recreating triggers');
             for( let tdef of DBwasm.updateTriggers ) {
                 let instruction = 'CREATE TRIGGER IF NOT EXISTS ' + 
                     tdef.name + ' AFTER UPDATE ON ' + tdef.tb + ' FOR EACH ROW BEGIN ' + tdef.action + ' END;';
@@ -344,6 +351,7 @@ var DBwasm = {
             DB529.exec( 'UPDATE DNARelatives set lastUpdated = CURRENT_DATE where lastUpdated is null;');
             DB529.exec( 'UPDATE DNAMatches set lastUpdated = CURRENT_DATE where lastUpdated is null;');
 
+            logHtml( '', 'update successful.');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             conerror( 'DB Table Update to V5 failed: ', e.message);
@@ -361,6 +369,7 @@ var DBwasm = {
     },
 
     update_DB_2_to_3: function  () {
+        logHtml( null, 'Upgrading DB from V2 to V3..this might take a few seconds');
         // Add some more data fields 
         try{
             DB529.exec( 'BEGIN TRANSACTION;');
@@ -658,7 +667,8 @@ var DBwasm = {
                     r.comment as Notes, \
                     '' as ShareStatus, \
                     CASE WHEN m.ishidden THEN '' ELSE 'TRUE' END as Showing_Ancestry, \
-                a.familyTreeURL, m.largestSeg as largest_Segment \
+                    a.familyTreeURL, m.largestSeg as largest_Segment, \
+                    m.predictedRelOld as Old_Predicted_Rel \
                 FROM  DNARelatives as r \
                 JOIN idalias as a on r.IDrelative = a.IDtext \
                 JOIN DNAmatches as m on ((r.IDrelative = m.ID1 AND m.ID2 = ?) OR (r.IDrelative = m.ID2 AND m.ID1 = ?) ) \
@@ -739,6 +749,7 @@ var DBwasm = {
         const qry_sel = "SELECT m.ID1, m.ID2, \
                         max(m.cMtotal) as cMtotal, max(m.nsegs) as nsegs, max(m.largestSeg) as largest, \
                         a1.name as name1, a2.name as name2, \
+                        m.predictedRel as Predicted_Rel,  \
                         count(*) as num \
                     FROM DNAmatches as m \
                     JOIN idalias as a1 on (m.ID1 = a1.IDtext)  \
@@ -898,8 +909,8 @@ var DBwasm = {
 
     /* process the relatives list from the main page.
     ** 1. is this a newly seen profile? - if so then insert new values
-    ** 2. check DNARelative - potentially add side and note/comment - potentially update note or maybe side.
-    ** 3. check DNAmatches - can add ishidden, pctshared, cMtotal, nsegs, hasSegs
+    ** 2. check DNARelative - potentially add/update side and note, known relationship
+    ** 3. check DNAmatches - can add/update ishidden, pctshared, cMtotal, nsegs, hasSegs, pred Relationship
     */
     processRelatives: function ( profile, relativesArr, settings ) {
 
@@ -1236,11 +1247,11 @@ var DBwasm = {
         const today = formattedDate2();
         // this query is for 3rd person, so their "ICWscanned" is not true (leave default)
         const qry_rel_insert = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative) VALUES (?, ? );`;
-        // this version is for the relative whos ICWs are being scanned - they must already have an entry in DNArelatives, so just update scan status
+        // this version is for the relative whose ICWs are being scanned - they must already have an entry in DNArelatives, so just update scan status
         const qry_upd_rels = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = '${today}' WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned IS NULL OR ICWscanned < 2 );`;
         const qry_alias_insert = `INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?,  ${today});`; 
         //const qry_upd_xx = 'UPDATE idalias SET xx = ? WHERE IDtext = ? AND xx is null;';
-        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
+        const qry_match_insert = 'INSERT OR REPLACE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
         const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
         const qry_icwsets_insert = 'INSERT OR IGNORE INTO ICWSets (IDprofile, ID2, ID3, chromosome, start, end ) VALUES (?, ?, ?, -2, 0, 0 );';
 

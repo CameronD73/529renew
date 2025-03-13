@@ -1240,7 +1240,7 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 		extension = ".csv"
 	}
 
-	const CSV23Header= ByteOrderMark + "Display Name;Surname;Chromosome Number;Chromosome Start Point;Chromosome End Point;Genetic Distance;# SNPs;Full IBD;Link to Profile Page;Sex;Birth Year;Set Relationship;Predicted Relationship;Relative Range;Percent DNA Shared;# Segments Shared;Maternal Side;Paternal Side;Maternal Haplogroup;Paternal Haplogroup;Family Surnames;Family Locations;Maternal Grandmother Birth Country;Maternal Grandfather Birth Country;Paternal Grandmother Birth Country;Paternal Grandfather Birth Country;Notes;Sharing Status;Showing Ancestry Results;Family Tree URL;Largest Segment" + csv_eol;
+	const CSV23Header= ByteOrderMark + "Display Name;Surname;Chromosome Number;Chromosome Start Point;Chromosome End Point;Genetic Distance;# SNPs;Full IBD;Link to Profile Page;Sex;Birth Year;Set Relationship;Predicted Relationship;Relative Range;Percent DNA Shared;# Segments Shared;Maternal Side;Paternal Side;Maternal Haplogroup;Paternal Haplogroup;Family Surnames;Family Locations;Maternal Grandmother Birth Country;Maternal Grandfather Birth Country;Paternal Grandmother Birth Country;Paternal Grandfather Birth Country;Notes;Sharing Status;Showing Ancestry Results;Family Tree URL;Largest Segment;Former Predicted Relationship" + csv_eol;
 	csvarray.push(CSV23Header.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1276,6 +1276,7 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 				row.Showing_Ancestry+sep+
 				treeURL + sep+
 				row.largest_Segment +
+				row.Old_Predicted_Rel+sep+
 				csv_eol);
 
 	}
@@ -1301,7 +1302,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 	let sep = ',';
 	let extension = ".csv";		
 	
-	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;" + csv_eol;
+	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;Predicted Rln;" + csv_eol;
 	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
@@ -1321,6 +1322,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 						row.cMtotal + sep + row.nsegs + sep +
 						row.largest + sep  +
 						relname1 + sep + relname2 + sep +
+						csv_quote + row.Predicted_Rel + csv_quote + sep +
 						csv_eol);
 
 	}
