@@ -177,7 +177,7 @@ self.onmessage = function despatchMessages( msg ) {
     break;
 
     case "restoreDB":
-      logHtml( '', `Loading file into DB`);
+      logHtml( '', `Loading file into DB (it might take a few seconds)...`);
       restoreDB( content.filecontents ).then( ()=>{
             logHtml( '', 'Restore done');
             let dbtables = DBwasm.get_summary();
@@ -369,27 +369,6 @@ const restoreDB = async function ( filecontents ) {
   return 1;
 };
 
-/*
-** test code - remove DBs with previous names 
-** - left here in case we need example code to reinstate this functionality
-const removeOldDBs = async function () {
-  const root = await navigator.storage.getDirectory();
-  const sdhandle = await root.getDirectoryHandle( DBdir, {create:true} );
-  let found = false;
-  for await ( let [name, handle] of sdhandle ) {
-    if ( name === DBname ){
-      found = true;
-      let ahand = await handle.createSyncAccessHandle();
-      let sz = ahand.getSize();
-      ahand.close();
-      conlog( 1, `file ${name} is ${sz} bytes`);
-    } else {
-      conlog( 0, `Removing other file: ${name}`);
-      handle.remove();
-    }
-  }
-}
-*/
 
 const destroyDB = async function () {
   await closeDB();      // in case DB is locked...
