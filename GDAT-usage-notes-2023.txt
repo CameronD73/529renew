@@ -1,4 +1,4 @@
-This is the text from documentation describing use of 529Renew with GDAT:  https://www.getgdat.com/import-data-menu/23andme  
+This was the text from documentation describing use of 529Renew with GDAT:  https://www.getgdat.com/import-data-menu/23andme  from when DNA segments were available.  It is currently irrelevant.
 
 via 529Renew Browser Extension
 

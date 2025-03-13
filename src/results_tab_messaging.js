@@ -277,7 +277,7 @@ DBworker.onerror = function ( evt ) {
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-	msg_conlog( 0, `dbactions listener, mode: ${request.mode}`);
+	msg_conlog( 1, `dbactions listener, mode: ${request.mode}`);
 	switch( request.mode ) {
 
 		case  "updateSetting" :

@@ -1,0 +1,67 @@
+Collecting data from 23andMe using 529Renew
+** Status as of January 2025 **
+Access to the chromosome browser is blocked.
+More detailed documentation for 529Renew is on the project page: 
+General information (installation, setup): https://github.com/CameronD73/529renew
+Content relating to generic data export:  https://github.com/CameronD73/529renew/wiki/2024-%E2%80%90-Extracting-Relatives-Data
+Content on getting new data into GDAT:  https://github.com/CameronD73/529renew/wiki/2025-%E2%80%90-Working-with-GDAT
+
+If you have only recently installed it, you will have no DNA segments.
+If you have already saved matches including DNA segments then these will be retained, and new ICWs will be recorded, albeit without segments.
+
+1.  Use the "Gather-529" button on every kit you manage.  (earlier versions required you to create a list of profile people and import it via "Import DNA Kit List".  This is no longer required, and Kit names and keys are extracted as the data is gathered)
+2. Click the "scan ICW" button to scan through the details for every match to the current kit. Repeat for each kit.
+3. Every month or so, repeat the above two steps and any new matches will be added.
+
+The second stage is slow. For me it takes about 10 seconds per match, so we are looking at over 4 hours total - if nothing goes wrong. The first pass went straight through but a subsequent test on two different accounts threw up error 500 (Internal server error) at about the same time. I assume that was some disruption at their end. In that case, you can just refresh the DNA relatives page and click "scan ICW" again. It will carry on from where it finished.
+
+A monthly rescan will also update items you may have changed such as notes.
+
+To do anything with the saved data, you should see a separate tab labelled "529Renew Results". Select that tab to expose the user interface and log area.
+
+To export the results to GDAT, the instructions are on
+
+=============================================================================================================
+here is the source in Markdown for the 2025 wiki page....
+
+This page describes aspects of operation that relate specifically to exporting data without DNA segments to [GDAT (the Genealogical DNA Analysis Tool)](https://www.getgdat.com/home).
+
+There are two buttons added in V2.3.0 to help load data onto GDAT.
+These are on the row of buttons headed "Export (23andMe misc data)".
+
+The buttons are labelled:
+1. **D'load GDAT Relatives** for a list of relatives to the specified profile person, and
+1. **D'load GDAT ICW** for a set of data of in-common matches between two relatives. 
+
+Both buttons operate on a default of exporting only those results that have changed since the previous export.
+To get a complete list hold down the shift-key while clicking on the button.
+
+## Import templates
+To get data into GDAT, you first need import templates. As of March 2025 these are not in the default GDAT installation so they need to be imported as custom templates.
+
+The text files are available from [The utilities section of the 529Renew source](https://github.com/CameronD73/529renew/tree/main/utils/GDAT_templates) and are named:
+1. _1-Load 23andMe Relatives from 529.txt_  and
+1. _2-Load 23andMe ICW from 529.txt_
+You need to download these files to your computer.
+The number is to tell you in what order they should be used to import fresh data.
+
+Within GDAT:
+* go to menu _Edit->Import Templates (F11)_ 
+* select "Import" at the bottom of the right-hand section.
+* choose the template file  and check that the column data looks sensible (not all data items will have numbered columns
+* press "Save" at bottom right
+* it should then appear as activated in the central column
+* repeat for the second file.
+
+## GDAT Relatives
+Use the dropdown above the buttons to "_Select profile for import/export_". The profile ID will be included in the output file, so GDAT will not import it against the wrong person, although it will only import lines that match the profile currently selected in GDAT.
+
+The most important data is available as soon as the 529-gather process has been run but
+some data for relatives, such as haplogroups, family names, tree URL, etc is available only after the "Scan ICWs" process has completed.
+
+Once you have saved the csv file you can import it into GDAT in the usual way, using the new template.
+
+## ICW matches
+This will export the new ICW data for _all_ other matches.  The profile person is not relevant here, as these are the matches that do not include data for any profiles.  GDAT analysis will link the shared matches as appropriate.
+
+Again, export the csv file and import it into GDAT using the 2nd template.
