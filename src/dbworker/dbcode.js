@@ -15,11 +15,15 @@ var DBwasm = {
     gTableDefs: [
         {   tb:'DBVersion',
             version_last_modified: 2,
-            cols:'version INTEGER, date TEXT, PRIMARY KEY( version)'
+            cols:  'version INTEGER, \
+                    date TEXT, \
+                    PRIMARY KEY( version)'
         },{
             tb:'profiles',
             version_last_modified: 2,
-           cols:'IDprofile TEXT, pname TEXT NOT NULL UNIQUE, PRIMARY KEY(IDprofile)'
+           cols:'IDprofile TEXT, \
+                pname TEXT NOT NULL UNIQUE, \
+                PRIMARY KEY(IDprofile)'
         },{
             tb:'settings',
             version_last_modified: 2,
@@ -27,39 +31,92 @@ var DBwasm = {
         },{
             tb:'idalias',
             version_last_modified: 5,
-            cols:'IDText TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, hapMat TEXT DEFAULT null, hapPat TEXT DEFAULT null, bYear INTEGER DEFAULT null, sex TEXT DEFAULT null, familySurnames TEXT DEFAULT NULL, familyLocations TEXT DEFAULT NULL, familyTreeURL TEXT DEFAULT NULL, lastUpdated TEXT DEFAULT CURRENT_DATE',
+            cols:'IDText TEXT NOT NULL PRIMARY KEY, \
+                name TEXT NOT NULL, \
+                date TEXT NOT NULL, \
+                hapMat TEXT DEFAULT null, \
+                hapPat TEXT DEFAULT null, \
+                bYear INTEGER DEFAULT null, \
+                sex TEXT DEFAULT null, \
+                familySurnames TEXT DEFAULT NULL, \
+                familyLocations TEXT DEFAULT NULL, \
+                familyTreeURL TEXT DEFAULT NULL, \
+                lastUpdated TEXT DEFAULT CURRENT_DATE',
         },{
             tb:'DNARelatives',
             version_last_modified: 5,
-            cols:'IDprofile TEXT, IDrelative TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ICWscanned INTEGER DEFAULT null, dateScanned TEXT DEFAULT CURRENT_DATE, side TEXT DEFAULT null, comment TEXT DEFAULT null, knownRel  TEXT DEFAULT null, lastUpdated TEXT DEFAULT CURRENT_DATE, PRIMARY KEY(IDprofile,IDrelative)',
+            cols:'IDprofile TEXT, \
+                IDrelative TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ICWscanned INTEGER DEFAULT null, \
+                dateScanned TEXT DEFAULT CURRENT_DATE, \
+                side TEXT DEFAULT null, \
+                comment TEXT DEFAULT null, \
+                knownRel  TEXT DEFAULT null, \
+                lastUpdated TEXT DEFAULT CURRENT_DATE, \
+                PRIMARY KEY(IDprofile,IDrelative)',
         },{
             tb:'DNAmatches',
             version_last_modified: 5,
-            cols:'ID1 TEXT  NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ishidden INTEGER DEFAULT 0, pctshared REAL, cMtotal REAL, nsegs INTEGER DEFAULT null, hasSegs INTEGER DEFAULT 0, lastUpdated TEXT DEFAULT CURRENT_DATE, largestSeg REAL NOT NULL DEFAULT 0.0, predictedRelOld  TEXT DEFAULT null, predictedRel  TEXT DEFAULT null, PRIMARY KEY(ID1,ID2,ishidden)',
+            cols:'ID1 TEXT  NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ishidden INTEGER DEFAULT 0, \
+                pctshared REAL, \
+                cMtotal REAL, \
+                nsegs INTEGER DEFAULT null, \
+                hasSegs INTEGER DEFAULT 0, \
+                lastUpdated TEXT DEFAULT CURRENT_DATE, \
+                largestSeg REAL NOT NULL DEFAULT 0.0, \
+                predictedRelOld  TEXT DEFAULT null, \
+                predictedRel  TEXT DEFAULT null, \
+                PRIMARY KEY(ID1,ID2,ishidden)',
         },{
             tb:'ibdsegs',
             version_last_modified: 5,
-            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL',
+            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                chromosome INTEGER NOT NULL, \
+                start INTEGER NOT NULL, \
+                end INTEGER NOT NULL, \
+                cM REAL NOT NULL, \
+                snps INTEGER NOT NULL',
         },{
             tb:'ibdsegsFull',
             version_last_modified: 5,
-            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL',
+            cols:'ID1 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, cM REAL NOT NULL, snps INTEGER NOT NULL',
         },{
             tb:'ICWSets',
             version_last_modified: 5,
-            cols:'IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL',
+            cols:'IDprofile TEXT NOT NULL, \
+                ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                chromosome INTEGER NOT NULL, \
+                start INTEGER NOT NULL, \
+                end INTEGER NOT NULL',
         },{
             tb:'ICWSets2way',
             version_last_modified: 5,
-            cols:'IDprofile TEXT NOT NULL,ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, chromosome INTEGER NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL',
+            cols:'IDprofile TEXT NOT NULL, \
+                ID2 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                ID3 TEXT NOT NULL REFERENCES idalias(IDText) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED, \
+                chromosome INTEGER NOT NULL, \
+                start INTEGER NOT NULL, \
+                end INTEGER NOT NULL',
         },{
             tb:'ICWSegXref',
             version_last_modified: 2,
-            cols:'ICWset_row INTEGER NOT NULL, segment_row INTEGER NOT NULL',
+            cols:'ICWset_row INTEGER NOT NULL, \
+                segment_row INTEGER NOT NULL',
         },{
             tb:'messages',
             version_last_modified: 3,
-            cols:'IDmsg TEXT NOT NULL, IDsender TEXT DEFAULT NULL, IDrec TEXT DEFAULT NULL, content TEXT DEFAULT NULL, entireJSON TEXT DEFAULT NULL, PRIMARY KEY(IDmsg)'
+            cols:'IDmsg TEXT NOT NULL, \
+                IDsender TEXT DEFAULT NULL, \
+                IDrec TEXT DEFAULT NULL, \
+                content TEXT DEFAULT NULL, \
+                entireJSON TEXT DEFAULT NULL, \
+                PRIMARY KEY(IDmsg)'
         }
     ],
 
@@ -1025,7 +1082,7 @@ var DBwasm = {
                     show_updated( obj, 'new Relative added');
                 }
 
-                // and repeat for the matches table
+                // and repeat for the DNAMatches table
                 let is_hidden = obj.shared ? 0 : 1;
                 let ids = DBwasm.order_id1_id2(profile.id, relkey);
                 transState = `match insert  row ${i}`;
@@ -1034,8 +1091,11 @@ var DBwasm = {
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
                 if ( rowsaffected < 1 ) {
-                    // we already had this record, but there are some circumstances where data was missing
-                    // This was usually (always??) when neither match is a profile person.
+                    /* we already had this record, but there are some circumstances where data was missing
+                    ** This  usually happens when the 3rd person is scanned, or rescanning is requsted.
+                    ** Older records will have nsegs and largest seg, but no predicted relationship.
+                    ** Newer scans will have little DNA, so we don't want to overwrite any data we had before.
+                    */
                     if ( obj.nsegs > 0 ) {
                         transState = `match update nsegs row ${i}`;
                         DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, ids[0], ids[1]]} );
@@ -1251,7 +1311,7 @@ var DBwasm = {
         const qry_upd_rels = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = '${today}' WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned IS NULL OR ICWscanned < 2 );`;
         const qry_alias_insert = `INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?,  ${today});`; 
         //const qry_upd_xx = 'UPDATE idalias SET xx = ? WHERE IDtext = ? AND xx is null;';
-        const qry_match_insert = 'INSERT OR REPLACE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
+        const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
         const qry_match_upd_nsegs = 'UPDATE DNAmatches SET nsegs = ? WHERE ID1 = ? AND ID2 = ? AND ishidden = ? AND nsegs is NULL;';
         const qry_icwsets_insert = 'INSERT OR IGNORE INTO ICWSets (IDprofile, ID2, ID3, chromosome, start, end ) VALUES (?, ?, ?, -2, 0, 0 );';
 
