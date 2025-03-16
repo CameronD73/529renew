@@ -758,8 +758,8 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	//alert( 'Not yet available until I can test that it works with potentially modified 23andMe pages');
-	//return;
+	alert( 'No triangulation until 23andMe reinstates the chromosome browser. Use the "scan ICWs" button on the main DNA-relatives page');
+	return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw new Error("Page structure changed");
@@ -856,6 +856,7 @@ div529.appendChild(tr_el);
 let b529r=document.createElement('button');
 b529r.id="b529r";
 b529r.innerHTML="Open";
+b529r.title='Switch to 529 Results tab and preload "Show matches of" with this relative';
 b529r.style.marginLeft='10px';
 b529r.onclick=function(){
 	var query=getMatchId();

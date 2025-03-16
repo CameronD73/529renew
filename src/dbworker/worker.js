@@ -157,9 +157,19 @@ self.onmessage = function despatchMessages( msg ) {
       let rowsicwupdated = DBwasm.updateICW(content.ICWset);  
     break;
 
+    case "force_ICW_rescan":
+      DBwasm.force_ICW_rescan(content.profile.id);  
+      postMessage( {reason: 'force_ICW_rescan_return', tabID:content.tabID } );   // just to indicate completion
+    break;
+
     case "requestTriangTable":
       let retTriang = DBwasm.getTriangTable(content.profile);  // synchronous, so we can just send result back
       postMessage( {reason: 'requestTriangTable_return', tabID:content.tabID, payload: retTriang } );
+    break;
+
+    case "refreshTriangTable":
+      let refrTriang = DBwasm.getTriangTable(content.profile);  // synchronous, so we can just send result back
+      postMessage( {reason: 'refreshTriangTable_return', tabID:content.tabID, payload: refrTriang } );
     break;
 
     case "process_relatives":

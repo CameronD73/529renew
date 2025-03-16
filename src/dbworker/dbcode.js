@@ -27,7 +27,9 @@ var DBwasm = {
         },{
             tb:'settings',
             version_last_modified: 2,
-            cols:'setting TEXT NOT NULL UNIQUE, value TEXT, PRIMARY KEY(setting)'
+            cols:'setting TEXT NOT NULL UNIQUE, \
+                value TEXT, \
+                PRIMARY KEY(setting)'
         },{
             tb:'idalias',
             version_last_modified: 5,
@@ -1305,10 +1307,12 @@ var DBwasm = {
     */
     updateICW: function( icwset ) {
         const today = formattedDate2();
-        // this query is for 3rd person, so their "ICWscanned" is not true (leave default)
+        // this query is for list of ICW ppl 
         const qry_rel_insert = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative) VALUES (?, ? );`;
         // this version is for the relative whose ICWs are being scanned - they must already have an entry in DNArelatives, so just update scan status
-        const qry_upd_rels = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = '${today}' WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned IS NULL OR ICWscanned < 2 );`;
+        const qry_upd_rels_unscanned = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = '${today}' WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned IS NULL );`;
+        const qry_upd_rels_setbit0 = 'UPDATE DNARelatives SET ICWscanned =  (ICWscanned | 1) WHERE IDprofile = ? AND IDrelative = ? AND (ICWscanned & 1 = 0) ;';
+        const qry_upd_rels_clrbit3 = 'UPDATE DNARelatives SET ICWscanned =  (ICWscanned & (~8)) WHERE IDprofile = ? AND IDrelative = ? AND (ICWscanned & 8 != 0) ;';
         const qry_alias_insert = `INSERT or IGNORE INTO idalias (IDText, name, date) VALUES (?, ?,  ${today});`; 
         //const qry_upd_xx = 'UPDATE idalias SET xx = ? WHERE IDtext = ? AND xx is null;';
         const qry_match_insert = 'INSERT OR IGNORE INTO DNAmatches (ID1, ID2, ishidden, pctshared, cMtotal, predictedRel ) VALUES (?, ?, ?, ?, ?, ?);';
@@ -1327,8 +1331,14 @@ var DBwasm = {
             transState = 'BT';
             // update scan date for this relative...
             transState = `update dna rel for ${relativeID}`;
-            DB529.exec( qry_upd_rels, { bind:[profileID, relativeID] } );
+            DB529.exec( qry_rel_insert, { bind:[profileID, relativeID] } );
             rowsaffected = DB529.changes();
+            // update the "has been scanned bit", but only if it was previously null.
+            DB529.exec( qry_upd_rels_unscanned, { bind:[profileID, relativeID] } );
+            // ensure the "force scan" bit is now cleared
+            DB529.exec( qry_upd_rels_clrbit3, { bind:[profileID, relativeID] } );
+            // ensure the "has been scanned" bit is now set
+            DB529.exec( qry_upd_rels_setbit0, { bind:[profileID, relativeID] } );
 
             for( obj of icwset.icwarray) {
                 let matchID = obj.profile_id;
@@ -1346,15 +1356,15 @@ var DBwasm = {
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
 
-                // create DNArelative for 3rd person (unlikely to be nececssary)
-                transState = `insert dna rel for ${matchname}`;
-                DB529.exec( qry_rel_insert, { bind:[profileID, matchID] } );
-                rowsaffected = DB529.changes();
-                total_updates += rowsaffected;
-
                 // create idalias for 3rd person (unlikely to be nececssary)
                 transState = `insert idalias for ${matchname}`;
                 DB529.exec( qry_alias_insert, { bind:[matchID, matchname] } );
+                rowsaffected = DB529.changes();
+                total_updates += rowsaffected;
+
+                // create DNArelative for 3rd person (unlikely to be nececssary) (do alias first as it's the parent foreign key ref.)
+                transState = `insert dna rel for ${matchname}`;
+                DB529.exec( qry_rel_insert, { bind:[profileID, matchID] } );
                 rowsaffected = DB529.changes();
                 total_updates += rowsaffected;
 
@@ -1382,6 +1392,28 @@ var DBwasm = {
 
         }
     
+    },
+    /*
+    ** set a flag to say we want to rescan the ICW lists for a specific profile
+    */
+    force_ICW_rescan: function( profileID ) {
+        // note - if ICWscanned is null then it won't be set, however a null value has the same effect, forcing a scan.
+        const qry_upd_rels_setbit3 = 'UPDATE DNARelatives SET ICWscanned =  (ICWscanned | 8) WHERE IDprofile = ? ;';
+        
+        rowsaffected = 0;
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            DB529.exec( qry_upd_rels_setbit3, { bind:[profileID] } );
+            rowsaffected = DB529.changes();
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch ( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            msg=  `DB set flag to force rescan for ICW: error : ${e.message}`;
+            logHtml('error', msg);
+            console.error( msg );
+        }
+        return rowsaffected;
     },
 
     /*

@@ -19,16 +19,17 @@ function load_match_cache( reqdata ) {
 	const profileName = origpair.pname
 	const matchID = origpair.pid
 	const matchName = origpair.mname
-	// unpack the data that has been returned.
+	/* unpack the data that has been returned.
+	** disable all this as it worked fine
 	try {
-		// Don't need this - worked OK.
-		//verifyMatchIDs( profileID, profileName, origpair.pid, origpair.pname);
-		//verifyMatchIDs( matchID, matchName, origpair.pid, origpair.mname);
+		verifyMatchIDs( profileID, profileName, origpair.pid, origpair.pname);
+		verifyMatchIDs( matchID, matchName, origpair.pid, origpair.mname);
 	} catch( e ) {
 		console.error( e.message );
 		alert( e.message );
 		return;
 	}
+	*/
 	profileMatchesMap.clear();
 	for( let i = 0 ; i < profileMatchesArr.length; i++ ) {
 		const nr = profileMatchesArr[i];

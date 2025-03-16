@@ -55,7 +55,6 @@ DBworker.onmessage = function ( msg ) {
 	      console.log( 'summary returned ', data.payload );
 	  }
 	  db_summary = data.payload;   // this seems good enough
-      // db_summary = data.payload.rows.map( (r) => [...r] );
       chrome.runtime.sendMessage( {mode:'pop_dbstatus', data:db_summary} );
     break;
 
@@ -228,6 +227,15 @@ DBworker.onmessage = function ( msg ) {
 		// send results back to requesting tab 
 		chrome.tabs.sendMessage( data.tabID, {mode:'ICWPrelude_return', data:data.payload} );
 	break;
+	 
+	case 'force_ICW_rescan_return':
+		// no results, just tell the content scripts they can now continue...
+		chrome.tabs.sendMessage( data.tabID, {mode:'force_ICW_rescan_done'} );
+	break;
+
+	case 'refreshTriangTable_return' :
+		chrome.tabs.sendMessage( data.tabID, {mode:'refreshTriangTable_return', data:data.payload} );
+	break;
 
 	case 'import_23_done':
 	  	// this can select and process multiple files, so go again if we have more files to process.
@@ -298,6 +306,10 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"requestTriangTable", profile:request.profile, tabID: sender.tab.id} );
 		break;
 
+		case  "refreshTriangTable" :
+			DBworker.postMessage( {reason:"refreshTriangTable", profile:request.profile, tabID: sender.tab.id} );
+		break;
+
 
 		case  "getDBStatus" :
 				// message from popup - need to forward to worker. will return via messaging
@@ -337,6 +349,11 @@ chrome.runtime.onMessage.addListener(
 		case  "update_ICWs" :
 			// message from content script - need to forward to worker. will not bother returning, just hope it works
 			DBworker.postMessage( {reason:"update_ICWs", ICWset:request.ICWset } );
+		break;
+
+		case  "force_ICW_rescan" :
+			// message from content script - need to forward to worker. will not bother returning, just hope it works
+			DBworker.postMessage( {reason:"force_ICW_rescan", profile:request.profile, tabID: sender.tab.id } );
 		break;
 
 		case "clear_HTML_area":

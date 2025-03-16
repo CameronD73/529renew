@@ -24,7 +24,7 @@ let icwMap = new Map();
 */
 
 let relcount = 0;
-function run_ICW_scan() {
+function run_ICW_scan(  ) {
 	while( relQueue.length > 0) {
 		relQueue.dequeue();
 	}
@@ -37,10 +37,15 @@ function run_ICW_scan() {
 
 	// create a fifo queue of matches to the profile person
 	for( let [key, obj] of relativesMap ) {
-		if ( triangMap.has(key) && triangMap.get( key)) {
-			q_debug_log( 4, `Already have ${key}, skipping` );
-			skipcount++;
-			// skipping
+		if ( triangMap.has(key) ) {
+			let opts = triangMap.get(key);
+			if ( opts.icw_done && !opts.force_ICW ) {
+				q_debug_log( 4, `Already have ${key}, skipping` );
+				skipcount++;
+			} else {
+				relQueue.enqueue( key );
+				added++;
+			}
 		} else {
 			relQueue.enqueue( key );
 			added++;
@@ -53,20 +58,14 @@ function run_ICW_scan() {
 function next_relative_scan() {
 
 	if ( relQueue.length <= 0 ) {
-		b529r.innerHTML='scan complete';
+		scanICWs_el.innerHTML='scan complete';
 		return;
 	}
 	
 	current_relative_id = relQueue.dequeue();
 	let relobj = relativesMap.get(current_relative_id);
 	current_relative_name = relobj.name;
-	b529r.innerHTML=`scan ICW for ${current_relative_name}`;
-	/*
-	if (relcount++ > 2){
-		b529r.innerHTML='scan termminated for testing';
-		return;
-	}
-	*/
+	scanICWs_el.innerHTML=`scan ICW for ${current_relative_name}`;
 
 	if ( icwQueue.length != 0 ) {
 		let msg = `ICW queue failure - still had ${icwQueue.length} items`;
@@ -130,7 +129,7 @@ function launch_next_icw_ajax_query() {
 
 	function makeAjaxSaver( datatype ){
 		/* This creates a callback function that gets called when the Ajax data requests are returned.
-		** every return path from here should launch_next_icw_ajax_query()
+		** every return path from here should launch_next_icw_ajax_query() on success
 		*/
 		return function(){
 
@@ -162,7 +161,6 @@ function launch_next_icw_ajax_query() {
 					alert( errmsg );
 			}
 
-			//launch_next_icw_ajax_query();
 			return;
 
 		};
@@ -274,10 +272,12 @@ function load_icw_list( resparray ) {
 		let nobj = resparray[i];
 		icwMap.set( nobj.profile_id, nobj );
 	}
-	triangMap.set( current_relative_id, true );
+	if ( triangMap.has( current_relative_id)) {
+		// these flag resets are only in case there is redisplay
+		triangMap.get( current_relative_id).force_ICW = false;
+		triangMap.get( current_relative_id).icw_done = true;
+	}
 	msg_debug_log( 1,  `Populated ${icwMap.size} entries into 'icwMap' for ${current_relative_name}` );
-
-	//console.log( 'load_icw_list:', resparray);
 
 	launch_next_icw_ajax_query();
 }

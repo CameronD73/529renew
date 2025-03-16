@@ -25,7 +25,9 @@ let relativesMap = new Map();		// the 1500 relatives that are preloaded on this 
 let notesMap = new Map();			// the annotations preloaded for this page.
 let messagesMap = new Map();			// the messages preloaded for this page.
 
-let triangMap = new Map();			// map of triangulations to the current profile
+let triangMap = new Map();			// map of ICW/triangulation settings to the current profile
+			// currently, the only item it contains is an object with the value of ICWscanned from the DB
+			// transferred onto booleans
 
 var dispatchMouseEvent = function(target, var_args) {
   var e = document.createEvent("MouseEvents");
@@ -78,35 +80,77 @@ function finishAjax () {
 /* this listener handles the return from DB interactions
 */
 chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
+	function(request, sender, sendResponse) {
 
-	if(request.mode === "requestTriangTable_return"){
-		let retprofile = request.data.profile;
-		if ( retprofile != profileID ) {
-			alert( `Expecting triang data for ${profileID} (${profileName}), got ${retprofile}`)
-		}
-		let retarray = request.data.dnarels;
+		switch (request.mode ) {
+
+			case "requestTriangTable_return":
+				load_triangMap( request.data );
+			break;
 		
-		triangMap.clear();
-		for(  let i = 0 ; i < retarray.length ; i++ ) {
-			let obj = retarray[i];
-			if ( obj.ICWscanned == 1 ) {
-				// FIXME - this is currently just ICWs having been scanned
-				triangMap.set( obj.IDrelative,  true  ) ;
-			}
+			case "relatives_completed":
+				gather_el.innerHTML="529-Gather Done";
+				get_dna_cache();		//ask to reload the cache in case anything changed
+			break;
+
+			case "messages_completed":
+				gather_el.innerHTML="529-Gather Done.";
+			break;
+
+			case "ICWPrelude_return":
+				load_match_cache( request.data );
+			break;
+
+			case "force_ICW_rescan_done":
+				// now ask for new values for triangMap.  I suppose we could have just modified the values directly
+				chrome.runtime.sendMessage({mode: "refreshTriangTable", profile: profileID } );
+				// this will just pass values back asynchronously.
+				//  and the message return code will then pass exec on to run_ICW_scan()
+			break;
+
+			case "refreshTriangTable_return":
+				load_triangMap( request.data );
+				run_ICW_scan();
+			break;
+		
+			default:
+				return false;			// message not handled here
 		}
-	} else if(request.mode === "relatives_completed"){
-		tr_el.innerHTML="529-Gather Done";
-		get_dna_cache();		//ask to reload the cache in case anything changed
-	} else if(request.mode === "messages_completed"){
-		tr_el.innerHTML="529-Gather Done.";
-	} else if(request.mode === "ICWPrelude_return"){
-		load_match_cache( request.data );
-	} else
-		return false;			// message not handled here
-  }
+	}
 );
 
+function load_triangMap( reqdata ){
+
+	let retprofile = reqdata.profile;
+	if ( retprofile != profileID ) {
+		alert( `Expecting triang data for ${profileID} (${profileName}), got ${retprofile}`);
+	}
+	let retarray = reqdata.dnarels;
+	
+	triangMap.clear();
+	for(  let i = 0 ; i < retarray.length ; i++ ) {
+		let obj = retarray[i];
+		let icwdone = false;
+		let triangdone = false;
+		let forcenewicw = false;
+		if ( (obj.ICWscanned & 1) != 0) {
+			icwdone = true;
+		}
+		if ( (obj.ICWscanned & 2) != 0) {
+			triangdone = true;
+		}
+		if ( (obj.ICWscanned & 8) != 0) {
+			forcenewicw = true;
+		}
+		triangMap.set( obj.IDrelative,  {
+			icw_done: icwdone,
+			triangulation_done: triangdone,
+			force_ICW: forcenewicw,
+			}
+		) ;
+
+	}
+}
 /*
 ** callback function to initiate processing the next result set from an Ajax call
 ** from the queue
@@ -303,7 +347,14 @@ function fill_relative_details() {
 			continue;	// skip this one - try next
 		}
 		if ( triangMap.has( pid )) {
-			containingbox.style.backgroundColor = "#bbffbb";
+			let opts = triangMap.get(pid);
+			if ( opts.force_ICW ) {
+				containingbox.style.backgroundColor = "#ffbbbb";
+			} else if ( opts.triangulation_done ){
+				containingbox.style.backgroundColor = "#aaffaa";
+			}else if ( opts.icw_done ){
+				containingbox.style.backgroundColor = "#ddffdd";
+			}
 		}
 		let fullNote = '';
 		if ( relativesMap.has( pid )) {
@@ -357,19 +408,19 @@ div529.style['display'] = 'flex';
 div529.style['column-gap'] = '1rem';
 div529.style['justify-content'] = 'flex-start';
 
-let tr_el=document.createElement('button');
-tr_el.innerHTML="529-Gather";
-tr_el.id="c529r";
-tr_el.title="Click to update database with any changes to relatives list and communication messages (Shift-click to omit messages)";
-tr_el.style['height'] = '100%';
+let gather_el=document.createElement('button');
+gather_el.innerHTML="529-Gather";
+gather_el.id="c529r";
+gather_el.title="Click to update database with any changes to relatives list and communication messages (Shift-click to omit messages)";
+gather_el.style['height'] = '100%';
 
-div529.appendChild(tr_el);
+div529.appendChild(gather_el);
 
 /*
 ** this function handles the "gather relatives data" button.
 ** It sends the result of various Ajax calls to the DB and gets an amended (more detailed) list back.
 */
-tr_el.onclick=function(evt){
+gather_el.onclick=function(evt){
 	let warn_msg = "process relatives list ";
 	let mbytes_rel = 0.0;
 	let mbytes_msg = 0.0;
@@ -384,7 +435,7 @@ tr_el.onclick=function(evt){
 			console.log( `message size for Relatives: ${relativearr.length} elements to ${mbytes_rel} Mbytes` );
 			console.log( `message size for Messages: ${msgarr.length} elements to ${mbytes_msg} Mbytes` );
 		}
-		tr_el.innerHTML="..Busy..";
+		gather_el.innerHTML="..Busy..";
 		warn_msg = `process relatives list ${mbytes_rel} Mbytes `;
 		chrome.runtime.sendMessage({mode: "process_relatives", profile:{id: profileID, name:profileName}, relatives: relativearr } );
 		warn_msg = `process messages list  ${mbytes_msg} Mbytes`;
@@ -418,18 +469,23 @@ function process_settings( response ) {
 
 msg_debug_log( 1,  `Found profile ${profileID} (${profileName})` );
 
-let b529r=document.createElement('button');
-b529r.id="b529r";
-b529r.innerHTML="scan ICWs";
-b529r.title="code to apply padding and notes";
-b529r.onclick= function() {
+let scanICWs_el=document.createElement('button');
+scanICWs_el.id="scanICWs_el";
+scanICWs_el.innerHTML="scan ICWs";
+scanICWs_el.title="Click this to scan all relatives for in-common matches - only ones not scanned already are scanned unless the shift-key is also held down";
+scanICWs_el.onclick= function(evt) {
 	chrome.runtime.sendMessage({mode: "clear_HTML_area" } ); // this will just clear the log
-	run_ICW_scan();
+	if (evt.shiftKey) {
+		chrome.runtime.sendMessage({mode: "force_ICW_rescan", profile:{id: profileID, name:profileName} } );
+		// the return message will then trigger the scan
+	} else {
+		run_ICW_scan();
+	}
 };
-b529r.style.marginLeft='10px';
-b529r.style['height'] = '100%';
+scanICWs_el.style.marginLeft='10px';
+scanICWs_el.style['height'] = '100%';
 
-div529.appendChild(b529r);
+div529.appendChild(scanICWs_el);
 
 let paginationHasObserver = false;
 /**
@@ -511,7 +567,7 @@ let buttoncount = 0;
  * So wait for paginator before triggering repeat ajax calls.
  * Initially they are run in parallel by 23andMe , but we will run in series...
  */
-function add529Button() {
+function add529Buttons() {
 		
 	let rd_parent=document.getElementsByClassName("dna-relatives-main-panel");
 	let pag_parent=document.getElementsByClassName("dna-relatives-pagination");
@@ -544,11 +600,11 @@ function add529Button() {
 	// if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
 	if( rd_parent.length < 1 || pag_parent.length < 1 ||  rl_parent.length < 1) {
 		if (buttoncount > 100){
-			//msg_debug_log( 4,  `$trace ABORT 'add529Button' 100 tries eclipsed` );
+			//msg_debug_log( 4,  `$trace ABORT 'add529Buttons' 100 tries eclipsed` );
 			return;
 		}
-		setTimeout( add529Button, 500);
-		// msg_debug_log( 4,  `$trace RESTART 'add529Button'` );
+		setTimeout( add529Buttons, 500);
+		// msg_debug_log( 4,  `$trace RESTART 'add529Buttons'` );
 		return;
 	} 
 	if(rd_parent[0]!=null ){
@@ -563,6 +619,6 @@ function add529Button() {
 	if (rl_parent[0] != null){
 		attachObserversToHeader(rl_parent[0]);
 	}
-	//msg_debug_log( 4, `trace end 'add529Button'` );
+	//msg_debug_log( 4, `trace end 'add529Buttons'` );
 }
-add529Button();
+add529Buttons();
