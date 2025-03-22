@@ -42,6 +42,7 @@ JSFILES= \
 	${BUILD_DB}/database_IO.js \
 	${BUILD_DB}/db_actions.js \
 	${BUILD_DBWORKER}/dbcode.js \
+	${BUILD_DBWORKER}/dbcode_init.js \
 	${BUILD_DBWORKER}/worker.js \
 	${BUILDDIR}/results_options.js \
 	${BUILDDIR}/results_tab.js \
@@ -138,6 +139,9 @@ ${BUILD_DBWORKER}/worker.js:	${V3SRC}/dbworker/worker.js
 	${CP} $< $@
 
 ${BUILD_DBWORKER}/dbcode.js:	${V3SRC}/dbworker/dbcode.js 
+	${CP} $< $@
+
+${BUILD_DBWORKER}/dbcode_init.js:	${V3SRC}/dbworker/dbcode_init.js 
 	${CP} $< $@
 
 ${BUILDDIR}/results_options.js:	${V3SRC}/results_options.js 

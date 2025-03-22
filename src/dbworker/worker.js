@@ -302,7 +302,7 @@ const start = async function (sqlite3) {
       if ( dbsize < 10 ) {
         conlog( 0, `DB file is only  ${dbsize} bytes, recreating tables`);
         DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'w' );
-        DBwasm.create_db_tables();
+        DBwasmInit.create_db_tables();
       }
       // open the file as a DB object
       DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'w' );
@@ -311,7 +311,7 @@ const start = async function (sqlite3) {
       conlog( 0, 'DB not found, trying to create...');
       DB529 = new sqlite3.oo1.OpfsDb( DBpath, 'c' );
       conlog( 0,'The DB is created.');
-      DBwasm.create_db_tables();
+      DBwasmInit.create_db_tables();
     }
   } catch( e ){
     let msg = `Failed to open/create DB: ${e.message}`;
@@ -319,7 +319,7 @@ const start = async function (sqlite3) {
     return;
   }
   conlog( 1,'db =', DB529.filename);
-  DBwasm.check_DB_version();
+  DBwasmInit.check_DB_version();
 
 };
 
@@ -411,6 +411,7 @@ conlog( 0,'Loading sqlite3 module...');
 let sqlite3Js = 'jswasm/sqlite3.js';
 importScripts(sqlite3Js);
 importScripts( '/dbworker/dbcode.js' );
+importScripts( '/dbworker/dbcode_init.js' );
 importScripts( '/util/dates.js' );
 importScripts( '/util/rounding.js' );
 
