@@ -370,12 +370,12 @@ var DBwasm = {
                     JOIN idalias as a2 on (m.ID2 = a2.IDtext)  \
                     WHERE    m.ID1 not in (select IDprofile from profiles) \
                         AND  m.ID2 not in (select IDprofile from profiles) \
-                        AND m.hasSegs = 0";
+                        AND m.hasSegs = 0 ";
         const qry_order =" GROUP BY m.ID1, m.ID2  ORDER by cMtotal DESC;" ;
  
         let query = qry_sel;
         if( dateLimit.length > 9 ) {
-            query += `AND (julianday(m.lastUpdated) >= julianday('${dateLimit}'))`;
+            query += ` AND (julianday(m.lastUpdated) >= julianday('${dateLimit}'))`;
         }
         query += qry_order;
 
@@ -387,7 +387,7 @@ var DBwasm = {
                 }
             );
         } catch( e ) {
-            conerror( `DB get ICWs for GDAT : ${e.message}, for ${id}`);
+            conerror( `DB get ICWs for GDAT : ${e.message}`);
             return( [ ] );
         }
         return rows;
