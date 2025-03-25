@@ -189,7 +189,7 @@ self.onmessage = function despatchMessages( msg ) {
     case "restoreDB":
       logHtml( '', `Loading file into DB (it might take a few seconds)...`);
       restoreDB( content.filecontents ).then( ()=>{
-            logHtml( '', 'Restore done');
+            logHtml( '', 'DB Restore completed.');
             let dbtables = DBwasm.get_summary();
             if( dbtables.length < 10) {
               let msg = `Only ${dbtables.length} tables in summary of DB.`;

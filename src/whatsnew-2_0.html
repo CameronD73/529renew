@@ -17,9 +17,24 @@
     <br/>
     <h2>Changelog for 529Renew.</h2>
     <h3>Changes between version  2.2.1 and 2.3.0</h3>
-    <p>Adds export functions to create csv files suitable for importing into GDAT.
+    <p>Adds export functions to create csv files suitable for importing into GDAT without segments.
       Template files for importing to GDAT are in <a href="https://github.com/CameronD73/529renew/tree/main/utils/GDAT_templates">this folder on github</a>.
     </p>
+    <p>Saves the new predicted relationships separately from any previous values. During update, any values within the database are moved to
+      the "old" category, although this may be incorrect for recent testers. 
+      You will simply need to rerun the 529-gather process to pick up the new relationships between the profile person and relatives.
+      However, to record the new predicted relationship between two ICW matches will require running the long ICW scans again and is probably not worth the effort.
+      This can be forced by shift-click on the "scan ICWs" button.
+      The differences will be shown in the output file from the "D'load 12andMe CSV/TSV" button. The old value has been added as an extra column on the end.
+    </p>
+    <p>Background colours on the DNA Relatives pages have been enhanced:
+      <ul>
+        <li>Dark green means a relative has a significant number of ICWs with segments - presumably an ICW scan was done with segment data available</li>
+        <li>Pale green means few segments are stored, so any ICW scan most likely was done after the chromosome browser was disabled.</li>
+        <li>Pale orange means an ICW rescan has been forced (to collect the new predicted relationships?) - will revert to the appropriate green colour after rescanning.</li>
+      </ul>
+    These assignments are not necesarily correct, as their status was not recorded at the time the scan was carried out.
+  They are simply an estimate.</p>
     <h3>Changes between version  2.2 and 2.2.1</h3>
     <p>This version fixed a bug causing stored messages to be too large.
       After installing this update, some redundant content will have been automatically deleted from the internal database.

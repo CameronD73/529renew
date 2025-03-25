@@ -2364,7 +2364,7 @@ function askRestoreSqlite3DB(evt) {
 	if ( ! file ) return;
 	const reader = new FileReader();
 
-
+	alert('Restoring an older DB will convert it to version 5.\nThis will take some seconds - check progress in the text area below.');
 	reader.addEventListener('load', function(theFile) {
 		let data = this.result;  // an ArrayBuffer
 		DBworker.postMessage( {reason:"restoreDB", filecontents:data}, [data] );

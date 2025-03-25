@@ -75,6 +75,8 @@ V2.2.0 submitted to Chrome store 2024-Oct-20
 V2.2.1 subm to store 2024-Nov-04
     Fix stupid bug exploding size of stored messages
 V2.3.0
-    Add export function for GDAT relatives and ICWs (without needing DNA segments)
+    Add export function for GDAT relatives and ICWs (without needing DNA segments).
+    Added code and new database column to support the new predicted relationship values - had to add option to rescan ICW to get details for other matches (relatives in Gather would be updated OK).
+    Modify display background colours to discriminate between matches with segments and those without.
     update sqliteWASM to v 3.90
     
