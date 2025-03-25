@@ -359,7 +359,7 @@ var DBwasmInit = {
             DB529.exec( 'ALTER TABLE idalias  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
             DB529.exec( 'ALTER TABLE DNARelatives  ADD COLUMN lastUpdated TEXT DEFAULT NULL;');
             DB529.exec( 'ALTER TABLE DNAmatches  ADD COLUMN predictedRelNew  TEXT DEFAULT NULL;');
-            logHtml( '', 'Modifying table structures');
+            logHtml( '', 'Modifying table structures...');
             for( let tdef of DBwasmInit.gTableDefs ) {
                 if (tdef.version_last_modified != 5) {
                     continue;
@@ -376,7 +376,7 @@ var DBwasmInit = {
                 r = DB529.exec( { sql: instruction } );
             }
             // at this stage, the modified tables are in place, so recreate necessary indexes
-            logHtml( '', 'updating Indexes');
+            logHtml( '', 'updating Indexes...');
             for( let idef of DBwasmInit.indexDefs ) {
                 if (idef.version_last_modified != 5) {
                     continue;
@@ -397,7 +397,7 @@ var DBwasmInit = {
                 updateSql += instruction + NL;
                 DB529.exec( {sql: instruction} );
             }
-            logHtml( '', 'recreating triggers');
+            logHtml( '', 'recreating triggers...');
             for( let tdef of DBwasmInit.updateTriggers ) {
                 let instruction = 'CREATE TRIGGER IF NOT EXISTS ' + 
                     tdef.name + ' AFTER UPDATE ON ' + tdef.tb + ' FOR EACH ROW BEGIN ' + tdef.action + ' END;';
@@ -408,19 +408,18 @@ var DBwasmInit = {
 
             DBwasmInit.assign_DB_version( 5 );
             DB529.exec( 'COMMIT TRANSACTION;');
+
             DB529.exec( 'PRAGMA foreign_keys=ON;');
             DB529.exec( 'UPDATE idalias set lastUpdated = CURRENT_DATE where lastUpdated is null;');
             DB529.exec( 'UPDATE DNARelatives set lastUpdated = CURRENT_DATE where lastUpdated is null;');
             DB529.exec( 'UPDATE DNAMatches set lastUpdated = CURRENT_DATE where lastUpdated is null;');
-
+            DBwasmInit.populateICWscanned();
             logHtml( '', 'update successful.');
         } catch( e ) {
             DB529.exec( 'ROLLBACK TRANSACTION;');
             conerror( 'DB Table Update to V5 failed: ', e.message);
             conerror( `previous SQL instructions were:\n${updateSql}`);
         }   
-
-
     },
 
     update_DB_1_to_2: function  () {
@@ -454,6 +453,147 @@ var DBwasmInit = {
             return;
         }
         DBwasmInit.assign_DB_version( 3 );
+    },
+    /*
+    ** As a one-off, we attempt to scan for existing ICWs that have been scanned at a time including segment data
+    */
+    populateICWscanned: function  () {
+        let profiles = DBwasm.get_profile_list( );
+        
+		for ( const obj of profiles ) {
+            logHtml( '', `processing profile for ${obj.pname} for older ICW scans that include segments`);
+            let rval = DBwasmInit.popICWscanned_1_profile(obj);
+            logHtml( '', `Number of relatives updated = ${rval}`);
+        }
+    },
+    /*
+    ** now run the scan for a single profile.
+    ** We really have no idea so we make an educated guess for each relative,
+    ** based on number of ICWs that have segments.
+    ** First generate the paired lists - person A matches person B with-segments/no-segments/unknown
+    ** Then check counts of ICW relatives with segments, relative to those who do not.
+    ** This is probably incorrect, as it was partly done when the chromosome browser was withdrawn.
+    ** Also, previous ICW lists were much larger, but now the 3rd match must also be in the top 1500.
+    */
+    popICWscanned_1_profile: function ( profile ) {
+        const qry_drop = 'DROP TABLE IF EXISTS Prof_ICW_segs;';
+        const qry_create = 'CREATE TEMPORARY TABLE Prof_ICW_segs as \
+            SELECT * from \
+                     (SELECT i2, count(*) as nwithsegs from ProfPairs_chrn GROUP BY i2)  as s \
+                LEFT JOIN (SELECT i2, count(*) as natzero from ProfPairs_zero GROUP BY i2)  as z USING (i2) \
+                LEFT JOIN (SELECT i2, count(*) as nneg from ProfPairs_neg GROUP BY i2)  as n USING (i2) \
+                WHERE (nwithsegs > 10) OR (nwithsegs > 4 AND 2*nwithsegs > natzero) \
+                ORDER BY nwithsegs DESC;';
+        const qry_indx = 'CREATE INDEX prfpws on Prof_ICW_segs(i2);';
+        const qry_update = 'UPDATE DNARelatives	\
+                        SET ICWscanned = CASE WHEN ICWscanned IS NULL THEN 2 ELSE (ICWscanned | 2 ) END \
+                        FROM  Prof_ICW_segs \
+                        WHERE DNARelatives.IDrelative = Prof_ICW_segs.i2 \
+                                AND DNARelatives.IDprofile = ?;'
+
+        let query = 'no query defined';
+        let id = profile.IDprofile;
+        let retval = 0;
+
+        DBwasmInit.pair1( profile, 'ProfPairs_chrn',  'ppchr');
+        DBwasmInit.pair23( profile, 'ProfPairs_zero', 'chromosome = 0', 'ppzero');
+        DBwasmInit.pair23( profile, 'ProfPairs_neg', 'chromosome < 0', 'ppneg');
+
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            query = qry_drop;
+            DB529.exec( query );
+            query = qry_create;
+            DB529.exec( query );
+            query = qry_indx ;
+            DB529.exec( query );
+            query = qry_update ;
+            DB529.exec( qry_update, {bind:[id]} );
+            retval = DB529.changes();
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml( 'error', `DB update ICWwscanned : ${e.message}, from request ${query}`);
+            retval = 0;
+        }
+        return retval;
+    },
+
+    pair1: function ( profile, tblname, ipfx ) {
+        const qry_drop = 'DROP  TABLE IF EXISTS ' + tblname;
+        const qry_create = 'CREATE TEMPORARY TABLE ' + tblname + ' as \
+           SELECT i2, i3, count(*) as nsegs  from (\
+                SELECT s.ID1 as i2, s.ID2 as i3, chromosome as chr, start from DNARelatives as r JOIN ibdsegs as s ON r.IDrelative = s.ID1 \
+                    WHERE IDprofile = ? \
+                UNION \
+                SELECT s.ID2 as i2, s.ID1 as i3, chromosome as chr, start from DNARelatives as r JOIN ibdsegs as s ON r.IDrelative = s.ID2 \
+                    WHERE IDprofile = ? \
+                ) GROUP BY i2, i3;';
+        const qry_idx2 = `CREATE INDEX ${ipfx}_2 ON ${tblname}(i2);`;
+        const qry_idx3 = `CREATE INDEX ${ipfx}_3 ON ${tblname}(i3);`;
+
+        let query = 'no query defined';
+        let id = profile.IDprofile;
+        let retval = 0;
+
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            query = qry_drop;
+            DB529.exec( query );
+            query = qry_create;
+            DB529.exec( qry_create, {bind:[id,id]} );
+            retval = DB529.changes();
+            query = qry_idx2 ;
+            DB529.exec( query );
+            query = qry_idx3;
+            DB529.exec( query );
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml( 'error', `DB update ICW match pairs1 : ${e.message}, from request ${query}`);
+            retval = 0;
+        }
+        return retval;
+
+    },
+
+    pair23: function ( profile, tblname, whereclause, ipfx ) {
+        const qry_drop = 'DROP  TABLE IF EXISTS ' + tblname;
+        const qry_create = 'CREATE TEMPORARY TABLE ' + tblname + ' as \
+           SELECT i2, i3, count(*) as nsegs  from \
+            ( SELECT ID3 as i3, ID2 as i2, chromosome, start FROM ICWSets where IDprofile = ? \
+                UNION \
+              SELECT ID2 as i3, ID3 as i2, chromosome, start FROM ICWSets where IDprofile = ? \
+            ) WHERE ' + whereclause + ' GROUP BY i2, i3;';
+        const qry_idx2 = `CREATE INDEX ${ipfx}_2 ON ${tblname}(i2);`;
+        const qry_idx3 = `CREATE INDEX ${ipfx}_3 ON ${tblname}(i3);`;
+
+        let query = 'no query defined';
+        let id = profile.IDprofile;
+        let retval = 0;
+
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            query = qry_drop;
+            DB529.exec( query );
+            query = qry_create;
+            DB529.exec( qry_create, {bind:[id,id]} );
+            retval = DB529.changes();
+            query = qry_idx2 ;
+            DB529.exec( query );
+            query = qry_idx3;
+            DB529.exec( query );
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            logHtml( 'error', `DB update ICW match pairs23 : ${e.message}, from request ${query}`);
+            retval = 0;
+        }
+        return retval;
+
     },
 
 }
