@@ -33,7 +33,7 @@ Most of the details are in [this project's Wiki](https://github.com/CameronD73/5
 # Installation
 The latest released version is available in the Chrome store. For experimental installs (developer mode) see details in the wiki.
 
-Versions of 529Renew at 1.9.0 and later (October 2023) require the ability to load the sqlite-wasm code with the Origin-Private File-System. It seems that browsers Egde, Vivaldi and Opera all provide suitable support and work under ms-windows based on my minimal testing.
+Versions of 529Renew at 1.9.0 and later (October 2023) require the ability to load the sqlite-wasm code with the Origin-Private File-System. It seems that browsers Egde, Vivaldi and Opera all provide suitable support and will work under ms-windows based on my minimal testing.
 
 By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
@@ -52,15 +52,15 @@ The following steps then apply whichever browser you are using:
 ## The tab/page named "529Renew Results"
 
 It is important to understand that this tab is a vital part of the operation of 529Renew. 
-When saving triangulation data there must be exactly one "results" tab present.  Hidden beneath this tab is nearly all the functionality of 529Renew.
+When performing **any** operation that interacts with the internal database there must be exactly one "results" tab present.  Hidden beneath this tab is nearly all the functionality of 529Renew.
 
 The code is designed to create this tab if it does not exist whenever you first open or refresh the page listing DNA relatives.
 It will also create the results tab automatically if the _settings_ pop-up page is opened.
 
-On the page of an individual DNA match, triangulation will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page _after opening the results tab_).
+On the page of an individual DNA match, triangulation or scanning for ICWs will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page _after opening the results tab_).
 If you press the `Open 529renew` button then it will create the page if necessary, then pass the DNA matches name to the selector on the results page and bring the tab to the front.
 
-It is safe to be using the results tab to view already saved results at the same time as another tab is doing the triangulations.
+It is safe to be using the results tab to view already saved results at the same time as another tab is doing fresh data collection.
 
 ***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log may be saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
 
@@ -136,6 +136,8 @@ This opens the "devtools"   window, and every tab will have its own separate dev
 Select the "console" tab to view the error and debug log messages.
 
 # Day-to-day operation - with a working Chromosome browser
+Note: _this section is **not valid** while there is no chromosome browser_.
+For recent operations, see the wiki pages linked in the first few paragraphs of this document.
 1. Login to your account on the 23and Me web site
 2. start by selecting the kit of the profile you want to compare (if you manage more than one kit)
 3. go to the  _DNA Relatives_ page, either from the quick links or the *Family and friends* menu list.
