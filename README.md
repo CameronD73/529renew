@@ -145,7 +145,7 @@ For recent operations, see the wiki pages linked in the first few paragraphs of 
 5. Open the filter menu: "Profile features and activity" and tick the box "showing ancestry results". This will remove people from this list who do not allow their DNA segments to be viewed.  You could also apply other filters as you see fit.
 6. search for the relative of interest and open their page, preferably in a new tab - using separate tabs makes it much easier to keep track of where you are up to and avoids the need to reload the relatives list each time you go back to it.
 
-## Gathering Data
+## Gathering Segment Data
 1. having located the page of the relative of interest, scroll to the bottom and click on the `Find Relatives in Common` button.
 2. Then click onto `Triangulate into 529Renew` to have the system collect overlapping segment results.
 So long as there is at least one with a "yes" or "no" under `DNA Overlap` on each page then 529renew will collect all required data for ICW between the two people.
