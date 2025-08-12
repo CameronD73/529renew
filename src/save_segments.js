@@ -1,5 +1,6 @@
 /*
-** This code must not run before the DOM has loaded.  Even then, somem of the content might not have been loaded.
+** Scan for and save matching segments to the DB.
+** This code must not run before the DOM has loaded.  Even then, some of the content might not have been loaded.
 * this content script version is for ibdsegment access and ICWs
 ** Most comments in this file were made trying to interpret the original code and
 * do not carry any warranty as to accuracy.

@@ -1383,7 +1383,7 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529Relatives_" + theName+ "_" + formattedDate()+ extension);
+	saveAs(blob, "529_GDAT_Rels_" + theName+ "_" + formattedDate()+ extension);
 	// this convoluted code seems to be the only way I can get the profile ID to be a key
 	let newobj = {};
 	newobj[kitid] = formattedDate2();
@@ -1436,7 +1436,7 @@ function createICW_CSV( resultRows, kitid, kitname){
 	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "ICW_" + theName+ "_" + formattedDate()+ extension);
+	saveAs(blob, "529_GDAT_ICW_" + theName+ "_" + formattedDate()+ extension);
 
 }
 
