@@ -654,12 +654,12 @@ var DBwasm = {
                     ** Older records will have nsegs and largest seg, but no predicted relationship.
                     ** Newer scans will have little DNA, so we don't want to overwrite any data we had before.
                     */
-                    if ( obj.nsegs > 0 ) {
+                    if ( obj.nseg > 0 ) {
                         transState = `match update nsegs row ${i}`;
-                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nsegs, ids[0], ids[1]]} );
+                        DB529.exec( qry_match_upd_nsegs, {bind:[obj.nseg, ids[0], ids[1]]} );
                         let ra = DB529.changes();
                         if ( ra > 0 ) {
-                            show_updated( obj, 'numSegments updated');
+                            show_updated( obj, `numSegments updated for ${obj.name}`);
                             total_updates += ra;
                         }
                     }
