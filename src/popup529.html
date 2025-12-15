@@ -175,6 +175,7 @@
                 Each segment match has a date that is either "when read from 23 and me" or "when imported from CSV".
                 Segments are normally only exported when their date is equal to or newer than the "Date of last CSV export" on the assumption that GDAT will already have older data.  Dates are also updated if anything in the relatives or the ICW records are changed.
             </p>
+            <p>The basic Date code is now rather unreliable, as there can potentially be different dates for each type of export file as well as per profile person for exporting the relative list. It tries to keep track of each date separately but this calendar will not show you each one, and applying this will reset all dates.</p>
             <h3>Debug level adjustment</h3>
             <p>Set all these to zero unless you need to report some debugging information.
                 The settings adjust the amount of information displayed in the JavaScript console window.

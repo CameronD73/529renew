@@ -1,15 +1,15 @@
 # 529renew
 Chrome extension to allow "23 and me" customers to extract their DNA segment match information
 
-This is now available on the Chrome Store.
-## Status October 2024
-I think it has now been a year since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before (unconfirmed).
+This is available on the Chrome Store.
+## Status December 2025
+I think it has now been 2 years since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before (unconfirmed). 23andMe then entered the bankruptcy process and eventually was sold. Under the new management nothing has yet changed.
 
 Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testers.  And at this time it looks like it is most likely to go out of business.
 
 The changes around the enforced migration to sqlite in this extension were never completed by the time 23andMe disabled the chromosome browser. This code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
 
-Once the extension is installed, a page is displayed with the extension notes and instructions for operation in non-DNA times.
+Once the extension is installed, a page is displayed with the extension notes and instructions for operation at times with no chromosome browser.
 Instructions on this mode of operation are now [in the wiki for this project](https://github.com/CameronD73/529renew/wiki/2024-%E2%80%90-Extracting-Relatives-Data)
 
 
@@ -33,7 +33,7 @@ Most of the details are in [this project's Wiki](https://github.com/CameronD73/5
 # Installation
 The latest released version is available in the Chrome store. For experimental installs (developer mode) see details in the wiki.
 
-Versions of 529Renew at 1.9.0 and later (October 2023) require the ability to load the sqlite-wasm code with the Origin-Private File-System. It seems that browsers Egde, Vivaldi and Opera all provide suitable support and will work under ms-windows based on my minimal testing.
+Versions of 529Renew at 1.9.0 and later (October 2023) require the ability to load the sqlite-wasm code with the Origin-Private File-System. It seems that browsers Edge, Vivaldi and Opera all provide suitable support and will work under ms-windows based on my minimal testing.
 
 By the time you read this, they (Chrome and Edge) will no doubt have changed their user interface again, but as I write this the process is...
 * For Chrome, from the menu (3 dots on the right) click on `more tools->extensions` , or `settings->extensions`.  Then click on the sub-menu (3 horizontal lines on the left - don't you love a consistent user interface) and way down the bottom is `open Chrome web store`.  Type __529renew__ into the search box and it should be the only extension offered. Click that and the details page opens up, along with a button `Add to Chrome`.
