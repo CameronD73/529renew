@@ -166,7 +166,10 @@ function setSetting(item,value){
 				settings529["lastGDAT_Rels_ExportPerProf"][key] = value;
 			}
 		} else if( typeof value === "object" ) {
-			Object.assign( settings529["lastGDAT_Rels_ExportPerProf"], value);
+			for( const key of Object.keys(value)) {
+				let expdate = value[key];
+				settings529["lastGDAT_Rels_ExportPerProf"][key] = expdate;
+			}
 		} else {
 			console.error( `setSetting(lastGDAT_Rels_ExportPerProf) was passed value type ${typeof value}`);
 		}
