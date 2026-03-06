@@ -16,6 +16,15 @@
     <hr/>
     <br/>
     <h2>Changelog for 529Renew.</h2>
+    <h3>Changes between version  2.3.2 and 2.3.3</h3>
+    Re-enable chromosome browser code
+    <h3>Changes between version  2.3.0 and 2.3.2</h3>
+    <ul>
+    <li>fix bug with bad sql query exporting ICW for GDAT</li>
+    <li>default filenames for export CSV files for GDAT has been made more explicit, to reduce possibility of name clashes.</li>
+    <li>fix bug where number of segments is sometimes reported as null, even though the value is known.</li>
+    <li>update sqliteWASM to v 3.51.1  (Filesaver.js and PapaParse remain unchanged)</li>
+    </ul>
     <h3>Changes between version  2.2.1 and 2.3.0</h3>
     <p>Adds export functions to create csv files suitable for importing into GDAT without segments.
       Template files for importing to GDAT are in <a href="https://github.com/CameronD73/529renew/tree/main/utils/GDAT_templates">this folder on github</a>.

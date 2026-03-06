@@ -727,17 +727,31 @@ function getMatchId(){
 function getMyName(){
 	try{
 
-		var container = document.getElementsByClassName("profile-in-dropdown")[0];
-		container=peelContainerByClassSoft(container, "name");
+		var firstName = null;
+		var lastName = null;
+		var fullName = null;
+		var dropdownprof = document.getElementsByClassName("profile-in-dropdown-v1");
+		
+		if( dropdownprof.length > 0) {
+			var container = dropdownprof[0];
+			container=peelContainerByClassSoft(container, "name");
 
-		var firstName=container.children[0].innerHTML.trim();
-		var lastName=container.children[1].innerHTML.trim();
-		var fullName=firstName+ " " + lastName;
+			fullName=container.children[0].innerText.trim();
+		} else {
+			// older style...
+			dropdownprof = document.getElementsByClassName("profile-in-dropdown");
+			var container = dropdownprof[0];
+			container=peelContainerByClassSoft(container, "name");
+
+			firstName=container.children[0].innerHTML.trim();
+			lastName=container.children[1].innerHTML.trim();
+			fullName=firstName+ " " + lastName;
+		}
 
 		return fullName;
 	}
 	catch(err){
-		// what is the point? ignore errors?
+		console.error( err );
 		return null;
 
 	}
@@ -759,8 +773,8 @@ function watchdogTimer() {
 */
 tr_el.onclick=function(evt){
 	var loaded=false;
-	alert( 'No triangulation until 23andMe reinstates the chromosome browser. Use the "scan ICWs" button on the main DNA-relatives page');
-	return;
+	//alert( 'No triangulation until 23andMe reinstates the chromosome browser. Use the "scan ICWs" button on the main DNA-relatives page');
+	//return;
 	try{
 		let temp3=document.getElementsByClassName("js-relatives-table")[0];
 		if(temp3 == null) throw new Error("Page structure changed");
@@ -785,7 +799,7 @@ tr_el.onclick=function(evt){
 
 	var localName=getMyName();
 	if(localName==null || localName.length==0){
-		alert("Unable to find your name on page");
+		alert("Unable to find your name in page dropdown");
 		return;
 	}
 	var personAID=getMatchId();
