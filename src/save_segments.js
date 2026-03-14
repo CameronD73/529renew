@@ -10,7 +10,7 @@
 /* eslint no-unused-vars: "off"*/
 'use strict';
 
-let CHROMOSOME_DATA_AVAILABLE = false;			// skip a bit of code while it is useless
+let CHROMOSOME_DATA_AVAILABLE = true;			// skip a bit of code while it is useless
 
 let div529=document.createElement('div');
 div529.id="div529r";
@@ -502,7 +502,7 @@ function runComparison(ranPrimaryComparison ){
 		setTimeout(function(){runComparison(ranPrimaryComparison);}, 1000);
 		return;
 	}
-	var foundData=true;		// TEMPORARY while there is no chromosome browser
+	var foundData=false;		// TEMPORARY while there is no chromosome browser
 	var number_of_rows = row_container.children.length;
 	q_debug_log( 1, " checking " + number_of_rows + " rows" );
 	// typically here the row_container has up to 10 rows of ICWs
@@ -645,7 +645,7 @@ function runComparison(ranPrimaryComparison ){
 			if( number_of_rows == 0 ) {
 				alert( 'No rows found, maybe you forgot to click "find Relatives in common"\nYou will need refresh this page first.' );
 			} else {
-				alert("Failed to parse Relatives in Common table - Q len: " + qQueue.length);
+				alert("No shared chromosome data found - Q len: " + qQueue.length);
 			}
 			launch_next_IBD_query();
 			return;
