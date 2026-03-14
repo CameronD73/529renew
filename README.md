@@ -2,10 +2,22 @@
 Chrome extension to allow "23 and me" customers to extract their DNA segment match information
 
 This is available on the Chrome Store.
-## Status December 2025
-I think it has now been 2 years since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before (unconfirmed). 23andMe then entered the bankruptcy process and eventually was sold. Under the new management nothing has yet changed.
+## Status
+### March 2026
+The chromosome browser has now been selectively re-enabled.
+As far as I can tell from online gossip, to access it requires:
+1. a premium+ subscription
+2. DNA kit was submitted from a limited range of countries.
+3. your test kit was at least version 5.
 
-Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testers.  And at this time it looks like it is most likely to go out of business.
+A consequence of this (point 2) is that I have no possible access and can do no testing nor further development.
+
+This release (2.4.0) reactivates the old code and uses no new features that might be in the premium access.
+
+### December 2025
+I think it has now been 2 years since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before. 23andMe then entered the bankruptcy process and eventually was sold. Under the new management nothing has yet changed.
+
+Without the chromosome browser, 23 and Me is the least useful site for genealogical search - despite the supposed size of its database of testers.
 
 The changes around the enforced migration to sqlite in this extension were never completed by the time 23andMe disabled the chromosome browser. This code has since had a hurried hack to try to get some ICW match details, and to save a bit of the information that 23andMe provide for you to look at on your web page.
 

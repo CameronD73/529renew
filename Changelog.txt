@@ -86,4 +86,6 @@ V2.3.2
     fix bug where number of segments is sometimes reported as null, even though the value is known.
     update sqliteWASM to v 3.51.1  (Filesaver.js and PapaParse remain unchanged)
 V2.3.3
-    Enable code for chromosome browser, to see what breaks.
+    Enable code for chromosome browser, for testing. For those who are able to access it.
+V2.4.0
+    Release with chromosome browser code enabled.
