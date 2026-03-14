@@ -7,7 +7,7 @@ This is available on the Chrome Store.
 The chromosome browser has now been selectively re-enabled.
 As far as I can tell from online gossip, to access it requires:
 1. a premium+ subscription
-2. DNA kit was submitted from a limited range of countries.
+2. DNA kit was purchased in and submitted from a limited range of countries.
 3. your test kit was at least version 5.
 
 A consequence of this (point 2) is that I have no possible access and can do no testing nor further development.
