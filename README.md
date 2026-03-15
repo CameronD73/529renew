@@ -6,13 +6,15 @@ This is available on the Chrome Store.
 ### March 2026
 The chromosome browser has now been selectively re-enabled.
 As far as I can tell from online gossip, to access it requires:
-1. a premium+ subscription
-2. DNA kit was purchased in and submitted from a limited range of countries.
+1. a *premium+* subscription from 23andMe,
+2. your DNA kit was purchased in and submitted from a limited range of countries,
 3. your test kit was at least version 5.
 
 A consequence of this (point 2) is that I have no possible access and can do no testing nor further development.
 
 This release (2.4.0) reactivates the old code and uses no new features that might be in the premium access.
+
+The documentation has not been updated, as I do not yet know what still works.
 
 ### December 2025
 I think it has now been 2 years since 23 and Me blocked access to the chromosome browser and just about everything else. In-common matches were returned some time in 2024, seemingly with fewer matches being identified than before. 23andMe then entered the bankruptcy process and eventually was sold. Under the new management nothing has yet changed.
@@ -27,11 +29,11 @@ Instructions on this mode of operation are now [in the wiki for this project](ht
 
 ## Contents:
 * [Installation Guide](#installation)
-* [Database Migration](#database-import)
 * [The special "Results" tab](#the-tabpage-named-529renew-results)
 * [User Settings](#settings)
 * [Normal operation (DNA)](#day-to-day-operation)
 * [Strategies to minimise lockout](#strategies-to-minimise-lockout)
+* [Database Migration](#database-import)
 
 ## Background
 This is a fork of the *529andYou* Chrome extension, in order to move from manifest V2 to V3. V2 code ceased working for Chrome users some time in 2023, and has been blocked for fresh installations beyond July 2022.
@@ -72,7 +74,7 @@ It will also create the results tab automatically if the _settings_ pop-up page 
 On the page of an individual DNA match, triangulation or scanning for ICWs will fail if the results tab is not open already (this is a bug currently not fixed - it falls into a deep sleep and never awakens. You have to close the tab and start again, or refresh the page _after opening the results tab_).
 If you press the `Open 529renew` button then it will create the page if necessary, then pass the DNA matches name to the selector on the results page and bring the tab to the front.
 
-It is safe to be using the results tab to view already saved results at the same time as another tab is doing fresh data collection.
+It is safe to be using the results tab to _view_ already saved results at the same time as another tab is doing fresh data collection.
 
 ***Warning:***  If your Chrome startup setting is to "Continue where you left off" then the Results tab can be reopened ready for action. However, if you have a level of debugging enabled then all the debugging log may be saved and restored across shutdown and startup. This seems to eventually render the filesystem very sluggish for many seconds upon shutdown, so remember to disable debugging when you do not need it, or occasionally refresh the results tab to clear the console log.
 
@@ -82,8 +84,8 @@ Consequently there is a stream of messages passing between the DNA match page an
 If this gets interrupted (or never starts) then things get confused.
 
 If multiple results tabs are opened at the same time then a different form of confusion ensues, where each one fights to carry out the same tasks.
-There is, however one situtation where multiple results tabs are deliberately allowed to be open at the same time.
-If you were to click on `create match table` in the results page, and then click on a match's name on the table of segments then a new results tab is opened in case you want to compare the segments between two sets of results. It is acceptable to simply view results in two tabs at the same time but the code is not designed to be triangulating at the same time.
+There is, however, one situtation where multiple results tabs are deliberately allowed to be open at the same time.
+If you were to click on `create match table` in the results page, and then click on a match's name on the table of segments then a new results tab is opened in case you want to compare the segments between two sets of results. It is acceptable to simply _view_ results in two tabs at the same time but the code is not designed to allow any database update while the two results tabs are present.
 
 
 ## Settings
@@ -121,7 +123,7 @@ When importing results from CSV files, sometimes values are found that already m
 
 ### Star means "have triangulated"
 This option is inoperative at the moment (Oct 2024).
-If you  applied the yellow star only to a relative who had been previously triangulated, then set this to yes and 529Renew will change displays accordingly. It has no other meaning and is only useful transitioning data from before version 2. Any triangulations in future will set this parameter directly.
+If you  applied the yellow star only to a relative who had been previously triangulated, then set this to yes and 529Renew will change displays accordingly. It has no other meaning and is only useful transitioning data from before version 2. Any triangulations in future should set this parameter directly.
 
 #### Minimum shared DNA (pct):
 This parameter sets a lower limit - only matches having at least this percentage in common will be checked and recorded.  This now applies to all ICW, as we cannot tell in advance whether they have overlap.
@@ -147,31 +149,35 @@ The debug levels determine the verbosity of progress notes that are printed on t
 This opens the "devtools"   window, and every tab will have its own separate devtools window, which only persists while the tab is present.
 Select the "console" tab to view the error and debug log messages.
 
-# Day-to-day operation - with a working Chromosome browser
-Note: _this section is **not valid** while there is no chromosome browser_.
-For recent operations, see the wiki pages linked in the first few paragraphs of this document.
+# Day-to-day operation
+## Activities in-common
+For recent operations, see also the wiki pages linked in the first few paragraphs of this document.
 1. Login to your account on the 23and Me web site
 2. start by selecting the kit of the profile you want to compare (if you manage more than one kit)
 3. go to the  _DNA Relatives_ page, either from the quick links or the *Family and friends* menu list.
 4. by this stage the "529Renew Results" tab should be open and in the background.
-5. Open the filter menu: "Profile features and activity" and tick the box "showing ancestry results". This will remove people from this list who do not allow their DNA segments to be viewed.  You could also apply other filters as you see fit.
-6. search for the relative of interest and open their page, preferably in a new tab - using separate tabs makes it much easier to keep track of where you are up to and avoids the need to reload the relatives list each time you go back to it.
+5. Always start a new session by using the "529-Gather" button, wait until it says "done" and then "scan ICWs"
+6. This is a long process the first time you run it, but subsequently should be fast, as only new DNA relatives are scanned.
 
 ## Gathering Segment Data
+Note: _this section  **does nothing** without a working chromosome browser_.
+
+1. Open the filter menu: "Profile features and activity" and tick the box "showing ancestry results". This will remove people from this list who do not allow their DNA segments to be viewed.  You could also apply other filters as you see fit.
+1. search for the relative of interest and open their page, preferably in a new tab - using separate tabs makes it much easier to keep track of where you are up to and avoids the need to reload the relatives list each time you go back to it.
 1. having located the page of the relative of interest, scroll to the bottom and click on the `Find Relatives in Common` button.
-2. Then click onto `Triangulate into 529Renew` to have the system collect overlapping segment results.
-So long as there is at least one with a "yes" or "no" under `DNA Overlap` on each page then 529renew will collect all required data for ICW between the two people.
-3. Normally, only matches with DNA overlap showing "yes" will be saved. Holding down shift while you click, or enabling the setting "AlwaysSaveNonOverlaps", will include segment details between each pair even when they have no overlap.
-4. If anything goes wrong and you want to continue with that person then you will need to refresh the page and start again.
-5. The extension will not query the server  if it has already recorded the matching segment data. You can override this behaviour by using a alt-click on the triangulate button. This forces rereading of _all_ overlapping matches.
-6. The "triangulation" process will start from the list (table of 10 matches) currently being shown, so if it is not at the first set then you might miss people on earlier tables.
+1. Then click onto `Triangulate into 529Renew` to have the system collect overlapping segment results.
+So long as there is at least one with a "compare" button under `DNA Overlap` on each page then 529renew will collect all required data for ICW between the two people.
+1. Normally, only matches with DNA overlap showing "compare" will be saved. Holding down shift while you click, or enabling the setting "AlwaysSaveNonOverlaps", will include segment details between each pair even when they have no overlap.
+1. If anything goes wrong and you want to continue with that person then you will need to refresh the page and start again.
+1. The extension will not query the server  if it has already recorded the matching segment data. You can override this behaviour by using a alt-click on the triangulate button. This forces rereading of _all_ overlapping matches for that person.
+1. The "triangulation" process will start from the list (table of 10 matches) currently being shown and progress via the "next page" button, so if it is not at the first set then you might miss people on earlier tables.
 
 ## Viewing the stored data
 The results tab offers a fast way to examine what segments are stored in the 529renew database.
 This description assumes you have `Display Mode` set to "_Match and Overlapping Segment Links_". I am not sure there is ever much purpose in using the lesser display modes.
 I am not sure if "Omit Aliases" does anything useful these days.
 * First, you need to select the match person. It could be one of your profile kit owners, or any of your matches. If you choose a profile person then be prepared for a possibly long list - in this case you should always limit your selection to a single chromosome. You select the person from the drop-down list under `show matches of:`. There are two ways to reduce the need to scan the entire list:
-1. If you have a tab already opened at the match person of interest then you can click on `open 529renew` and it will select that person and also bring the results tab to the front. You can then make the required chromosome choice  .
+1. If you have a tab already opened at the match person of interest then you can click on `open 529renew` and it will select that person and also bring the results tab to the front. You can then make the required chromosome choice.
 2. You can apply a filter using the `Optional match filter:` section. enter the full name you require, or include the '%' character to use it as a wildcard. The search does not require you to select upper/lower case correctly. Press _Enter_ or click a blank area outside the filter text box and the drop-down list will be replaced with names that match your search filter. You can then choose the person you want, make the required chromosome choice.
 
 * Clicking on `create match table` then produces a list of all matching segments recorded between that person and everybody else.  Sometimes there may be no entries in the list, depending how you have set your options.
@@ -242,7 +248,15 @@ I can usually be triangulating on one tab and have other tabs open and be prepar
 
 If you are triangulating on one tab only, but your other activities causes a lockout, then generally you will need to go through the multiple Captcha screens once and can then refresh the locked out tabs. The triangulating tab will stop with a message box if it sees an return status of 429. Sometimes it is sufficient to do nothing, wait 30sec to 1 minute, then click `OK` and have the process continue without needing the Captcha.
 
-## Database Import from 529 and You
+# Database Import
+
+## Database Migration from 529Renew before October 2023
+Version 1.9 offers an easy migration process and is documented in a web page that popped up when the extension is installed. It no longer works, so is not documented here.
+
+Once the extension is installed, a page is displayed with the extension notes and instructions, and you can also later see them by typing, (or copy/pasting) [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.
+
+
+## from 529 and You
 
 * 529renew has a somewhat different database format from that of _529 and You_. This is detailed [elsewhere, in the wiki](https://github.com/CameronD73/529renew/wiki/DB-Schema-changes) - most data is the same but it means you cannot simply copy over the old database file.
 * This means you need to reimport your data to easily populate the database with all the matches you carefully obtained with 529 and You.
@@ -252,8 +266,3 @@ If you are triangulating on one tab only, but your other activities causes a loc
 * message box eventually says "CSV parsing complete" and you can click OK to continue.
 * you can safely reload the file or load other versions and new entries will be updated. It will ignore matching segments already loaded (which makes it much faster reloading duplicated data), so it would be perhaps safer to load newer files first.
 * you should then be able to examine the `show matches of` list to see testers who have been imported.
-
-## Database Migration from 529Renew before October 2023
-Version 1.9 offers an easy migration process and is documented in a web page that popped up when the extension is installed. It no longer works, so is not documented here.
-
-Once the extension is installed, a page is displayed with the extension notes and instructions, and you can also later see them by typing, (or copy/pasting) [chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html](chrome-extension://hgckkjajmcmbificinfabmaelboedjic/whatsnew-2_0.html)  into the browser address bar.

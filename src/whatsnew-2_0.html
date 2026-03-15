@@ -7,7 +7,7 @@
   <body style="font-size: medium;">
     <h2>Detailed setup instructions</h2>
     <p>You will find some documentation (and source code) at
-      <a href="https://github.com/CameronD73/529renew?tab=readme-ov-file#status-october-2024" target="_blank">the 529Renew page on GitHub.</a>
+      <a href="https://github.com/CameronD73/529renew?tab=readme-ov-file#status" target="_blank">the 529Renew page on GitHub.</a>
     </p>
     <p>Instructions for the 2024/5 changes are now 
       <a href="https://github.com/CameronD73/529renew/wiki/2024-‐-Extracting-Relatives-Data" target="_blank">the wiki page on GitHub.</a>
@@ -16,8 +16,11 @@
     <hr/>
     <br/>
     <h2>Changelog for 529Renew.</h2>
-    <h3>Changes between version  2.3.2 and 2.3.3</h3>
-    Re-enable chromosome browser code
+    <h3>Changes between version  2.3.2 and 2.4.0</h3>
+    <ul>
+    <li>Re-enable chromosome browser code</li>
+    <li>update sqliteWASM to v 3.51.3</li>
+    </ul>
     <h3>Changes between version  2.3.0 and 2.3.2</h3>
     <ul>
     <li>fix bug with bad sql query exporting ICW for GDAT</li>
@@ -243,7 +246,7 @@
     </p>
     <h3>Backup old database</h3>
     <p>If you are reading this notice, it is already <i>no longer possible to export the database to CSV</i>.
-      Your browser has disabled access to the database but the file itself has been left in place.
+      Your browser has disabled access to the database but the file itself may or may not have been left in place.
       I would recommend copying the entire old database into a safe area, just in case my migration process failed (or you missed out in the narrow window of opportunity). 
       Instructions are given in <a href="https://github.com/CameronD73/529renew/wiki/WebSQL-%E2%80%90-archiving-database" target="_blank">the 529Renew Wiki</a>.
       You can then delete it from within your browser profile folder.
