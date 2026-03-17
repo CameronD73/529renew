@@ -280,7 +280,13 @@ function finishComparisons() {
 		}
 		else{
 			try {
-				chrome.runtime.sendMessage({mode: "update_ICW_scanned_segs",  matchpair: {pid: profileID, pname: profileName, mid:matchID, mname:matchName}} );
+				chrome.runtime.sendMessage({mode: "update_ICW_scanned_segs",
+											matchpair:{ profileID: profileID,
+														profileName: profileName,
+														matchID:matchID,
+														matchName:matchName
+													}
+											} );
 			} catch( e ) {
 				handleMessageCatches( "in storeSegmentflag", e );
 			}
