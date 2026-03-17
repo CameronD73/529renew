@@ -200,9 +200,7 @@ function load_family_bgnd( respobj ) {
 }
 
 /*
-** process the message json response.
-** It looks like this is limited to the first 20000 (or value in "limit")
-** so I won't bother trying to get more than whatever it offers.
+** process the haplogroup json response.
 ** Not sure if haplotype prefix strings are constant, nor if ':' will
 ** only ever present as the separator char. (hence the use of regex.)
 */

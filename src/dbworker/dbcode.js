@@ -513,7 +513,7 @@ var DBwasm = {
             return( 0 );
         }
         if( rows.length > 1 ) {
-            console.log( 'DB checkInDB gave unecpected: ', rows);
+            console.log( 'DB checkInDB gave unexpected: ', rows);
         }
         if( rows.length > 0) {
             return rows[0];
@@ -889,7 +889,8 @@ var DBwasm = {
             transState = `update dna rel for ${relativeID}`;
             DB529.exec( qry_rel_insert, { bind:[profileID, relativeID] } );
             rowsaffected = DB529.changes();
-            // update the "has been scanned bit", but only if it was previously null.
+            // update the "has been scanned bit", but only if it was previously null. Otherwise the subsequent bitwise
+            // operations will fail.
             DB529.exec( qry_upd_rels_unscanned, { bind:[profileID, relativeID] } );
             // ensure the "force scan" bit is now cleared
             DB529.exec( qry_upd_rels_clrbit3, { bind:[profileID, relativeID] } );
@@ -1111,8 +1112,6 @@ var DBwasm = {
         let total_rows_updated = 0;
 
         try{
-            //DB529.exec( 'PRAGMA synchronous=FULL;');
-            //DB529.exec( 'PRAGMA journal_mode=DELETE;');
             DB529.exec( 'BEGIN TRANSACTION;');
             let loopcount = 1;
             for( const[key, obj] of segmap ) {

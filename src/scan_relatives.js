@@ -21,7 +21,7 @@ let current_ajax = '';
 let profileName = null;		// name of primary DNA tester (you?)
 let profileID = null;		// UUID string of the profile person ("You")
 
-let relativesMap = new Map();		// the 1500 relatives that are preloaded on this page
+let relativesMap = new Map();		// the 1500 or 5000 relatives that are preloaded on this page
 let notesMap = new Map();			// the annotations preloaded for this page.
 let messagesMap = new Map();			// the messages preloaded for this page.
 
