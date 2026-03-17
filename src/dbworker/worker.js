@@ -157,6 +157,10 @@ self.onmessage = function despatchMessages( msg ) {
       let rowsicwupdated = DBwasm.updateICW(content.ICWset);  
     break;
 
+    case "update_ICW_scanned_segs":
+      let rowsicwscannedupdated = DBwasm.updateICWscanned(content.matchpair);  
+    break;
+
     case "force_ICW_rescan":
       DBwasm.force_ICW_rescan(content.profile.id);  
       postMessage( {reason: 'force_ICW_rescan_return', tabID:content.tabID } );   // just to indicate completion

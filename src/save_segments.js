@@ -279,6 +279,11 @@ function finishComparisons() {
 			// failedInSomeWay=false;
 		}
 		else{
+			try {
+				chrome.runtime.sendMessage({mode: "update_ICW_scanned_segs",  matchpair: {pid: profileID, pname: profileName, mid:matchID, mname:matchName}} );
+			} catch( e ) {
+				handleMessageCatches( "in storeSegmentflag", e );
+			}
 			document.getElementById("c529r").innerHTML="Triangulation into 529Renew Completed";
 		}
 	}

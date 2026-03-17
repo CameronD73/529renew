@@ -351,6 +351,11 @@ chrome.runtime.onMessage.addListener(
 			DBworker.postMessage( {reason:"update_ICWs", ICWset:request.ICWset } );
 		break;
 
+		case  "update_ICW_scanned_segs" :
+			// message from savesegs to update flag saying we have triangulated. will not bother returning, just hope it works
+			DBworker.postMessage( {reason:"update_ICW_scanned_segs", matchpair:request.matchpair } );
+		break;
+
 		case  "force_ICW_rescan" :
 			// message from content script - need to forward to worker. will not bother returning, just hope it works
 			DBworker.postMessage( {reason:"force_ICW_rescan", profile:request.profile, tabID: sender.tab.id } );

@@ -947,6 +947,67 @@ var DBwasm = {
             return 0;
 
         }
+        return total_updates;
+    
+    },
+    
+    /*
+    ** updateICWscanned - called after we have scanned the ICWs shared segs for a give profile and relative.
+    ** ensure the icw match is
+    ** 1. in the DNArelatives table to the profile
+    ** 2. the icw is in the idalias table - if they are not there, then only name and ID can be added.
+    ** 3. in the DNAmatches table for both profile-icw and relative-icw, can add ishidden, pctshared, cMtotal
+    ** 4. add to ICWsets to show ?
+    */
+    updateICWscanned: function( matchpair ) {
+        const today = formattedDate2();
+        // this query is for list of ICW ppl 
+        const qry_rel_insert = `INSERT OR IGNORE INTO DNARelatives (IDprofile, IDrelative) VALUES (?, ? );`;
+        // this version is for the relative whose ICWs are being scanned - they must already have an entry in DNArelatives, so just update scan status
+        const qry_upd_rels_unscanned = `UPDATE DNARelatives SET ICWscanned = 1, dateScanned = '${today}' WHERE IDprofile = ? AND IDrelative = ? AND ( ICWscanned IS NULL );`;
+        const qry_upd_rels_setbit1 = 'UPDATE DNARelatives SET ICWscanned =  (ICWscanned | 2) WHERE IDprofile = ? AND IDrelative = ? AND (ICWscanned & 2 = 0) ;';
+        const qry_upd_rels_clrbit3 = 'UPDATE DNARelatives SET ICWscanned =  (ICWscanned & (~8)) WHERE IDprofile = ? AND IDrelative = ? AND (ICWscanned & 8 != 0) ;';
+
+
+        const profileID = matchpair.profileID;
+        const relativeID = matchpair.matchID;
+        let transState = "nothing";
+        let rowsaffected = 0;
+        let total_updates = 0;
+        logHtml( '', `Updating ICWScanned for ${matchpair.profileName} and  ${matchpair.matchName}`);
+
+        try {
+            DB529.exec( 'BEGIN TRANSACTION;');
+            // update scan date for this relative...
+            transState = `update ICWScanned for ${relativeID}`;
+            DB529.exec( qry_rel_insert, { bind:[profileID, relativeID] } );
+            rowsaffected = DB529.changes();
+            total_updates = 1;
+            // update the "has been scanned bit", but only if it was previously null. Otherwise the subsequent bitwise
+            // operations will fail.
+            DB529.exec( qry_upd_rels_unscanned, { bind:[profileID, relativeID] } );
+            rowsaffected = DB529.changes();
+            total_updates++;
+            // ensure the "force scan" bit is now cleared
+            DB529.exec( qry_upd_rels_clrbit3, { bind:[profileID, relativeID] } );
+            rowsaffected = DB529.changes();
+            total_updates++;
+            // ensure the "has been scanned" bit is now set
+            DB529.exec( qry_upd_rels_setbit1, { bind:[profileID, relativeID] } );
+            rowsaffected = DB529.changes();
+            total_updates++;
+
+            DB529.exec( 'COMMIT TRANSACTION;');
+
+        } catch ( e ) {
+            DB529.exec( 'ROLLBACK TRANSACTION;');
+            msg=  `DB updateICWScanned: error after ${total_updates} and ${rowsaffected} rows at ${transState}: ${e.message}`;
+            logHtml('error', msg);
+            console.error( msg );
+            return 0;
+
+        }
+        return total_updates;
     
     },
     /*
