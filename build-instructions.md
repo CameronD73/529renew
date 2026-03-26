@@ -16,7 +16,7 @@ When the sqlite-wasm package is unzipped, rename the folder by removing the vers
 You can either copy everything by hand, or use the Makefile in the _utils_ folder.
 Copy the Makefile into the top level folder, and edit the target folder name - BUILDDIR - to give some unique name.
 ### under MS windows
-This should work directly under GNU/Linux systems, BSD, etc but it  abit trickier under ms-windows.
+This should work directly under GNU/Linux systems, BSD, etc but it's a bit trickier under ms-windows.
 Git Bash does not seem to provide a Make, so I use one from WSL running in windows terminal.
 You should also be able to get a system working under cygwin or msys.
 
