@@ -1328,7 +1328,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 	}
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529_ICWs_" + formattedDate()+ extension);
+	saveAs(blob, "529_GDAT_ICWs_" + formattedDate()+ extension);
 	setSetting( "lastGDAT_ICW_ExportDate", formattedDate2() );
 }
 
