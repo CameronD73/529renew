@@ -903,6 +903,21 @@ function quotify_23( str ){
 }
 
 /*
+** creates a standardised default filename for saving files.
+*/
+function compose_filename( prefix, contentLabel, kitname, extension ){
+	var theName=kitname;		// profile person name
+	
+	if(theName){
+		// replace characters that might be problematic in a filename in different OSs
+		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
+	}
+	else theName="";
+
+	return( "529" + prefix + "_" + contentLabel + "_" + theName + "_" + formattedDate()+ extension);
+}
+
+/*
 ** createTable12
 ** does the bulk of the processing after the big join
 ** Lays out the "Match Table" for the selected person.
@@ -1201,15 +1216,10 @@ function createCSV12( resultRows,  includeNonMatch){
 		csvarray.push(name+","+matchName+","+chromosome+","+startPoint+","+endPoint+","+geneticDistance+","+snps+","+id+","+matchId+"\n");
 
 	}
-	if(theName){
-		theName=theName.replace(/ /g,"_");
-		theName=theName.replace(/\./g,'_');
-		theName="_"+theName;
-	}
-	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529renew" + theName+ "_" + formattedDate()+ ".csv");
+	saveAs(blob, compose_filename( "renew", "", theName, ".csv"));
+	//saveAs(blob, "529renew" + theName+ "_" + formattedDate()+ ".csv");
 
 	// only record the date exported when we save all testers and all chromosomes
 	let chromosome = parseInt( document.getElementById("chromosome").options[document.getElementById("chromosome").selectedIndex].value );
@@ -1244,7 +1254,6 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 	csvarray.push(CSV23Header.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
-	var theName=kitname;		// profile person name
 
 	for(let i=0; i<nrows; i++) {	//nrows
 
@@ -1280,14 +1289,9 @@ function create23CorTSV_noDNA( resultRows, sep, kitid, kitname){
 				csv_eol);
 
 	}
-	if(theName){
-		// replace characters that might be problematic in a filename in different OSs
-		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
-	}
-	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529relatives_" + theName+ "_" + formattedDate()+ extension);
+	saveAs(blob, compose_filename( "relatives_", "noDNA", kitname, extension));
 
 }
 
@@ -1300,7 +1304,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 
 	var csvarray=new Array();
 	let sep = ',';
-	let extension = ".csv";		
+	let extension = ".csv";
 	
 	const CSVGDATHeader= ByteOrderMark + "Kit ID 1; Kit ID 2;cM total;nSegments;largest Seg;Relative 1;Relative 2;Predicted Rln;" + csv_eol;
 	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
@@ -1328,7 +1332,7 @@ function createICW_CSV4GDAT( resultRows, kitid, kitname){
 	}
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529_GDAT_ICWs_" + formattedDate()+ extension);
+	saveAs(blob, compose_filename( "_GDAT", "ICWs", kitname, extension));
 	setSetting( "lastGDAT_ICW_ExportDate", formattedDate2() );
 }
 
@@ -1348,7 +1352,6 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 	csvarray.push(CSVGDATHeader.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
-	var theName=kitname;		// profile person name
 
 	for(let i=0; i<nrows; i++) {	//nrows
 
@@ -1376,14 +1379,9 @@ function createRels_CSV4GDAT( resultRows, kitid, kitname){
 						csv_eol);
 
 	}
-	if(theName){
-		// replace characters that might be problematic in a filename in different OSs
-		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
-	}
-	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529_GDAT_Rels_" + theName+ "_" + formattedDate()+ extension);
+	saveAs(blob, compose_filename( "_GDAT", "Rels", kitname,  extension));
 	// this convoluted code seems to be the only way I can get the profile ID to be a key
 	let newobj = {};
 	newobj[kitid] = formattedDate2();
@@ -1407,7 +1405,6 @@ function createICW_CSV( resultRows, kitid, kitname){
 	csvarray.push(CSV23Header.replace(/;/g, sep));
 
 	let nrows = resultRows.length;
-	var theName=kitname;		// profile person name
 
 	for(let i=0; i<nrows; i++) {	//nrows
 
@@ -1429,14 +1426,9 @@ function createICW_CSV( resultRows, kitid, kitname){
 				csv_eol);
 
 	}
-	if(theName){
-		// replace characters that might be problematic in a filename in different OSs
-		theName=theName.replace(/[ '\/\\:\.";,"]/g,"_");
-	}
-	else theName="";
 
 	var blob = new Blob(csvarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529_GDAT_ICW_" + theName+ "_" + formattedDate()+ extension);
+	saveAs(blob, compose_filename("_GDAT", "ICW", kitname, extension));
 
 }
 
@@ -1453,7 +1445,8 @@ function downloadSVG(){
 	svgArray.push('xmlns="http://www.w3.org/2000/svg" version="1.1" ');
 	svgArray.push(svgText.slice(18));
 	var blob = new Blob(svgArray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529renew.svg");
+	// todo - dig out the chromosome...
+	saveAs(blob, compose_filename( "renew", "map", "chrx", "svg"));
 }
 
 function createGEXF(resultRows){
@@ -1468,6 +1461,11 @@ function createGEXF(resultRows){
 	gexfarray.push('  <graph defaultedgetype="undirected" mode="static">\n');
 	gexfarray.push('    <nodes>\n');
 
+	let namesel = document.getElementById("selectKit");
+	let kitName = "unknown";
+	if(namesel.selectedIndex>=0){
+		kitName=namesel.options[namesel.selectedIndex].text;
+	}
 	var nodeArray=new Array();
 	let nrows = resultRows.length;
 
@@ -1529,7 +1527,7 @@ function createGEXF(resultRows){
 	gexfarray.push('  </graph>\n');
 	gexfarray.push('</gexf>\n');
 	let blob = new Blob(gexfarray, {type: "text/plain;charset=utf-8"});
-	saveAs(blob, "529renew.gexf");
+	saveAs(blob, compose_filename("renew", "graph", kitName, "gexf"));
 
 }
 
@@ -2345,7 +2343,7 @@ function dumpSqlite3DB(arrbuf) {
 		fsstring = fileMB.toString() + " MB";
 	}
 	let bufferblob = new Blob( [arrbuf], {type:'application/octet-stream'} );
-	let fname = "529wasm" + "_" + formattedDate()+ ".sqlite";
+	let fname = compose_filename( "wasm", "full", "at", ".sqlite");
 	saveAs(bufferblob, fname);
 	// The saveAs is async, so the alert usually appears before the saveAs dialogue box.
 	//alert( `Saved to file ${fname}, size : ${fsstring}` );
@@ -2364,7 +2362,7 @@ function askRestoreSqlite3DB(evt) {
 	if ( ! file ) return;
 	const reader = new FileReader();
 
-	alert('Restoring an older DB will convert it to the latest version.\nThis may take some seconds - check progress in the text area below.');
+	alert('Restoring any DB will convert it to the latest version if neccessary.\nThis may take some seconds - check progress in the text area below.');
 	reader.addEventListener('load', function(theFile) {
 		let data = this.result;  // an ArrayBuffer
 		DBworker.postMessage( {reason:"restoreDB", filecontents:data}, [data] );

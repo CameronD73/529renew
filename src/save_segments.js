@@ -10,7 +10,7 @@
 /* eslint no-unused-vars: "off"*/
 'use strict';
 
-let CHROMOSOME_DATA_AVAILABLE = true;			// skip a bit of code while it is useless
+let CHROMOSOME_DATA_AVAILABLE = true;			// if FALSE then skip a bit of code while it is useless
 
 let div529=document.createElement('div');
 div529.id="div529r";
